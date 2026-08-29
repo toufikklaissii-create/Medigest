@@ -3,40 +3,64 @@
 {% block content %}
 <div class="max-w-4xl mx-auto px-6 py-7">
     <div class="mb-7">
-        <h1 class="text-2xl font-bold text-text-main tracking-tight">Facturation</h1>
-        <p class="text-sm text-text-muted mt-0.5 tabular-nums">{{ invoices|length }} facture{{ invoices|length|pluralize }} récente{{ invoices|length|pluralize }}</p>
+        <h1 class="font-display text-[28px] font-semibold text-text-main tracking-tight leading-tight">Facturation</h1>
+        <p class="text-sm text-text-muted mt-1 tabular-nums">{{ invoices|length }} facture{{ invoices|length|pluralize }} récente{{ invoices|length|pluralize }}</p>
     </div>
 
-    <div class="bg-surface rounded-xl border border-border-subtle shadow-sm divide-y divide-border-subtle overflow-hidden">
-        {% for invoice in invoices %}
-        <div class="flex items-center gap-3 px-4 py-3.5 hover:bg-canvas transition-colors duration-150">
-            <div class="min-w-0 flex-1">
-                <p class="font-medium text-sm text-text-main truncate">{{ invoice.patient }}</p>
-                <p class="text-xs text-text-muted mt-0.5">{{ invoice.invoice_number }} · {{ invoice.created_at|date:"d/m/Y" }}</p>
-            </div>
-            <span class="shrink-0 text-[11px] font-semibold rounded-full px-2.5 py-1 border
-                {% if invoice.status == 'paid' %}bg-emerald-50 text-emerald-700 border-emerald-200
-                {% elif invoice.status == 'pending' %}bg-amber-50 text-amber-700 border-amber-200
-                {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
-                {{ invoice.get_status_display }}
-            </span>
-            <p class="shrink-0 w-24 text-right text-sm font-bold text-text-main tabular-nums">{{ invoice.total_amount }} DH</p>
-            {% if invoice.status == "paid" %}
-            <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank"
-               title="Télécharger le reçu"
-               class="btn-tactile shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
-                <i data-lucide="download" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-            </a>
-            {% else %}
-            <span class="shrink-0 h-8 w-8"></span>
-            {% endif %}
+    <div class="bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden">
+        {% if invoices %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50/50 sticky top-0">
+                    <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                        <th class="text-left font-bold px-5 py-3">Patiente</th>
+                        <th class="text-left font-bold px-4 py-3">Facture</th>
+                        <th class="text-left font-bold px-4 py-3">Statut</th>
+                        <th class="text-right font-bold px-4 py-3">Montant</th>
+                        <th class="text-right font-bold px-5 py-3">Reçu</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {% for invoice in invoices %}
+                    <tr class="h-14 hover:bg-sauge-25 transition-colors duration-150">
+                        <td class="px-5 font-medium text-text-main truncate">{{ invoice.patient }}</td>
+                        <td class="px-4 text-text-soft whitespace-nowrap">
+                            {{ invoice.invoice_number }}
+                            <span class="text-text-faint">· {{ invoice.created_at|date:"d/m/Y" }}</span>
+                        </td>
+                        <td class="px-4">
+                            <span class="inline-flex items-center gap-1.5 text-[11px] font-medium rounded-full px-2.5 py-0.5 border whitespace-nowrap
+                                {% if invoice.status == 'paid' %}bg-emerald-50 text-emerald-700 border-emerald-200
+                                {% elif invoice.status == 'pending' %}bg-amber-50 text-amber-700 border-amber-200
+                                {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
+                                <span class="h-1.5 w-1.5 rounded-full shrink-0
+                                    {% if invoice.status == 'paid' %}bg-emerald-400
+                                    {% elif invoice.status == 'pending' %}bg-amber-400
+                                    {% else %}bg-slate-400{% endif %}"></span>
+                                {{ invoice.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 text-right font-bold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount }} <span class="font-medium text-text-muted text-xs">DH</span></td>
+                        <td class="px-5 text-right">
+                            {% if invoice.status == "paid" %}
+                            <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank"
+                               title="Télécharger le reçu" aria-label="Télécharger le reçu de {{ invoice.invoice_number }}"
+                               class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                                <i data-lucide="download" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        {% empty %}
-        <div class="px-4 py-14 text-center">
+        {% else %}
+        <div class="px-4 py-16 text-center">
             <i data-lucide="receipt" class="w-8 h-8 text-slate-300 mx-auto mb-2" stroke-width="1.5"></i>
             <p class="text-sm text-text-muted">Aucune facture pour le moment.</p>
         </div>
-        {% endfor %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

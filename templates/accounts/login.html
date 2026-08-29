@@ -1,50 +1,65 @@
 {% extends "base.html" %}
 {% block title %}Connexion — Medigest{% endblock %}
 {% block content %}
-<div class="min-h-[calc(100dvh-57px)] flex items-center justify-center px-4 py-12 bg-[radial-gradient(circle_at_top,_#F4F7F5,_#FBFBFC_60%)]">
-    <div class="w-full max-w-sm">
+<div class="min-h-[100dvh] flex items-center justify-center px-4 py-12 relative overflow-hidden"
+     style="background: radial-gradient(circle at 50% 0%, #F4F7F5 0%, #F7F8F8 55%, #F7F8F8 100%);">
+
+    <!-- Motif discret : grille de points très légère, purement décorative -->
+    <div class="absolute inset-0 pointer-events-none opacity-[0.4]"
+         style="background-image: radial-gradient(#C9D8D0 1px, transparent 1px); background-size: 28px 28px; mask-image: radial-gradient(circle at 50% 20%, black 0%, transparent 65%);"
+         aria-hidden="true"></div>
+
+    <div class="w-full max-w-sm relative">
         <div class="flex flex-col items-center text-center mb-7">
-            <div class="h-14 w-14 rounded-2xl bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white shadow-card mb-4">
+            <div class="h-14 w-14 rounded-2xl bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white shadow-card mb-4 animate-logo-in motion-reduce:animate-none">
                 <i data-lucide="heart-pulse" class="w-7 h-7" stroke-width="1.75"></i>
             </div>
-            <h1 class="text-xl font-bold text-text-main tracking-tight">Cabinet Dr ERRMILI Khadija</h1>
-            <p class="text-sm text-text-muted mt-0.5">Gynécologie &amp; Obstétrique — Espace privé</p>
+            <h1 class="font-display text-2xl font-semibold text-text-main tracking-tight">Cabinet Dr ERRMILI Khadija</h1>
+            <p class="text-[13.5px] text-text-muted mt-1">Gynécologie &amp; Obstétrique — Espace privé</p>
         </div>
 
         <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-7">
             {% if form.non_field_errors %}
-            <div class="mb-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 px-3 py-2.5 text-sm">
+            <div class="mb-5 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 px-3.5 py-3 text-sm" role="alert">
                 <i data-lucide="triangle-alert" class="w-4 h-4 mt-0.5 shrink-0" stroke-width="1.75"></i>
                 <p>{{ form.non_field_errors.0 }}</p>
             </div>
             {% endif %}
 
-            <form method="post" class="space-y-4">
+            <form method="post" class="space-y-5" x-data="{ submitting: false }"
+                  @submit="submitting = true; $nextTick(() => window.lucide && lucide.createIcons())">
                 {% csrf_token %}
                 <div>
-                    <label for="id_username" class="block text-xs font-medium text-text-muted mb-1.5">Identifiant</label>
+                    <label for="id_username" class="block text-[13px] font-medium text-text-soft mb-1.5">Identifiant</label>
                     <div class="relative">
-                        <i data-lucide="user" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" stroke-width="1.75"></i>
+                        <i data-lucide="user" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-faint" stroke-width="1.75"></i>
                         <input type="text" name="username" id="id_username" required autofocus autocomplete="username"
-                               class="w-full pl-10 pr-3.5 py-2.5 rounded-lg border border-border-subtle text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                               class="w-full h-10 pl-10 pr-3.5 rounded-lg border border-border-subtle text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                     </div>
                 </div>
                 <div>
-                    <label for="id_password" class="block text-xs font-medium text-text-muted mb-1.5">Mot de passe</label>
+                    <label for="id_password" class="block text-[13px] font-medium text-text-soft mb-1.5">Mot de passe</label>
                     <div class="relative">
-                        <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" stroke-width="1.75"></i>
+                        <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-faint" stroke-width="1.75"></i>
                         <input type="password" name="password" id="id_password" required autocomplete="current-password"
-                               class="w-full pl-10 pr-3.5 py-2.5 rounded-lg border border-border-subtle text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                               class="w-full h-10 pl-10 pr-3.5 rounded-lg border border-border-subtle text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                     </div>
                 </div>
-                <button type="submit"
-                        class="btn-tactile w-full bg-sauge-600 text-white text-sm font-semibold rounded-lg py-2.5 shadow-sm hover:bg-sauge-900 hover:shadow-card flex items-center justify-center gap-2">
-                    <i data-lucide="log-in" class="w-4 h-4" stroke-width="1.75"></i> Se connecter
+                <button type="submit" :disabled="submitting"
+                        class="btn-tactile w-full min-w-[140px] h-10 bg-sauge-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-90 disabled:cursor-wait">
+                    <template x-if="!submitting">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="log-in" class="w-4 h-4" stroke-width="1.75"></i> Se connecter
+                        </span>
+                    </template>
+                    <template x-if="submitting">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin motion-reduce:animate-none" stroke-width="1.75"></i>
+                    </template>
                 </button>
             </form>
         </div>
 
-        <p class="text-center text-xs text-text-muted mt-6">Accès réservé au personnel du cabinet.</p>
+        <p class="text-center text-xs text-text-faint mt-6">Accès réservé au personnel du cabinet.</p>
     </div>
 </div>
 {% endblock %}

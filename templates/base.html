@@ -64,9 +64,14 @@
                             "0%": { opacity: 0, transform: "translateY(4px)" },
                             "100%": { opacity: 1, transform: "none" },
                         },
+                        "logo-in": {
+                            "0%": { opacity: 0, transform: "scale(0.85)" },
+                            "100%": { opacity: 1, transform: "scale(1)" },
+                        },
                     },
                     animation: {
                         "slide-in": "slide-in 220ms cubic-bezier(0.4, 0, 0.2, 1)",
+                        "logo-in": "logo-in 500ms cubic-bezier(0.4, 0, 0.2, 1)",
                     },
                 },
             },
@@ -135,7 +140,8 @@
     Aller au contenu principal
 </a>
 
-{% if request.user.is_authenticated %}
+{% url 'accounts:login' as login_url %}
+{% if request.user.is_authenticated and request.path != login_url %}
 {% with role=request.user.profile.role %}
 {% if role == 'doctor' %}{% url 'clinical:doctor_dashboard' as dash_url %}{% else %}{% url 'appointments:assistant_dashboard' as dash_url %}{% endif %}
 {% url 'patients:index' as patients_url %}
@@ -261,11 +267,13 @@
 {% endwith %}
 {% endif %}
 
-    <main id="main-content" class="{% if request.user.is_authenticated %}flex-1{% endif %}">
+    <main id="main-content" class="{% url 'accounts:login' as login_url %}
+{% if request.user.is_authenticated and request.path != login_url %}flex-1{% endif %}">
         {% block content %}{% endblock %}
     </main>
 
-{% if request.user.is_authenticated %}
+{% url 'accounts:login' as login_url %}
+{% if request.user.is_authenticated and request.path != login_url %}
 </div>
 </div>
 {% endif %}

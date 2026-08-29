@@ -4,7 +4,7 @@
 <div class="max-w-5xl mx-auto px-6 py-7">
     <div class="flex items-center justify-between mb-7">
         <div>
-            <h1 class="font-display text-[28px] font-semibold text-text-main tracking-tight leading-tight">Patientes</h1>
+            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Patientes</h1>
             <p class="text-sm text-text-muted mt-1 tabular-nums">{{ patients|length }} dossier{{ patients|length|pluralize }} enregistré{{ patients|length|pluralize }}</p>
         </div>
         <a href="{% url 'patients:create_patient' %}"

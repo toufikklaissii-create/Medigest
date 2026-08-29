@@ -16,7 +16,7 @@
                 {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
             </div>
             <div class="min-w-0">
-                <h1 class="font-display text-lg font-semibold text-text-main leading-tight truncate">{{ patient.first_name }} {{ patient.last_name }}</h1>
+                <h1 class="text-lg font-semibold text-text-main leading-tight truncate">{{ patient.first_name }} {{ patient.last_name }}</h1>
                 <p class="text-xs text-text-muted leading-tight mt-0.5">
                     {{ patient.patient_number }}
                     {% if patient.age %} · {{ patient.age }} ans{% endif %}

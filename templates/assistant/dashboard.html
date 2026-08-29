@@ -5,7 +5,7 @@
 
     <div class="flex flex-wrap items-center justify-between gap-4 mb-7">
         <div>
-            <h1 class="font-display text-[28px] font-semibold text-text-main tracking-tight leading-tight">Espace Accueil &amp; Coordination</h1>
+            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Espace Accueil &amp; Coordination</h1>
             <p class="text-sm text-text-muted mt-1">File d'attente et gestion du jour</p>
         </div>
         <div class="flex items-center gap-2">
@@ -32,7 +32,7 @@
                 </span>
                 <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">jour</span>
             </div>
-            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ today_total }}</p>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ today_total }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">Patientes reçues aujourd'hui</p>
         </div>
 
@@ -44,7 +44,7 @@
                 </span>
                 <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">à faire</span>
             </div>
-            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ pending_invoices|length }}</p>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ pending_invoices|length }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">Encaissements en attente</p>
             {% if pending_invoices_total %}
             <span class="inline-block mt-2.5 text-[11px] font-semibold text-rose-700 bg-rose-50 rounded-md px-2 py-1 tabular-nums">{{ pending_invoices_total }} DH au total</span>
@@ -59,7 +59,7 @@
                 </span>
                 <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">restant</span>
             </div>
-            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ scheduled_today|length }}</p>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ scheduled_today|length }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">RDV programmés</p>
             {% with next_rdv=scheduled_today|first %}
             {% if next_rdv %}
@@ -76,7 +76,7 @@
                 </span>
                 <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">actives</span>
             </div>
-            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ my_tasks|length }}</p>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ my_tasks|length }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">Tâches à traiter</p>
             {% if urgent_tasks_count %}
             <span class="inline-block mt-2.5 text-[11px] font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }}</span>

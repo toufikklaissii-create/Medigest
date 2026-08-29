@@ -1,0 +1,21 @@
+{% comment %}
+Composant de badge de statut unique (DESIGN.md §3.4). Usage :
+{% include "_status_badge.html" with tone="amber" label="Arrivée" %}
+tons disponibles : amber, sky, emerald, slate, rose, sauge.
+{% endcomment %}
+<span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap
+    {% if tone == 'amber' %}bg-amber-50 text-amber-700 border-amber-200
+    {% elif tone == 'sky' %}bg-sky-50 text-sky-700 border-sky-200
+    {% elif tone == 'emerald' %}bg-emerald-50 text-emerald-700 border-emerald-200
+    {% elif tone == 'rose' %}bg-rose-50 text-rose-700 border-rose-200
+    {% elif tone == 'sauge' %}bg-sauge-50 text-sauge-600 border-sauge-100
+    {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
+    <span class="h-1.5 w-1.5 rounded-full shrink-0
+        {% if tone == 'amber' %}bg-amber-400
+        {% elif tone == 'sky' %}bg-sky-400
+        {% elif tone == 'emerald' %}bg-emerald-400
+        {% elif tone == 'rose' %}bg-rose-500
+        {% elif tone == 'sauge' %}bg-sauge-500
+        {% else %}bg-slate-400{% endif %}"></span>
+    {{ label }}
+</span>

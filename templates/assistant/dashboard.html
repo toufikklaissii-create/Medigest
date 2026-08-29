@@ -5,8 +5,8 @@
 
     <div class="flex flex-wrap items-center justify-between gap-4 mb-7">
         <div>
-            <h1 class="text-2xl font-bold text-text-main tracking-tight">Espace Accueil &amp; Coordination</h1>
-            <p class="text-sm text-text-muted mt-0.5">File d'attente et gestion du jour</p>
+            <h1 class="font-display text-[28px] font-semibold text-text-main tracking-tight leading-tight">Espace Accueil &amp; Coordination</h1>
+            <p class="text-sm text-text-muted mt-1">File d'attente et gestion du jour</p>
         </div>
         <div class="flex items-center gap-2">
             <a href="{% url 'appointments:calendar' %}"
@@ -24,50 +24,53 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
-            <div class="flex items-center justify-between mb-3">
-                <span class="h-8 w-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
-                    <i data-lucide="users" class="w-4 h-4" stroke-width="1.75"></i>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
+        <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150">
+            <div class="flex items-center justify-between mb-4">
+                <span class="h-9 w-9 rounded-[10px] bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <i data-lucide="users" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">jour</span>
+                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">jour</span>
             </div>
-            <p class="text-2xl font-bold text-text-main tabular-nums">{{ today_total }}</p>
-            <p class="text-xs text-text-muted mt-0.5">Patientes reçues aujourd'hui</p>
+            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ today_total }}</p>
+            <p class="text-[13px] text-text-muted mt-1.5">Patientes reçues aujourd'hui</p>
         </div>
 
-        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
-            <div class="flex items-center justify-between mb-3">
-                <span class="h-8 w-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
-                    <i data-lucide="banknote" class="w-4 h-4" stroke-width="1.75"></i>
+        <a href="{% url 'billing:index' %}"
+           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-4">
+                <span class="h-9 w-9 rounded-[10px] bg-rose-50 text-rose-700 flex items-center justify-center">
+                    <i data-lucide="banknote" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">à faire</span>
+                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">à faire</span>
             </div>
-            <p class="text-2xl font-bold text-text-main tabular-nums">{{ pending_invoices|length }}</p>
-            <p class="text-xs text-text-muted mt-0.5">Encaissements en attente</p>
-        </div>
+            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ pending_invoices|length }}</p>
+            <p class="text-[13px] text-text-muted mt-1.5">Encaissements en attente</p>
+        </a>
 
-        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
-            <div class="flex items-center justify-between mb-3">
-                <span class="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
-                    <i data-lucide="calendar-clock" class="w-4 h-4" stroke-width="1.75"></i>
+        <a href="{% url 'appointments:calendar' %}"
+           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-4">
+                <span class="h-9 w-9 rounded-[10px] bg-sky-50 text-sky-700 flex items-center justify-center">
+                    <i data-lucide="calendar-clock" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">restant</span>
+                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">restant</span>
             </div>
-            <p class="text-2xl font-bold text-text-main tabular-nums">{{ scheduled_today|length }}</p>
-            <p class="text-xs text-text-muted mt-0.5">RDV programmés</p>
-        </div>
+            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ scheduled_today|length }}</p>
+            <p class="text-[13px] text-text-muted mt-1.5">RDV programmés</p>
+        </a>
 
-        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
-            <div class="flex items-center justify-between mb-3">
-                <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="list-checks" class="w-4 h-4" stroke-width="1.75"></i>
+        <a href="{% url 'communications:index' %}"
+           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-4">
+                <span class="h-9 w-9 rounded-[10px] bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="list-checks" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">actives</span>
+                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">actives</span>
             </div>
-            <p class="text-2xl font-bold text-text-main tabular-nums">{{ my_tasks|length }}</p>
-            <p class="text-xs text-text-muted mt-0.5">Tâches à traiter</p>
-        </div>
+            <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ my_tasks|length }}</p>
+            <p class="text-[13px] text-text-muted mt-1.5">Tâches à traiter</p>
+        </a>
     </div>
 
     <!-- Universal search -->
@@ -90,37 +93,45 @@
 
     <!-- File du jour — Kanban -->
     <div class="mb-7">
-        <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">File d'attente du jour</h2>
+        <div class="flex items-center justify-between mb-3.5">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint flex items-center gap-2">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5" stroke-width="1.75"></i> File d'attente du jour
+            </h2>
+            <a href="{% url 'appointments:calendar' %}" class="text-[12.5px] font-semibold text-sauge-500 hover:text-sauge-600 hover:underline">Vue planning →</a>
+        </div>
         {% include "assistant/_queue_board.html" %}
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
-            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
-                <i data-lucide="banknote" class="w-4 h-4" stroke-width="1.75"></i> Facturation &amp; encaissements
-            </h2>
+    <div class="grid grid-cols-1 lg:grid-cols-[5fr_4fr_3fr] gap-5">
+        <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint flex items-center gap-2">
+                    <i data-lucide="banknote" class="w-3.5 h-3.5" stroke-width="1.75"></i> Facturation &amp; encaissements
+                </h2>
+                <a href="{% url 'billing:index' %}" class="text-[12.5px] font-semibold text-sauge-500 hover:text-sauge-600 hover:underline">Tout voir</a>
+            </div>
             {% include "assistant/_pending_invoices.html" %}
         </div>
 
-        <div class="flex flex-col gap-6">
-            <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
-                <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
-                    <i data-lucide="calendar-clock" class="w-4 h-4" stroke-width="1.75"></i> RDV du jour
+        <div class="flex flex-col gap-5">
+            <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
+                <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-3.5 flex items-center gap-2">
+                    <i data-lucide="calendar-clock" class="w-3.5 h-3.5" stroke-width="1.75"></i> RDV du jour
                 </h2>
                 {% include "assistant/_today_list.html" %}
             </div>
 
-            <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
-                <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
-                    <i data-lucide="message-circle" class="w-4 h-4" stroke-width="1.75"></i> Rappels WhatsApp J+2
+            <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
+                <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-3.5 flex items-center gap-2">
+                    <i data-lucide="message-circle" class="w-3.5 h-3.5" stroke-width="1.75"></i> Rappels WhatsApp J+2
                 </h2>
                 {% include "assistant/_j2_reminders.html" %}
             </div>
         </div>
 
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
-            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
-                <i data-lucide="list-checks" class="w-4 h-4" stroke-width="1.75"></i> Tâches
+        <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-3.5 flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-3.5 h-3.5" stroke-width="1.75"></i> Tâches
             </h2>
             {% include "communications/_tasks_panel.html" with tasks=my_tasks %}
         </div>

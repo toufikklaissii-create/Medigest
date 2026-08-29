@@ -1,6 +1,6 @@
-# DESIGN.md — Design System Medigest « Clinique Apaisante » v2 (Premium)
+# DESIGN.md — Design System Medigest « Clinique Apaisante » v3 (Premium SaaS épuré)
 
-Référence unique pour toute l'UI. Objectif : le niveau de finition d'un produit SaaS haut de gamme (Linear, Attio, Cron) appliqué à un cabinet médical — calme, précis, chirurgical. La maquette validée est `design_reference/dashboard_reference.html` : **tout écran refondu doit atteindre ce niveau**.
+Référence unique pour toute l'UI. Objectif : le niveau de finition d'un produit SaaS haut de gamme, épuré et ultra-moderne (Linear, Attio, Cron, **bklit.com**) appliqué à un cabinet médical — calme, précis, chirurgical. La maquette validée est `design_reference/dashboard_reference.html` : **tout écran refondu doit atteindre ce niveau**.
 
 ## 0. Principes (à relire avant chaque écran)
 
@@ -9,6 +9,12 @@ Référence unique pour toute l'UI. Objectif : le niveau de finition d'un produi
 3. **La couleur signifie quelque chose** : le sauge = action et identité ; les pastels = statuts médicaux ; tout le reste est neutre. Jamais de couleur décorative gratuite.
 4. **Chaque interaction répond** : hover, active, focus-visible, loading, empty, error — les 6 états existent sur chaque composant interactif.
 5. **Zéro layout shift** : les swaps HTMX remplacent des blocs de dimensions stables ; les images/icônes ont des dimensions explicites ; les skeletons ont la taille du contenu final.
+
+### Références d'inspiration officielles
+
+- **[bklit.com](https://bklit.com)** — standard absolu pour les layouts aérés : cartes sans bordure lourde, padding généreux **24px minimum**, ombres très douces type `shadow-sm`/`shadow-card`, zéro encombrement visuel, hiérarchie claire par l'espace plutôt que par l'encadrement. À consulter avant toute refonte de grille de cartes ou de tableau de bord.
+- **[uiverse.io](https://uiverse.io)** — référence obligatoire pour le comportement des éléments interactifs : hovers fluides, `active:scale-[0.98]` (retour tactile), loaders discrets (jamais de spinner plein écran), boutons avec micro-feedback. À consulter avant toute refonte de bouton, toggle, ou état de chargement.
+- `design_reference/dashboard_reference.html` reste la maquette de référence pixel pour la densité et la respiration globale de l'app.
 
 ## 1. Fondations
 
@@ -52,16 +58,18 @@ colors: {
 
 ### 1.2 Typographie
 
-- **Display / titres de page** : `Fraunces` (Google Fonts, `opsz` auto, graisse 500–600) — c'est la signature « clinique privée haut de gamme ». Utilisée UNIQUEMENT pour : titre de page (H1), grands chiffres des KPI, nom de la patiente en tête de fiche.
-- **UI / tout le reste** : `Plus Jakarta Sans` 400 / 500 / 600 / 700.
-- Échelle : H1 page `text-[28px] leading-tight font-semibold` (Fraunces) · H2 section `text-[15px] font-semibold tracking-[0.01em]` · corps `text-sm` (14px) · méta `text-[13px] text-text-muted` · micro-labels `text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint`.
+- **UNIQUE typographie autorisée sur l'ensemble du projet** : `Plus Jakarta Sans` (400 / 500 / 600 / 700 / 800). Aucune police Serif, aucune police d'affichage alternative. Cette règle s'applique sans exception aux titres de page (H1), aux grands chiffres des KPI, aux badges, et à tout le corps de texte.
+- **Interdiction explicite** : `Fraunces` et toute autre police Serif sont **bannies** du projet (voir §6 Anti-patterns). Une interface médicale premium se construit par la hiérarchie de graisse, de taille et d'espace — pas par un changement de famille de police.
+- Échelle : H1 page `text-[28px] leading-tight font-semibold` · chiffres KPI `text-4xl font-bold` · H2 section `text-[15px] font-semibold tracking-[0.01em]` · corps `text-sm` (14px) · méta `text-[13px] text-text-muted` · micro-labels `text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint`. Toute la hiérarchie ci-dessus est en `Plus Jakarta Sans`, seule la graisse (`font-weight`) et la taille varient.
 - Chiffres tabulaires partout où des montants/heures s'alignent : `font-variant-numeric: tabular-nums`.
 
 ### 1.3 Espacement, rayons, ombres
 
-- Grille d'espacement 4px ; padding interne des cartes **24px** (`p-6`) ; gouttières de grille `gap-5` ou `gap-6` ; sections séparées par `mt-10`.
+Référence directrice : **bklit.com** — layouts aérés, cartes sans bordure lourde, padding généreux.
+
+- Grille d'espacement 4px ; padding interne des cartes **24px minimum** (`p-6`) ; gouttières de grille `gap-5` ou `gap-6` ; sections séparées par `mt-10`.
 - Rayons : boutons/inputs `rounded-lg` (10px) · cartes `rounded-2xl` (16px) · modals/tiroirs `rounded-2xl` · badges `rounded-full`.
-- Ombres (déjà dans `base.html`) : cartes `shadow-card`, popovers/menus `shadow-popover`, jamais d'ombre dure. Le relief vient surtout du contraste `canvas` ↔ `surface`.
+- Ombres (déjà dans `base.html`) : cartes `shadow-card`, popovers/menus `shadow-popover` — toujours **très douces** (`shadow-sm` à défaut), jamais d'ombre dure. Le relief vient surtout du contraste `canvas` ↔ `surface`, pas de la bordure.
 - Focus : `focus-visible:ring-2 ring-sauge-600/30 ring-offset-2` — sur TOUT élément interactif.
 
 ### 1.4 Iconographie
@@ -80,28 +88,31 @@ Remplace la top-nav par onglets. Structure cible de `base.html` :
 └──────────┴──────────────────────────────────────────┘
 ```
 
-- **Sidebar** : `w-[264px]`, fond dégradé sombre `bg-gradient-to-b from-sauge-900 to-sauge-950`, texte `text-white/70`. En haut : logo + « Cabinet Dr ERRMILI Khadija / Gynécologie & Obstétrique ». Navigation : Accueil, Planning, Patientes, Facturation, Communications (icônes Lucide 18px + label). Item actif : `bg-white/10 text-white rounded-lg` + barre d'accent 3px `bg-sauge-400` à gauche. Hover : `bg-white/5`, transition 150ms. En bas : carte utilisateur (avatar initiales, rôle « Assistante » ou « Dr ERRMILI ») + bouton Déconnexion.
+- **Sidebar** : `w-[264px]`, fond dégradé sombre `bg-gradient-to-b from-sauge-900 to-sauge-950`, texte `text-white/70`. En haut : logo + « Cabinet Dr ERRMILI Khadija / Gynécologie & Obstétrique ». Navigation : Accueil, Planning, Patientes, Facturation, Communications (icônes Lucide 18px + label). Item actif : `bg-white/10 text-white rounded-lg` + barre d'accent 3px `bg-sauge-400` à gauche. Hover : `bg-white/5`, transition 150ms (référence **uiverse.io** pour la fluidité du hover). En bas : carte utilisateur (avatar initiales, rôle « Assistante » ou « Dr ERRMILI ») + bouton Déconnexion.
 - **Topbar** : date du jour en toutes lettres, badge « Live » (dot `bg-emerald-400` + `animate-pulse` discret), recherche globale (Cmd/Ctrl+K), actions contextuelles de la page à droite.
-- **Contenu** : chaque page commence par un en-tête : H1 Fraunces + sous-titre `text-text-muted` à gauche, boutons d'action à droite. Jamais plus d'un bouton primaire visible par écran.
+- **Contenu** : chaque page commence par un en-tête : H1 `Plus Jakarta Sans` `font-semibold` + sous-titre `text-text-muted` à gauche, boutons d'action à droite. Jamais plus d'un bouton primaire visible par écran.
 - Responsive : < 1024px la sidebar se replie en rail d'icônes 64px (tooltips), < 768px elle devient un tiroir off-canvas Alpine.
 
 ## 3. Composants (contrats à respecter partout)
 
 ### 3.1 Boutons
+
+Référence directrice : **uiverse.io** pour tout le comportement interactif ci-dessous.
+
 - **Primaire** : `bg-sauge-600 text-white rounded-lg px-4 h-10 text-sm font-semibold shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150` + icône 16px optionnelle.
 - **Secondaire** : `bg-surface border border-border-subtle text-text-main hover:bg-sauge-25 hover:border-sauge-200`.
 - **Ghost** : `text-text-soft hover:bg-slate-100/70 hover:text-text-main`.
 - **Destructif** : réservé aux confirmations — `bg-rose-600` uniquement dans un modal de confirmation.
-- État loading : le label est remplacé par un spinner 16px + le bouton garde SA LARGEUR (`min-w` figée).
+- État loading : le label est remplacé par un spinner 16px discret + le bouton garde SA LARGEUR (`min-w` figée). Jamais de spinner plein écran, jamais de loader intrusif.
 
 ### 3.2 Cartes KPI (dashboard)
-`bg-surface rounded-2xl border border-border-subtle shadow-card p-6` ; pastille icône en haut à gauche ; badge de contexte (« jour », « à faire ») en haut à droite ; **chiffre en Fraunces `text-4xl`** ; label `text-[13px] text-text-muted`. Hover : `translate-y-[-2px] shadow-popover` 150ms. Si la valeur demande une action (encaissements en attente > 0), la carte entière est cliquable et route vers l'écran concerné.
+`bg-surface rounded-2xl border border-border-subtle shadow-card p-6` (padding 24px minimum, cf. §1.3/bklit.com) ; pastille icône en haut à gauche ; badge de contexte (« jour », « à faire ») en haut à droite ; **chiffre en Plus Jakarta Sans `font-bold text-4xl`** ; label `text-[13px] text-text-muted`. Hover : `translate-y-[-2px] shadow-popover` 150ms. Si la valeur demande une action (encaissements en attente > 0), la carte entière est cliquable et route vers l'écran concerné.
 
 ### 3.3 File d'attente (kanban 4 colonnes)
 Colonnes = zones `bg-slate-50/60 rounded-2xl p-3` avec en-tête (dot statut + titre + compteur `rounded-full bg-white`). Cartes patientes : `bg-surface rounded-xl border border-border-subtle p-4 shadow-sm`, nom en 600, heure + motif en méta, avatar initiales `bg-sauge-100 text-sauge-700`. Changement de statut : bouton d'action contextuelle (« Installer », « Débuter », « Clôturer ») → HTMX swap de la colonne + toast. La carte qui arrive dans une colonne anime `animate-[slide-in_200ms_ease-out]`.
 
 ### 3.4 Badges de statut
-Composant unique (include `_status_badge.html`) : `inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium` + dot `size-1.5 rounded-full`. Jamais de badge recodé à la main.
+Composant unique (include `_status_badge.html`) : `inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium` (Plus Jakarta Sans, comme partout) + dot `size-1.5 rounded-full`. Jamais de badge recodé à la main.
 
 ### 3.5 Tableaux (patientes, facturation)
 En-tête `text-[11px] uppercase tracking-[0.08em] text-text-faint bg-slate-50/50 sticky top-0` ; lignes `h-14 border-b border-border-subtle hover:bg-sauge-25 transition-colors` ; montants alignés à droite en tabular-nums ; actions de ligne dans un menu `…` (popover Alpine). Pagination HTMX en pied, jamais de rechargement.
@@ -119,15 +130,18 @@ En bas à droite, `bg-sauge-900 text-white rounded-xl px-4 py-3 shadow-popover`,
 Toujours : icône Lucide 24px dans pastille `bg-slate-100`, phrase humaine (« Aucune patiente pour le moment »), et si pertinent une action (« + Nouveau RDV »). Centré verticalement dans son conteneur, `py-10` minimum.
 
 ### 3.10 Skeletons
-Blocs `bg-slate-100 rounded animate-pulse` aux dimensions EXACTES du contenu final (`hx-indicator`). Jamais de spinner plein écran.
+Blocs `bg-slate-100 rounded animate-pulse` aux dimensions EXACTES du contenu final (`hx-indicator`). Jamais de spinner plein écran (référence **uiverse.io** pour des loaders discrets à la place).
 
 ### 3.11 Calendrier / Planning
 Grille horaire : lignes `border-border-subtle`, heure courante marquée par un filet `bg-rose-400` + dot. Événements : `rounded-lg border-l-[3px]` couleur du statut, fond pastel correspondant, heure + nom + motif. Mini-calendrier : jour sélectionné `bg-sauge-600 text-white rounded-full`, jours avec RDV : dot sauge sous le chiffre. Drag pour créer/déplacer si déjà supporté, sinon clic → drawer.
 
 ## 4. Motion
 
+Référence directrice : **uiverse.io** pour l'ensemble des micro-interactions ci-dessous.
+
 - Durées : micro (hover, active) **150ms** · entrées (modal, toast, colonne) **180–220ms** · jamais > 300ms. Easing `cubic-bezier(0.4, 0, 0.2, 1)` ; entrées avec léger `ease-out`.
 - `transition-all duration-150 ease-in-out` par défaut sur l'interactif ; `motion-reduce:transition-none` respecté.
+- Retour tactile systématique sur les boutons : `active:scale-[0.98]`.
 - Les swaps HTMX utilisent `hx-swap="... swap:150ms settle:150ms"` + classe `.htmx-settling` pour un fondu doux — pas d'apparition brutale.
 - Nombre qui change (KPI, total dynamique) : transition de type count-up courte (Alpine) ou fondu, jamais de saut sec.
 
@@ -139,13 +153,16 @@ Grille horaire : lignes `border-border-subtle`, heure courante marquée par un f
 - [ ] 6 états présents : default / hover / active / focus / loading / empty / error.
 - [ ] Aucun layout shift au chargement ni après swap HTMX.
 - [ ] Textes français corrects (accents, pluriels « patientes »), montants « 1 250,00 DH », dates longues.
+- [ ] Une seule police sur tout l'écran : `Plus Jakarta Sans`, aucune trace de Serif/Fraunces.
 - [ ] Hook impeccable : zéro finding restant.
 - [ ] Comparaison côte à côte avec `design_reference/dashboard_reference.html` : densité, respiration et finitions équivalentes.
 
-## 6. Anti-patterns (vus dans la v1 — à éliminer)
+## 6. Anti-patterns (à éliminer)
 
+- **Police Serif ou Fraunces sur tout élément de l'interface** — abandonnée depuis la v3. `Plus Jakarta Sans` est l'unique typographie du projet, y compris pour les titres et les grands chiffres de KPI.
 - Grandes zones vides encadrées qui « flottent » sans hiérarchie → les colonnes vides de la file d'attente doivent être compactes (hauteur mini) et s'étendre seulement avec du contenu.
 - Cartes KPI muettes → chaque KPI actionnable est cliquable.
-- Double bordure + ombre sur le même élément ; bordures 2px ; gris Tailwind par défaut mélangés aux tokens.
+- Double bordure + ombre sur le même élément ; bordures 2px ; gris Tailwind par défaut mélangés aux tokens ; ombres dures (contraire à la référence bklit.com).
 - Boutons primaires multiples dans un même écran ; libellés vagues (« Valider ») → verbes métier (« Encaisser », « Installer en salle »).
+- Micro-interactions absentes ou brutales (changement d'état sans transition, hover sec) — contraire à la référence uiverse.io.
 - Login : la carte doit être posée sur un fond travaillé (dégradé radial sauge très léger + motif discret), logo animé au chargement, bouton pleine largeur.

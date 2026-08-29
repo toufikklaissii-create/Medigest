@@ -15,13 +15,15 @@ Plateforme de gestion de cabinet médical. Django + templates HTML, HTMX, Alpine
 ## 2. Workflow de travail (obligatoire)
 
 1. **UI / refonte d'écran** → lire `DESIGN.md`, ouvrir la maquette de référence, puis suivre l'étape correspondante de `REDESIGN_PLAN.md`.
-2. **Skills à invoquer selon la tâche :**
-   - Refonte / création d'écran : `ui-ux-pro-max` (recherche de patterns), `web-design-guidelines`, `design-taste-frontend`, `high-end-visual-design`.
-   - Reprise d'un écran existant : `redesign-existing-projects`.
-   - Reproduction d'une maquette/capture : `image-to-code`.
+2. **Combinaison de skills OBLIGATOIRE pour toute refonte d'écran** (Assistante comme Médecin, sans exception) — les trois s'invoquent ensemble, pas au choix :
+   - **`ui-ux-pro-max`** — structure de l'interface, patterns UX, hiérarchie de l'information.
+   - **`Leonxlnx/taste-skill`** — finitions visuelles et raffinement (texture, détails, cohérence du rendu final).
+   - **`vercel-labs/web-design-guidelines`** — espacement et hiérarchie type SaaS (grille, rythme vertical, densité).
+   - Skills complémentaires selon le cas : `redesign-existing-projects` (reprise d'un écran déjà en place), `image-to-code` (reproduction fidèle d'une maquette/capture).
    - Le hook `impeccable` tourne automatiquement après chaque Edit/Write et au Stop — **corriger ses findings avant de conclure**, ne jamais les ignorer.
-3. **Toute modification de comportement** passe par les partials HTMX existants — pas de rechargement de page complet pour : statuts, encaissements, pagination, filtres, recherche.
-4. **Vérification avant de conclure** : lancer le serveur, tester le parcours dans le navigateur (les deux rôles si l'écran est partagé), vérifier l'absence de layout shift et les états vides/chargement/erreur.
+3. **MCP 21st.dev — source de composants obligatoire pour tout bloc complexe nouveau** : avant de construire une metric card, une table, un drawer ou tout autre bloc non trivial, interroger systématiquement le serveur MCP `21st.dev` pour des références de composants modernes, s'en inspirer visuellement, puis retranscrire à la main en Tailwind/HTMX conforme aux tokens de `DESIGN.md` — jamais de copier-coller de code React/shadcn brut dans ce projet Django/HTMX/Alpine.
+4. **Toute modification de comportement** passe par les partials HTMX existants — pas de rechargement de page complet pour : statuts, encaissements, pagination, filtres, recherche.
+5. **Vérification avant de conclure** : lancer le serveur, tester le parcours dans le navigateur (les deux rôles si l'écran est partagé), vérifier l'absence de layout shift et les états vides/chargement/erreur.
 
 ## 3. Règles d'Or UX & Interaction
 

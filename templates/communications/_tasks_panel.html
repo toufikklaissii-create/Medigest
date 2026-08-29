@@ -5,9 +5,11 @@
             hx-post="{% url 'communications:toggle_task' task.pk %}"
             hx-target="#tasks-panel"
             hx-swap="outerHTML"
-            class="btn-tactile mt-0.5 h-[18px] w-[18px] shrink-0 rounded-md border border-border-subtle hover:border-sauge-600 hover:bg-sauge-50 flex items-center justify-center group"
-            title="Marquer comme terminée">
-            <i data-lucide="check" class="w-3 h-3 text-sauge-600 opacity-0 group-hover:opacity-100 transition-opacity duration-150" stroke-width="2.5"></i>
+            class="btn-tactile -m-2.5 h-10 w-10 shrink-0 rounded-lg flex items-center justify-center group"
+            title="Marquer comme terminée" aria-label="Marquer « {{ task.title }} » comme terminée">
+            <span class="h-[18px] w-[18px] rounded-md border border-border-subtle flex items-center justify-center group-hover:border-sauge-600 group-hover:bg-sauge-50 transition-colors duration-150">
+                <i data-lucide="check" class="w-3 h-3 text-sauge-600 opacity-0 group-hover:opacity-100 transition-opacity duration-150" stroke-width="2.5"></i>
+            </span>
         </button>
         <div class="text-sm flex-1 min-w-0">
             <p class="font-medium text-text-main flex items-center gap-1.5">

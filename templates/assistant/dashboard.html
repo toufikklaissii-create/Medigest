@@ -24,62 +24,62 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-7">
-        <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-7">
+        <div class="bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200">
             <div class="flex items-center justify-between mb-4">
-                <span class="h-9 w-9 rounded-[10px] bg-amber-50 text-amber-700 flex items-center justify-center">
-                    <i data-lucide="users" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="users" class="w-5 h-5" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">jour</span>
+                <span class="text-xs text-text-muted">Jour</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ today_total }}</p>
-            <p class="text-[13px] text-text-muted mt-1.5">Patientes reçues aujourd'hui</p>
+            <p class="text-sm font-medium text-text-muted mt-2">Patientes reçues aujourd'hui</p>
         </div>
 
         <a href="{% url 'billing:index' %}"
-           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-popover">
+           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
             <div class="flex items-center justify-between mb-4">
-                <span class="h-9 w-9 rounded-[10px] bg-rose-50 text-rose-700 flex items-center justify-center">
-                    <i data-lucide="banknote" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="banknote" class="w-5 h-5" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">à faire</span>
+                <span class="text-xs text-text-muted">À faire</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ pending_invoices|length }}</p>
-            <p class="text-[13px] text-text-muted mt-1.5">Encaissements en attente</p>
+            <p class="text-sm font-medium text-text-muted mt-2">Encaissements en attente</p>
             {% if pending_invoices_total %}
-            <span class="inline-block mt-2.5 text-[11px] font-semibold text-rose-700 bg-rose-50 rounded-md px-2 py-1 tabular-nums">{{ pending_invoices_total }} DH au total</span>
+            <span class="inline-block mt-3 text-xs font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ pending_invoices_total }} DH au total</span>
             {% endif %}
         </a>
 
         <a href="{% url 'appointments:calendar' %}"
-           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-popover">
+           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
             <div class="flex items-center justify-between mb-4">
-                <span class="h-9 w-9 rounded-[10px] bg-sky-50 text-sky-700 flex items-center justify-center">
-                    <i data-lucide="calendar-clock" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="calendar-clock" class="w-5 h-5" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">restant</span>
+                <span class="text-xs text-text-muted">Restant</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ scheduled_today|length }}</p>
-            <p class="text-[13px] text-text-muted mt-1.5">RDV programmés</p>
+            <p class="text-sm font-medium text-text-muted mt-2">RDV programmés</p>
             {% with next_rdv=scheduled_today|first %}
             {% if next_rdv %}
-            <span class="inline-block mt-2.5 text-[11px] font-semibold text-sky-700 bg-sky-50 rounded-md px-2 py-1 tabular-nums">Prochain à {{ next_rdv.date|date:"H:i" }}</span>
+            <span class="inline-block mt-3 text-xs font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">Prochain à {{ next_rdv.date|date:"H:i" }}</span>
             {% endif %}
             {% endwith %}
         </a>
 
         <a href="{% url 'communications:index' %}"
-           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-popover">
+           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
             <div class="flex items-center justify-between mb-4">
-                <span class="h-9 w-9 rounded-[10px] bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="list-checks" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="list-checks" class="w-5 h-5" stroke-width="1.75"></i>
                 </span>
-                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">actives</span>
+                <span class="text-xs text-text-muted">Actives</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ my_tasks|length }}</p>
-            <p class="text-[13px] text-text-muted mt-1.5">Tâches à traiter</p>
+            <p class="text-sm font-medium text-text-muted mt-2">Tâches à traiter</p>
             {% if urgent_tasks_count %}
-            <span class="inline-block mt-2.5 text-[11px] font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }}</span>
+            <span class="inline-block mt-3 text-xs font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }}</span>
             {% endif %}
         </a>
     </div>

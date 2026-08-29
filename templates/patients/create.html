@@ -6,41 +6,69 @@
         <a href="{% url 'patients:index' %}" class="btn-tactile text-text-muted hover:text-sauge-600 hover:bg-sauge-50 p-2 rounded-lg">
             <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75"></i>
         </a>
-        <h1 class="text-xl font-bold text-text-main tracking-tight">Nouvelle patiente</h1>
+        <h1 class="font-display text-xl font-semibold text-text-main tracking-tight">Nouvelle patiente</h1>
     </div>
 
-    <form method="post" class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 space-y-3.5">
+    <form method="post" class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6 space-y-5">
         {% csrf_token %}
-        <div class="grid grid-cols-2 gap-3">
-            <input type="text" name="first_name" placeholder="Prénom" required
-                   class="rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
-            <input type="text" name="last_name" placeholder="Nom" required
-                   class="rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="id_first_name" class="block text-[13px] font-medium text-text-soft mb-1.5">Prénom <span class="text-rose-500">*</span></label>
+                <input type="text" name="first_name" id="id_first_name" required
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
+            <div>
+                <label for="id_last_name" class="block text-[13px] font-medium text-text-soft mb-1.5">Nom <span class="text-rose-500">*</span></label>
+                <input type="text" name="last_name" id="id_last_name" required
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-            <input type="text" name="cin" placeholder="CIN"
-                   class="rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
-            <input type="date" name="birth_date"
-                   class="rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="id_cin" class="block text-[13px] font-medium text-text-soft mb-1.5">CIN</label>
+                <input type="text" name="cin" id="id_cin"
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
+            <div>
+                <label for="id_birth_date" class="block text-[13px] font-medium text-text-soft mb-1.5">Date de naissance</label>
+                <input type="date" name="birth_date" id="id_birth_date"
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
         </div>
-        <div class="grid grid-cols-2 gap-3">
-            <input type="text" name="phone" placeholder="Téléphone"
-                   class="rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
-            <input type="text" name="emergency_contact" placeholder="Contact d'urgence"
-                   class="rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="id_phone" class="block text-[13px] font-medium text-text-soft mb-1.5">Téléphone</label>
+                <input type="tel" name="phone" id="id_phone" autocomplete="tel"
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
+            <div>
+                <label for="id_emergency_contact" class="block text-[13px] font-medium text-text-soft mb-1.5">Contact d'urgence</label>
+                <input type="text" name="emergency_contact" id="id_emergency_contact"
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
         </div>
-        <select name="blood_group" class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
-            <option value="">Groupe sanguin (optionnel)</option>
-            <option value="A+">A+</option><option value="A-">A-</option>
-            <option value="B+">B+</option><option value="B-">B-</option>
-            <option value="AB+">AB+</option><option value="AB-">AB-</option>
-            <option value="O+">O+</option><option value="O-">O-</option>
-        </select>
-        <textarea name="allergies" rows="2" placeholder="Allergies"
-                  class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/40 focus:border-rose-300 placeholder:text-text-muted/60"></textarea>
-        <textarea name="medical_history" rows="2" placeholder="Antécédents médicaux"
-                  class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
-        <button type="submit" class="btn-tactile w-full bg-sauge-600 text-white text-sm font-semibold rounded-lg py-2.5 shadow-sm hover:bg-sauge-900 flex items-center justify-center gap-2">
+        <div>
+            <label for="id_blood_group" class="block text-[13px] font-medium text-text-soft mb-1.5">Groupe sanguin</label>
+            <select name="blood_group" id="id_blood_group"
+                    class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                <option value="">Non renseigné</option>
+                <option value="A+">A+</option><option value="A-">A-</option>
+                <option value="B+">B+</option><option value="B-">B-</option>
+                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                <option value="O+">O+</option><option value="O-">O-</option>
+            </select>
+        </div>
+        <div>
+            <label for="id_allergies" class="block text-[13px] font-medium text-text-soft mb-1.5">Allergies</label>
+            <textarea name="allergies" id="id_allergies" rows="2" placeholder="Aucune si non renseigné"
+                      class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-300 placeholder:text-text-faint"></textarea>
+        </div>
+        <div>
+            <label for="id_medical_history" class="block text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux</label>
+            <textarea name="medical_history" id="id_medical_history" rows="2"
+                      class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500"></textarea>
+        </div>
+        <button type="submit" class="btn-tactile w-full h-10 bg-sauge-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2">
             <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75"></i> Créer la patiente et prendre RDV
         </button>
     </form>

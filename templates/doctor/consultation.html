@@ -9,14 +9,14 @@
 <div x-data="consultationForm()">
 
 <!-- En-tête patiente : flottant sous la navbar -->
-<div class="sticky top-[97px] z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+<div class="sticky top-16 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
     <div class="max-w-5xl mx-auto px-6 py-3 flex items-start justify-between gap-4">
         <div class="flex items-center gap-3 min-w-0">
             <div class="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
                 {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
             </div>
             <div class="min-w-0">
-                <h1 class="font-semibold text-text-main leading-tight truncate">{{ patient.first_name }} {{ patient.last_name }}</h1>
+                <h1 class="font-display text-lg font-semibold text-text-main leading-tight truncate">{{ patient.first_name }} {{ patient.last_name }}</h1>
                 <p class="text-xs text-text-muted leading-tight mt-0.5">
                     {{ patient.patient_number }}
                     {% if patient.age %} · {{ patient.age }} ans{% endif %}
@@ -52,7 +52,7 @@
 
         <!-- Bloc Examen & Constantes -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
                     <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i>
                 </span>
@@ -60,36 +60,36 @@
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div>
-                    <label class="block text-xs font-medium text-text-muted mb-1.5">Motif</label>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Motif</label>
                     <input type="text" value="{{ appointment.reason }}" disabled
                            class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-muted mb-1.5">Tension</label>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Tension</label>
                     <input type="text" name="blood_pressure" value="{{ consultation.blood_pressure }}" placeholder="12/8"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-muted mb-1.5">Poids (kg)</label>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Poids (kg)</label>
                     <input type="number" step="0.1" name="weight_kg" value="{{ consultation.weight_kg|default:'' }}"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                 </div>
             </div>
             <div class="mb-4">
-                <label class="block text-xs font-medium text-text-muted mb-1.5">Observations cliniques</label>
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Observations cliniques</label>
                 <textarea name="clinical_notes" rows="3"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">{{ consultation.clinical_notes }}</textarea>
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">{{ consultation.clinical_notes }}</textarea>
             </div>
             <div>
-                <label class="block text-xs font-medium text-text-muted mb-1.5">Diagnostic</label>
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Diagnostic</label>
                 <textarea name="diagnostic" rows="2"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">{{ consultation.diagnostic }}</textarea>
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">{{ consultation.diagnostic }}</textarea>
             </div>
         </div>
 
         <!-- Bloc Gynéco & Suivi Grossesse -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
                     <i data-lucide="baby" class="w-3.5 h-3.5" stroke-width="1.75"></i>
                 </span>
@@ -97,12 +97,12 @@
             </h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="block text-xs font-medium text-text-muted mb-1.5">Date des dernières règles (DDR)</label>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Date des dernières règles (DDR)</label>
                     <input type="date" name="last_menstrual_period" x-model="lmp"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-text-muted mb-1.5">Terme (calcul auto)</label>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Terme (calcul auto)</label>
                     <div class="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors duration-150"
                          :class="ga ? 'bg-sauge-50 border-sauge-200 text-sauge-600' : 'bg-canvas border-border-subtle text-text-muted font-normal'">
                         <i data-lucide="calendar-heart" class="w-4 h-4" stroke-width="1.75" x-show="ga"></i>
@@ -117,15 +117,15 @@
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-medium text-text-muted mb-1.5">Notes échographie</label>
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Notes échographie</label>
                 <textarea name="ultrasound_notes" rows="2"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">{{ consultation.ultrasound_notes }}</textarea>
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">{{ consultation.ultrasound_notes }}</textarea>
             </div>
         </div>
 
         <!-- Bloc Ordonnance -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
                     <i data-lucide="pill" class="w-3.5 h-3.5" stroke-width="1.75"></i>
                 </span>
@@ -141,12 +141,12 @@
             </div>
             <textarea name="prescription_content" rows="5" x-model="prescriptionContent"
                       placeholder="Sélectionnez un modèle ou saisissez la prescription…"
-                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
+                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
         </div>
 
         <!-- Bloc Actes -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
                     <i data-lucide="clipboard-list" class="w-3.5 h-3.5" stroke-width="1.75"></i>
                 </span>

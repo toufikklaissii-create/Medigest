@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Medigest — Cabinet Dr Errmili Khadija{% endblock %}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sauge: {
+                            25: "#F8FAF9",
+                            50: "#F4F7F5",
+                            100: "#E3ECE7",
+                            200: "#C9D8D0",
+                            400: "#6B9080",
+                            500: "#52796F",
+                            600: "#354F52",
+                            700: "#2E4345",
+                            900: "#2F3E46",
+                            950: "#25333A",
+                        },
+                        canvas: "#F7F8F8",
+                        surface: "#FFFFFF",
+                        "surface-raised": "#FFFFFF",
+                        "border-subtle": "#E7EAEE",
+                        "border-strong": "#D8DDE3",
+                        "text-main": "#101828",
+                        "text-soft": "#475467",
+                        "text-muted": "#667085",
+                        "text-faint": "#98A2B3",
+                        // Legacy aliases kept so any un-migrated markup stays on-palette.
+                        primary: {
+                            DEFAULT: "#354F52",
+                            dark: "#2F3E46",
+                            light: "#E3ECE7",
+                        },
+                        cream: "#FBFBFC",
+                        border: "#E2E8F0",
+                        ink: {
+                            DEFAULT: "#0F172A",
+                            soft: "#64748B",
+                        },
+                    },
+                    fontFamily: {
+                        sans: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+                        display: ["Fraunces", "ui-serif", "serif"],
+                    },
+                    boxShadow: {
+                        soft: "0 2px 12px -2px rgba(30, 41, 59, 0.06)",
+                        sm: "0 1px 2px 0 rgb(0 0 0 / 0.03)",
+                        card: "0 1px 2px 0 rgb(15 23 42 / 0.04), 0 8px 24px -12px rgb(15 23 42 / 0.08)",
+                        popover: "0 12px 32px -8px rgb(15 23 42 / 0.14), 0 4px 10px -4px rgb(15 23 42 / 0.08)",
+                    },
+                    keyframes: {
+                        "slide-in": {
+                            "0%": { opacity: 0, transform: "translateY(4px)" },
+                            "100%": { opacity: 1, transform: "none" },
+                        },
+                    },
+                    animation: {
+                        "slide-in": "slide-in 220ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    },
+                },
+            },
+        };
+    </script>
+
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        [x-cloak] { display: none !important; }
+        html { scroll-behavior: smooth; }
+        body { text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+        .btn-tactile { transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-tactile:active { transform: scale(0.96); }
+        .card-soft { transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Fondu doux sur les swaps HTMX (recette officielle htmx : fade-in du contenu inséré) */
+        .htmx-added { opacity: 0; }
+        .htmx-settling { opacity: 1; transition: opacity 150ms ease-out; }
+        @media (prefers-reduced-motion: reduce) {
+            .htmx-settling { transition: none; }
+        }
+
+        /* Feedback global des requêtes HTMX (état "en cours" sans toucher aux templates) */
+        #htmx-progress-bar {
+            position: fixed; top: 0; left: 0; height: 2.5px; width: 100%;
+            background: linear-gradient(90deg, #52796F, #354F52);
+            z-index: 100; opacity: 0; transform: scaleX(0); transform-origin: left;
+            transition: transform 300ms ease-out, opacity 200ms ease-out;
+        }
+        #htmx-progress-bar.is-active { opacity: 1; }
+        .htmx-request:not(.htmx-request-ignore),
+        .htmx-request:not(.htmx-request-ignore) * { cursor: progress; }
+        button.htmx-request, a.htmx-request, input[type="submit"].htmx-request {
+            opacity: 0.65; pointer-events: none; transition: opacity 100ms ease-out;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #htmx-progress-bar { transition: none; }
+        }
+        ::selection { background-color: #E3ECE7; color: #2F3E46; }
+        /* Anneau de focus conforme DESIGN.md §1.3 (ring-2 ring-sauge-600/30 ring-offset-2) : filet de séparation + anneau sauge. Les classes focus:ring-* posées explicitement sur un élément priment sur cette règle de secours. */
+        *:focus-visible {
+            outline: none;
+            border-radius: 4px;
+            box-shadow: 0 0 0 2px #F7F8F8, 0 0 0 4px rgba(53, 79, 82, 0.3);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .skip-link {
+            position: absolute; left: -9999px; top: 0; z-index: 100;
+        }
+        .skip-link:focus { left: 1rem; top: 1rem; }
+    </style>
+</head>
+<body class="bg-canvas text-text-main min-h-screen font-sans antialiased"
+      x-data="toastHub()" @toast.window="push($event.detail)"
+      @receipt-ready.window="window.open($event.detail.url, '_blank')"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      hx-on::after-settle="lucide.createIcons()">
+
+<div id="htmx-progress-bar"></div>
+
+<a href="#main-content" class="skip-link bg-sauge-900 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-popover">
+    Aller au contenu principal
+</a>
+
+{% block navbar %}
+<header class="bg-white/85 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+        <!-- Gauche : identité du cabinet -->
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white shadow-sm transition-transform duration-150 ease-out hover:scale-105">
+                <i data-lucide="heart-pulse" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+            </div>
+            <div class="min-w-0">
+                <p class="font-semibold leading-tight text-text-main truncate tracking-tight">Cabinet Dr ERRMILI Khadija</p>
+                <p class="text-[11px] text-text-muted leading-tight tracking-wide">Gynécologie &amp; Obstétrique</p>
+            </div>
+        </div>
+
+        <!-- Centre : date + statut live -->
+        <div class="hidden md:flex items-center gap-4">
+            <span class="flex items-center gap-1.5 text-sm text-text-muted">
+                <i data-lucide="calendar" class="w-4 h-4" stroke-width="1.75"></i>
+                {% now "l d F Y" %}
+            </span>
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-sauge-50 border border-sauge-100 px-2.5 py-1 text-xs font-medium text-sauge-600">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sauge-500 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-sauge-500"></span>
+                </span>
+                Live
+            </span>
+        </div>
+
+        <!-- Droite : rôle, tâches, déconnexion -->
+        <div class="flex items-center gap-3">
+            {% if request.user.is_authenticated %}
+                {% with role=request.user.profile.role %}
+                <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors
+                    {% if role == 'doctor' %}bg-sauge-900 text-white{% else %}bg-sauge-100 text-sauge-600{% endif %}">
+                    <i data-lucide="{% if role == 'doctor' %}stethoscope{% else %}clipboard-list{% endif %}" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                    {% if role == 'doctor' %}Doctor{% else %}Assistant{% endif %}
+                </span>
+
+                {% if active_task_count %}
+                <a href="{% url 'communications:index' %}" title="Tâches actives"
+                   class="btn-tactile relative inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+                    <i data-lucide="bell" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+                    <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] leading-4 text-center font-semibold ring-2 ring-white">
+                        {{ active_task_count }}
+                    </span>
+                </a>
+                {% endif %}
+                {% endwith %}
+            {% endif %}
+
+            {% if request.user.is_authenticated %}
+            <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-tactile flex items-center gap-1.5 text-sm text-text-muted hover:text-rose-600 rounded-lg px-2.5 py-1.5 hover:bg-rose-50">
+                    <i data-lucide="log-out" class="w-4 h-4" stroke-width="1.75"></i>
+                    <span class="hidden sm:inline">Déconnexion</span>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if request.user.is_authenticated %}
+    {% with role=request.user.profile.role %}
+    {% if role == 'doctor' %}{% url 'clinical:doctor_dashboard' as dash_url %}{% else %}{% url 'appointments:assistant_dashboard' as dash_url %}{% endif %}
+    {% url 'patients:index' as patients_url %}
+    {% url 'billing:index' as billing_url %}
+    {% url 'communications:index' as comms_url %}
+    {% url 'appointments:calendar' as calendar_url %}
+    <nav class="border-t border-slate-200/70">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <a href="{{ dash_url }}"
+               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
+                   {% if request.path == dash_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5" stroke-width="1.75"></i> Accueil
+            </a>
+            <a href="{{ calendar_url }}"
+               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
+                   {% if request.path == calendar_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
+                <i data-lucide="calendar-days" class="w-3.5 h-3.5" stroke-width="1.75"></i> Planning
+            </a>
+            <a href="{{ patients_url }}"
+               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
+                   {% if request.path == patients_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
+                <i data-lucide="users" class="w-3.5 h-3.5" stroke-width="1.75"></i> Patientes
+            </a>
+            <a href="{{ billing_url }}"
+               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
+                   {% if request.path == billing_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
+                <i data-lucide="receipt" class="w-3.5 h-3.5" stroke-width="1.75"></i> Facturation
+            </a>
+            <a href="{{ comms_url }}"
+               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
+                   {% if request.path == comms_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
+                <i data-lucide="message-square" class="w-3.5 h-3.5" stroke-width="1.75"></i> Communications
+            </a>
+        </div>
+    </nav>
+    {% endwith %}
+    {% endif %}
+</header>
+{% endblock %}
+
+<main id="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- Toast notifications -->
+<div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 items-end" x-cloak>
+    <template x-for="toast in toasts" :key="toast.id">
+        <div x-show="true"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0 translate-x-2"
+             class="min-w-[280px] max-w-sm rounded-xl shadow-popover border-l-4 px-4 py-3.5 flex items-start gap-2.5 bg-white"
+             :class="toast.type === 'error' ? 'border-l-rose-500' : 'border-l-sauge-500'">
+            <div class="shrink-0 rounded-full p-1"
+                 :class="toast.type === 'error' ? 'bg-rose-50' : 'bg-sauge-50'">
+                <i :data-lucide="toast.type === 'error' ? 'alert-circle' : 'check-circle-2'"
+                   class="w-4 h-4"
+                   :class="toast.type === 'error' ? 'text-rose-600' : 'text-sauge-600'"></i>
+            </div>
+            <p class="text-sm text-text-main leading-snug pt-0.5" x-text="toast.message"></p>
+        </div>
+    </template>
+</div>
+
+{% if messages %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        {% for message in messages %}
+        window.dispatchEvent(new CustomEvent("toast", {detail: {message: "{{ message|escapejs }}", type: "{{ message.tags }}"}}));
+        {% endfor %}
+    });
+</script>
+{% endif %}
+
+<script>
+    function toastHub() {
+        return {
+            toasts: [],
+            push(detail) {
+                const id = Date.now() + Math.random();
+                this.toasts.push({ id, message: detail.message || detail, type: detail.type || "success" });
+                this.$nextTick(() => lucide.createIcons());
+                setTimeout(() => {
+                    this.toasts = this.toasts.filter((t) => t.id !== id);
+                }, 3500);
+            },
+        };
+    }
+
+    document.body.addEventListener("htmx:afterSettle", () => {
+        if (window.lucide) lucide.createIcons();
+    });
+
+    // HTMX responses can set the HX-Trigger header to:  {"toast": {"message": "...", "type": "success"}}
+    document.addEventListener("DOMContentLoaded", () => {
+        if (window.lucide) lucide.createIcons();
+    });
+
+    // Barre de progression globale (feedback "en cours" style Linear/Vercel) sur toute requête HTMX
+    (function () {
+        const bar = document.getElementById("htmx-progress-bar");
+        let hideTimeout;
+        document.body.addEventListener("htmx:beforeRequest", () => {
+            clearTimeout(hideTimeout);
+            bar.classList.add("is-active");
+            bar.style.transform = "scaleX(0.3)";
+        });
+        document.body.addEventListener("htmx:afterRequest", () => {
+            bar.style.transform = "scaleX(1)";
+            hideTimeout = setTimeout(() => {
+                bar.classList.remove("is-active");
+                bar.style.transform = "scaleX(0)";
+            }, 250);
+        });
+    })();
+</script>
+</body>
+</html>

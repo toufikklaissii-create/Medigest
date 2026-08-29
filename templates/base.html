@@ -135,113 +135,140 @@
     Aller au contenu principal
 </a>
 
+{% if request.user.is_authenticated %}
+{% with role=request.user.profile.role %}
+{% if role == 'doctor' %}{% url 'clinical:doctor_dashboard' as dash_url %}{% else %}{% url 'appointments:assistant_dashboard' as dash_url %}{% endif %}
+{% url 'patients:index' as patients_url %}
+{% url 'billing:index' as billing_url %}
+{% url 'communications:index' as comms_url %}
+{% url 'appointments:calendar' as calendar_url %}
+<div class="flex min-h-screen" x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false">
+
 {% block navbar %}
-<header class="bg-white/85 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
-        <!-- Gauche : identité du cabinet -->
-        <div class="flex items-center gap-3 min-w-0">
-            <div class="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white shadow-sm transition-transform duration-150 ease-out hover:scale-105">
-                <i data-lucide="heart-pulse" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
-            </div>
-            <div class="min-w-0">
-                <p class="font-semibold leading-tight text-text-main truncate tracking-tight">Cabinet Dr ERRMILI Khadija</p>
-                <p class="text-[11px] text-text-muted leading-tight tracking-wide">Gynécologie &amp; Obstétrique</p>
-            </div>
+<!-- Overlay tiroir mobile (< 768px) -->
+<div x-show="sidebarOpen" x-cloak x-transition.opacity
+     class="fixed inset-0 bg-sauge-950/40 z-30 md:hidden"
+     @click="sidebarOpen = false"></div>
+
+<aside
+    class="fixed md:sticky top-0 left-0 h-screen z-40 shrink-0 flex flex-col
+           w-[264px] md:w-16 lg:w-[264px]
+           -translate-x-full md:translate-x-0
+           transition-transform duration-200 ease-out
+           bg-gradient-to-b from-sauge-900 to-sauge-950 text-white/70
+           p-3.5 overflow-y-auto no-scrollbar"
+    :class="sidebarOpen && '!translate-x-0'">
+
+    <!-- Marque -->
+    <div class="flex items-center gap-3 px-2 pt-1.5 pb-5">
+        <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-sauge-500 to-sauge-700 flex items-center justify-center text-white shadow-sm">
+            <i data-lucide="heart-pulse" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
         </div>
-
-        <!-- Centre : date + statut live -->
-        <div class="hidden md:flex items-center gap-4">
-            <span class="flex items-center gap-1.5 text-sm text-text-muted">
-                <i data-lucide="calendar" class="w-4 h-4" stroke-width="1.75"></i>
-                {% now "l d F Y" %}
-            </span>
-            <span class="inline-flex items-center gap-1.5 rounded-full bg-sauge-50 border border-sauge-100 px-2.5 py-1 text-xs font-medium text-sauge-600">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sauge-500 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-sauge-500"></span>
-                </span>
-                Live
-            </span>
-        </div>
-
-        <!-- Droite : rôle, tâches, déconnexion -->
-        <div class="flex items-center gap-3">
-            {% if request.user.is_authenticated %}
-                {% with role=request.user.profile.role %}
-                <span class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors
-                    {% if role == 'doctor' %}bg-sauge-900 text-white{% else %}bg-sauge-100 text-sauge-600{% endif %}">
-                    <i data-lucide="{% if role == 'doctor' %}stethoscope{% else %}clipboard-list{% endif %}" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                    {% if role == 'doctor' %}Doctor{% else %}Assistant{% endif %}
-                </span>
-
-                {% if active_task_count %}
-                <a href="{% url 'communications:index' %}" title="Tâches actives"
-                   class="btn-tactile relative inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
-                    <i data-lucide="bell" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
-                    <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] leading-4 text-center font-semibold ring-2 ring-white">
-                        {{ active_task_count }}
-                    </span>
-                </a>
-                {% endif %}
-                {% endwith %}
-            {% endif %}
-
-            {% if request.user.is_authenticated %}
-            <form method="post" action="{% url 'accounts:logout' %}">
-                {% csrf_token %}
-                <button type="submit" class="btn-tactile flex items-center gap-1.5 text-sm text-text-muted hover:text-rose-600 rounded-lg px-2.5 py-1.5 hover:bg-rose-50">
-                    <i data-lucide="log-out" class="w-4 h-4" stroke-width="1.75"></i>
-                    <span class="hidden sm:inline">Déconnexion</span>
-                </button>
-            </form>
-            {% endif %}
+        <div class="min-w-0 inline md:hidden lg:block">
+            <p class="font-bold text-sm text-white leading-tight truncate">Cabinet Dr ERRMILI</p>
+            <p class="text-[11.5px] text-white/45 leading-tight mt-0.5 truncate">Gynécologie &amp; Obstétrique</p>
         </div>
     </div>
 
-    {% if request.user.is_authenticated %}
-    {% with role=request.user.profile.role %}
-    {% if role == 'doctor' %}{% url 'clinical:doctor_dashboard' as dash_url %}{% else %}{% url 'appointments:assistant_dashboard' as dash_url %}{% endif %}
-    {% url 'patients:index' as patients_url %}
-    {% url 'billing:index' as billing_url %}
-    {% url 'communications:index' as comms_url %}
-    {% url 'appointments:calendar' as calendar_url %}
-    <nav class="border-t border-slate-200/70">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-1 overflow-x-auto no-scrollbar">
-            <a href="{{ dash_url }}"
-               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
-                   {% if request.path == dash_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
-                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5" stroke-width="1.75"></i> Accueil
-            </a>
-            <a href="{{ calendar_url }}"
-               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
-                   {% if request.path == calendar_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
-                <i data-lucide="calendar-days" class="w-3.5 h-3.5" stroke-width="1.75"></i> Planning
-            </a>
-            <a href="{{ patients_url }}"
-               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
-                   {% if request.path == patients_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
-                <i data-lucide="users" class="w-3.5 h-3.5" stroke-width="1.75"></i> Patientes
-            </a>
-            <a href="{{ billing_url }}"
-               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
-                   {% if request.path == billing_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
-                <i data-lucide="receipt" class="w-3.5 h-3.5" stroke-width="1.75"></i> Facturation
-            </a>
-            <a href="{{ comms_url }}"
-               class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium px-3.5 py-2.5 my-1.5 rounded-lg whitespace-nowrap
-                   {% if request.path == comms_url %}text-sauge-900 bg-sauge-50{% else %}text-text-muted hover:text-sauge-600 hover:bg-sauge-50/60{% endif %}">
-                <i data-lucide="message-square" class="w-3.5 h-3.5" stroke-width="1.75"></i> Communications
-            </a>
-        </div>
+    <p class="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white/35 px-3 pb-1.5 pt-2 inline md:hidden lg:block">Navigation</p>
+
+    <nav class="flex flex-col gap-0.5">
+        <a href="{{ dash_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == dash_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="layout-dashboard" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Accueil</span>
+        </a>
+        <a href="{{ calendar_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == calendar_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="calendar-days" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Planning</span>
+        </a>
+        <a href="{{ patients_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == patients_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="users" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Patientes</span>
+        </a>
+        <a href="{{ billing_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == billing_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="receipt" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Facturation</span>
+        </a>
+        <a href="{{ comms_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == comms_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="message-square" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Communications</span>
+            {% if active_task_count %}
+            <span class="ml-auto text-[11px] font-semibold bg-white/15 rounded-full px-2 py-0.5 text-white/90 inline md:hidden lg:inline">{{ active_task_count }}</span>
+            {% endif %}
+        </a>
     </nav>
-    {% endwith %}
-    {% endif %}
-</header>
+
+    <div class="mt-auto pt-3.5 border-t border-white/10">
+        <div class="flex items-center gap-2.5 px-2 py-2 rounded-xl md:justify-center lg:justify-start">
+            <div class="h-[34px] w-[34px] shrink-0 rounded-full bg-sauge-100 text-sauge-700 flex items-center justify-center text-[12.5px] font-bold">
+                {% if request.user.first_name %}{{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}{% else %}{{ request.user.username|slice:":2"|upper }}{% endif %}
+            </div>
+            <div class="min-w-0 inline-block md:hidden lg:block">
+                <p class="text-[13px] font-semibold text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+                <p class="text-[11.5px] text-white/45 truncate">{% if role == 'doctor' %}Médecin{% else %}Assistante{% endif %}</p>
+            </div>
+            <form method="post" action="{% url 'accounts:logout' %}" class="ml-auto inline md:hidden lg:inline">
+                {% csrf_token %}
+                <button type="submit" title="Déconnexion" aria-label="Déconnexion"
+                        class="btn-tactile h-10 w-10 shrink-0 inline-flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 rounded-lg">
+                    <i data-lucide="log-out" class="w-4 h-4" stroke-width="1.75"></i>
+                </button>
+            </form>
+        </div>
+        <form method="post" action="{% url 'accounts:logout' %}" class="hidden md:block lg:hidden mt-1">
+            {% csrf_token %}
+            <button type="submit" title="Déconnexion" aria-label="Déconnexion"
+                    class="btn-tactile w-full h-10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 rounded-lg">
+                <i data-lucide="log-out" class="w-4 h-4" stroke-width="1.75"></i>
+            </button>
+        </form>
+    </div>
+</aside>
 {% endblock %}
 
-<main id="main-content">
-    {% block content %}{% endblock %}
-</main>
+<div class="flex-1 min-w-0 flex flex-col">
+    <header class="h-16 flex items-center gap-4 px-5 sm:px-8 border-b border-border-subtle bg-canvas/85 backdrop-blur-md sticky top-0 z-20">
+        <button type="button" @click="sidebarOpen = true" title="Ouvrir la navigation" aria-label="Ouvrir la navigation"
+                class="btn-tactile md:hidden inline-flex items-center justify-center h-10 w-10 rounded-lg text-text-soft hover:bg-sauge-50 hover:text-sauge-600 -ml-1.5">
+            <i data-lucide="menu" class="w-5 h-5" stroke-width="1.75"></i>
+        </button>
+        <span class="hidden sm:flex items-center gap-2 text-text-soft text-[13.5px] font-medium">
+            <i data-lucide="calendar" class="w-4 h-4" stroke-width="1.75"></i>
+            {% now "l d F Y" %}
+        </span>
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+            <span class="relative flex h-1.5 w-1.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+            </span>
+            Live
+        </span>
+        <div class="hidden lg:flex items-center gap-2.5 ml-auto w-[300px] rounded-lg border border-border-subtle bg-surface px-3 py-2 text-text-faint text-[13px]">
+            <i data-lucide="search" class="w-[15px] h-[15px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate">Rechercher…</span>
+        </div>
+    </header>
+{% endwith %}
+{% endif %}
+
+    <main id="main-content" class="{% if request.user.is_authenticated %}flex-1{% endif %}">
+        {% block content %}{% endblock %}
+    </main>
+
+{% if request.user.is_authenticated %}
+</div>
+</div>
+{% endif %}
 
 <!-- Toast notifications -->
 <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 items-end" x-cloak>

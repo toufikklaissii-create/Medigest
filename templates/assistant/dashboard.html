@@ -46,6 +46,9 @@
             </div>
             <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ pending_invoices|length }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">Encaissements en attente</p>
+            {% if pending_invoices_total %}
+            <span class="inline-block mt-2.5 text-[11px] font-semibold text-rose-700 bg-rose-50 rounded-md px-2 py-1 tabular-nums">{{ pending_invoices_total }} DH au total</span>
+            {% endif %}
         </a>
 
         <a href="{% url 'appointments:calendar' %}"
@@ -58,6 +61,11 @@
             </div>
             <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ scheduled_today|length }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">RDV programmés</p>
+            {% with next_rdv=scheduled_today|first %}
+            {% if next_rdv %}
+            <span class="inline-block mt-2.5 text-[11px] font-semibold text-sky-700 bg-sky-50 rounded-md px-2 py-1 tabular-nums">Prochain à {{ next_rdv.date|date:"H:i" }}</span>
+            {% endif %}
+            {% endwith %}
         </a>
 
         <a href="{% url 'communications:index' %}"
@@ -70,6 +78,9 @@
             </div>
             <p class="font-display text-4xl font-semibold text-text-main tabular-nums leading-none">{{ my_tasks|length }}</p>
             <p class="text-[13px] text-text-muted mt-1.5">Tâches à traiter</p>
+            {% if urgent_tasks_count %}
+            <span class="inline-block mt-2.5 text-[11px] font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }}</span>
+            {% endif %}
         </a>
     </div>
 

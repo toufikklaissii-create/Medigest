@@ -4,7 +4,7 @@ from datetime import date, datetime, time, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -422,14 +422,18 @@ def quick_create_patient(request):
 
 @login_required
 def assistant_dashboard(request):
+    pending_invoices = Invoice.objects.select_related("patient").filter(
+        status=Invoice.Status.PENDING
+    )
+    my_tasks = _active_tasks_for(request.user)
     context = {
         **_queue_board_context(),
         **_today_list_context(),
         **_j2_context(),
-        "pending_invoices": Invoice.objects.select_related("patient").filter(
-            status=Invoice.Status.PENDING
-        ),
-        "my_tasks": _active_tasks_for(request.user),
+        "pending_invoices": pending_invoices,
+        "pending_invoices_total": pending_invoices.aggregate(total=Sum("total_amount"))["total"] or 0,
+        "my_tasks": my_tasks,
+        "urgent_tasks_count": sum(1 for t in my_tasks if t.priority == "urgent"),
         "today_total": _today_appointments().count(),
     }
     return render(request, "assistant/dashboard.html", context)

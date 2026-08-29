@@ -2,7 +2,8 @@
      x-data="{ open: true }" x-show="open" x-cloak
      @keydown.escape.window="open = false">
     <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="open = false"></div>
-    <div x-transition:enter="transition ease-out duration-250"
+    <div x-trap="open"
+         x-transition:enter="transition ease-out duration-250"
          x-transition:enter-start="translate-x-full"
          x-transition:enter-end="translate-x-0"
          x-transition:leave="transition ease-in duration-150"

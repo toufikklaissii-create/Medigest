@@ -79,6 +79,7 @@
     </script>
 
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://unpkg.com/@alpinejs/focus@3.14.1/dist/cdn.min.js"></script>
     <script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -267,12 +268,10 @@
 {% endwith %}
 {% endif %}
 
-    <main id="main-content" class="{% url 'accounts:login' as login_url %}
-{% if request.user.is_authenticated and request.path != login_url %}flex-1{% endif %}">
+    <main id="main-content" class="{% if request.user.is_authenticated and request.path != login_url %}flex-1{% endif %}">
         {% block content %}{% endblock %}
     </main>
 
-{% url 'accounts:login' as login_url %}
 {% if request.user.is_authenticated and request.path != login_url %}
 </div>
 </div>
@@ -282,21 +281,18 @@
 <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 items-end" x-cloak>
     <template x-for="toast in toasts" :key="toast.id">
         <div x-show="true"
-             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter="transition ease-out duration-220"
              x-transition:enter-start="opacity-0 translate-y-2 scale-95"
              x-transition:enter-end="opacity-100 translate-y-0 scale-100"
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0 translate-x-2"
-             class="min-w-[280px] max-w-sm rounded-xl shadow-popover border-l-4 px-4 py-3.5 flex items-start gap-2.5 bg-white"
-             :class="toast.type === 'error' ? 'border-l-rose-500' : 'border-l-sauge-500'">
-            <div class="shrink-0 rounded-full p-1"
-                 :class="toast.type === 'error' ? 'bg-rose-50' : 'bg-sauge-50'">
-                <i :data-lucide="toast.type === 'error' ? 'alert-circle' : 'check-circle-2'"
-                   class="w-4 h-4"
-                   :class="toast.type === 'error' ? 'text-rose-600' : 'text-sauge-600'"></i>
-            </div>
-            <p class="text-sm text-text-main leading-snug pt-0.5" x-text="toast.message"></p>
+             class="min-w-[280px] max-w-sm rounded-xl shadow-popover px-4 py-3.5 flex items-start gap-2.5 text-white"
+             :class="toast.type === 'error' ? 'bg-rose-600' : 'bg-sauge-900'">
+            <i :data-lucide="toast.type === 'error' ? 'alert-circle' : 'check-circle-2'"
+               class="w-[18px] h-[18px] mt-0.5 shrink-0"
+               :class="toast.type === 'error' ? 'text-white' : 'text-sauge-400'"></i>
+            <p class="text-sm leading-snug" x-text="toast.message"></p>
         </div>
     </template>
 </div>
@@ -318,6 +314,7 @@
             push(detail) {
                 const id = Date.now() + Math.random();
                 this.toasts.push({ id, message: detail.message || detail, type: detail.type || "success" });
+                if (this.toasts.length > 3) this.toasts.splice(0, this.toasts.length - 3);
                 this.$nextTick(() => lucide.createIcons());
                 setTimeout(() => {
                     this.toasts = this.toasts.filter((t) => t.id !== id);

@@ -1,0 +1,73 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
+     x-data="{ open: true }" x-show="open" x-cloak
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div @click.outside="open = false"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         class="bg-surface rounded-2xl shadow-popover border border-slate-200/70 w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-semibold text-text-main flex items-center gap-2">
+                <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                Nouveau rendez-vous
+            </h3>
+            <button type="button" @click="open = false" class="btn-tactile inline-flex items-center justify-center h-8 w-8 rounded-full text-text-muted hover:text-rose-600 hover:bg-rose-50">
+                <i data-lucide="x" class="w-4 h-4" stroke-width="1.75"></i>
+            </button>
+        </div>
+
+        <form hx-post="{% url 'appointments:create_appointment_ajax' %}"
+              hx-target="#calendar-body" hx-swap="outerHTML"
+              @htmx:after-request="if (event.detail.successful) open = false"
+              class="space-y-3.5">
+            {% csrf_token %}
+
+            {% include "assistant/_patient_picker.html" %}
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Date</label>
+                    <input type="date" name="date" value="{{ prefill_date|date:'Y-m-d' }}" required
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Heure de début</label>
+                    <input type="time" name="time" value="{{ prefill_time }}" required
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-text-muted mb-1.5">Durée (min)</label>
+                <input type="number" name="duration_minutes" value="30" min="5" step="5"
+                       class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-text-muted mb-1.5">Motif de consultation</label>
+                <input type="text" name="reason" list="reason-presets" placeholder="Ex : Consultation de suivi"
+                       class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
+                <datalist id="reason-presets">
+                    {% for preset in reason_presets %}
+                    <option value="{{ preset }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-text-muted mb-1.5">Note administrative</label>
+                <textarea name="admin_notes" rows="2" placeholder="Optionnel"
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2 border-t border-border-subtle mt-1">
+                <button type="button" @click="open = false" class="btn-tactile text-sm font-medium text-text-muted px-3.5 py-2 rounded-lg hover:text-text-main hover:bg-slate-50">Annuler</button>
+                <button type="submit" class="btn-tactile text-sm font-semibold bg-sauge-600 text-white rounded-lg px-4 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-1.5">
+                    <i data-lucide="check" class="w-4 h-4" stroke-width="1.75"></i> Créer le rendez-vous
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

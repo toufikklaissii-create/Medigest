@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — Médecin{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 py-7">
+    <div class="mb-7">
+        <h1 class="text-2xl font-bold text-text-main tracking-tight">Bonjour, Dr. ERRMILI</h1>
+        <p class="text-sm text-text-muted mt-0.5">Voici l'état de votre file d'attente aujourd'hui.</p>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
+                    <i data-lucide="users" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">jour</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ queue|length }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Patientes en attente</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="stethoscope" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">en cours</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ in_consultation_count }}</p>
+            <p class="text-xs text-text-muted mt-0.5">En consultation</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="calendar-check" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">total</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ today_total }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Consultations aujourd'hui</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                    <i data-lucide="check-check" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200">terminé</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ completed_today }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Terminées aujourd'hui</p>
+        </div>
+    </div>
+
+    {% if next_patient %}
+    <div class="bg-gradient-to-r from-sauge-50 to-sauge-50/40 border border-sauge-100 rounded-xl p-5 mb-7 flex items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-4 min-w-0">
+            <span class="hidden sm:flex h-11 w-11 shrink-0 rounded-xl bg-sauge-600 text-white items-center justify-center shadow-sm">
+                <i data-lucide="stethoscope" class="w-5 h-5" stroke-width="1.75"></i>
+            </span>
+            <div class="min-w-0">
+                <p class="text-xs uppercase tracking-wide text-sauge-600 font-semibold mb-0.5">Prochaine patiente</p>
+                <p class="text-lg font-semibold text-text-main truncate">{{ next_patient.patient.first_name }} {{ next_patient.patient.last_name }}</p>
+                <p class="text-sm text-text-muted">Arrivée depuis {{ next_patient.date|timesince:now }} · {{ next_patient.get_status_display }}</p>
+            </div>
+        </div>
+        <a href="{% url 'clinical:consultation_detail' next_patient.pk %}"
+           class="btn-tactile shrink-0 bg-sauge-600 text-white text-sm font-semibold rounded-lg px-4 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-2">
+            <i data-lucide="arrow-right-circle" class="w-4 h-4" stroke-width="1.75"></i> Démarrer la consultation
+        </a>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-surface rounded-xl border border-border-subtle shadow-sm divide-y divide-border-subtle overflow-hidden">
+            {% for appt in queue %}
+            <div class="px-4 py-3.5 flex items-center justify-between gap-3 hover:bg-canvas transition-colors duration-150">
+                <div class="min-w-0">
+                    <p class="font-medium text-text-main truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                    <p class="text-xs text-text-muted mt-0.5">{{ appt.date|date:"H:i" }} · {{ appt.get_status_display }} · {{ appt.reason|default:"—" }}</p>
+                </div>
+                <a href="{% url 'clinical:consultation_detail' appt.pk %}"
+                   class="btn-tactile shrink-0 text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3 py-1.5 hover:bg-sauge-50">
+                    Ouvrir le dossier
+                </a>
+            </div>
+            {% empty %}
+            <div class="flex flex-col items-center justify-center gap-1.5 px-4 py-10 text-center">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
+                <p class="text-sm text-text-muted italic">Aucune patiente en attente aujourd'hui.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
+                <i data-lucide="square-pen" class="w-4 h-4" stroke-width="1.75"></i> Nouvelle consigne
+            </h2>
+            <form method="post" action="{% url 'communications:create_task' %}" class="space-y-3">
+                {% csrf_token %}
+                <input type="text" name="title" required placeholder="Ex : Rappeler pour résultat frottis"
+                       class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
+                <textarea name="description" rows="2" placeholder="Détails (optionnel)"
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
+                <select name="patient" class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                    <option value="">Aucune patiente spécifique</option>
+                    {% for appt in queue %}
+                    <option value="{{ appt.patient.pk }}">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="priority" class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                    <option value="normal">Priorité normale</option>
+                    <option value="urgent">Priorité urgente</option>
+                </select>
+                <button type="submit"
+                        class="btn-tactile w-full text-sm font-semibold bg-sauge-600 text-white rounded-lg py-2.5 shadow-sm hover:bg-sauge-900 flex items-center justify-center gap-1.5">
+                    <i data-lucide="send" class="w-4 h-4" stroke-width="1.75"></i> Envoyer à l'assistante
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

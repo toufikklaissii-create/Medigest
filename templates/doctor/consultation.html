@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}Consultation — {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+{% block content %}
+{{ acts_json|json_script:"acts-data" }}
+{{ selected_act_ids|json_script:"selected-acts-data" }}
+{{ prescription_templates_json|json_script:"prescription-templates-data" }}
+{{ prescription_content|default:""|json_script:"prescription-content-data" }}
+
+<div x-data="consultationForm()">
+
+<!-- En-tête patiente : flottant sous la navbar -->
+<div class="sticky top-[97px] z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+    <div class="max-w-5xl mx-auto px-6 py-3 flex items-start justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+            </div>
+            <div class="min-w-0">
+                <h1 class="font-semibold text-text-main leading-tight truncate">{{ patient.first_name }} {{ patient.last_name }}</h1>
+                <p class="text-xs text-text-muted leading-tight mt-0.5">
+                    {{ patient.patient_number }}
+                    {% if patient.age %} · {{ patient.age }} ans{% endif %}
+                    {% if patient.blood_group %} · Groupe {{ patient.blood_group }}{% endif %}
+                    {% if patient.medical_history %} · ATCD : {{ patient.medical_history|truncatechars:60 }}{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 shrink-0">
+            {% if patient.allergies %}
+            <div class="bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-1.5 flex items-center gap-2 max-w-xs">
+                <i data-lucide="triangle-alert" class="w-4 h-4 shrink-0" stroke-width="1.75"></i>
+                <p class="text-xs font-semibold truncate">Allergie : {{ patient.allergies }}</p>
+            </div>
+            {% endif %}
+            <a href="{% url 'clinical:doctor_dashboard' %}" class="btn-tactile text-sm text-text-muted hover:text-sauge-600 hover:bg-sauge-50 rounded-lg flex items-center gap-1 px-2.5 py-1.5">
+                <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden sm:inline">Retour</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-5xl mx-auto px-6 py-7 pb-28">
+    <p class="text-sm text-text-muted mb-5 flex items-center gap-1.5">
+        <i data-lucide="clock" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+        {{ appointment.date|date:"d/m/Y H:i" }} · {{ appointment.reason|default:"—" }}
+    </p>
+
+    <form method="post" action="{% url 'clinical:consultation_detail' appointment.pk %}" @submit="beforeSubmit" id="consultation-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" x-model="action">
+
+        <!-- Bloc Examen & Constantes -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Examen &amp; constantes
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Motif</label>
+                    <input type="text" value="{{ appointment.reason }}" disabled
+                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Tension</label>
+                    <input type="text" name="blood_pressure" value="{{ consultation.blood_pressure }}" placeholder="12/8"
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Poids (kg)</label>
+                    <input type="number" step="0.1" name="weight_kg" value="{{ consultation.weight_kg|default:'' }}"
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-text-muted mb-1.5">Observations cliniques</label>
+                <textarea name="clinical_notes" rows="3"
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">{{ consultation.clinical_notes }}</textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-text-muted mb-1.5">Diagnostic</label>
+                <textarea name="diagnostic" rows="2"
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">{{ consultation.diagnostic }}</textarea>
+            </div>
+        </div>
+
+        <!-- Bloc Gynéco & Suivi Grossesse -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="baby" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Gynéco &amp; suivi grossesse
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Date des dernières règles (DDR)</label>
+                    <input type="date" name="last_menstrual_period" x-model="lmp"
+                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-text-muted mb-1.5">Terme (calcul auto)</label>
+                    <div class="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors duration-150"
+                         :class="ga ? 'bg-sauge-50 border-sauge-200 text-sauge-600' : 'bg-canvas border-border-subtle text-text-muted font-normal'">
+                        <i data-lucide="calendar-heart" class="w-4 h-4" stroke-width="1.75" x-show="ga"></i>
+                        <template x-if="ga">
+                            <span x-text="ga.weeks + ' SA + ' + ga.days + ' j'" class="tabular-nums"></span>
+                        </template>
+                        <template x-if="!ga">
+                            <span>Renseignez la DDR</span>
+                        </template>
+                    </div>
+                    <input type="hidden" name="gestational_age_weeks" :value="ga ? ga.weeks : ''">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-text-muted mb-1.5">Notes échographie</label>
+                <textarea name="ultrasound_notes" rows="2"
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">{{ consultation.ultrasound_notes }}</textarea>
+            </div>
+        </div>
+
+        <!-- Bloc Ordonnance -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="pill" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Ordonnance
+            </h2>
+            <div class="flex flex-wrap gap-2 mb-3">
+                <template x-for="tpl in prescriptionTemplates" :key="tpl.key">
+                    <button type="button" @click="insertTemplate(tpl)"
+                            class="btn-tactile text-xs font-medium text-sauge-600 bg-sauge-50 border border-sauge-100 rounded-full px-3 py-1.5 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
+                        <span x-text="tpl.label"></span>
+                    </button>
+                </template>
+            </div>
+            <textarea name="prescription_content" rows="5" x-model="prescriptionContent"
+                      placeholder="Sélectionnez un modèle ou saisissez la prescription…"
+                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
+        </div>
+
+        <!-- Bloc Actes -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="clipboard-list" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Actes réalisés
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <template x-for="act in acts" :key="act.id">
+                    <label class="btn-tactile flex items-center justify-between gap-2 border rounded-xl px-3.5 py-3 text-sm cursor-pointer"
+                           :class="selected.includes(act.id) ? 'border-sauge-600 bg-sauge-50 ring-1 ring-sauge-600' : 'border-border-subtle hover:border-sauge-200 hover:bg-sauge-50/40'">
+                        <span class="flex items-center gap-2.5 min-w-0">
+                            <span class="shrink-0 h-5 w-5 rounded-md border flex items-center justify-center transition-colors duration-150"
+                                  :class="selected.includes(act.id) ? 'bg-sauge-600 border-sauge-600' : 'border-border-subtle'">
+                                <i data-lucide="check" class="w-3.5 h-3.5 text-white" stroke-width="2.5" x-show="selected.includes(act.id)"></i>
+                            </span>
+                            <input type="checkbox" name="acts" :value="act.id" @change="toggle(act.id)" :checked="selected.includes(act.id)" class="hidden">
+                            <span class="truncate font-medium text-text-main" x-text="act.name"></span>
+                        </span>
+                        <span class="shrink-0 font-semibold text-text-muted tabular-nums" x-text="act.price + ' DH'"></span>
+                    </label>
+                </template>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Barre d'action inférieure -->
+<div class="fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-200/80 shadow-popover">
+    <div class="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2 text-sm">
+            <span class="text-text-muted">Total actes</span>
+            <span class="text-lg font-bold text-sauge-600 tabular-nums" x-text="total + ' DH'"></span>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap justify-end">
+            <button type="submit" form="consultation-form" @click="action = 'draft'"
+                    class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300">
+                Sauvegarder brouillon
+            </button>
+            <a href="{% url 'clinical:report_pdf' appointment.pk %}" target="_blank"
+               class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline">Compte rendu</span> PDF
+            </a>
+            <a href="{% url 'clinical:prescription_pdf' appointment.pk %}" target="_blank"
+               class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-1.5">
+                <i data-lucide="pill" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline">Ordonnance</span> PDF
+            </a>
+            <button type="submit" form="consultation-form" @click="action = 'validate'"
+                    class="btn-tactile text-sm font-semibold bg-sauge-600 text-white rounded-lg px-4 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-2">
+                <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75"></i> Valider et transmettre la facture
+            </button>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<script>
+    function consultationForm() {
+        return {
+            action: "draft",
+            lmp: "{{ consultation.last_menstrual_period|date:'Y-m-d' }}",
+            acts: JSON.parse(document.getElementById("acts-data").textContent),
+            selected: JSON.parse(document.getElementById("selected-acts-data").textContent),
+            prescriptionTemplates: JSON.parse(document.getElementById("prescription-templates-data").textContent),
+            prescriptionContent: JSON.parse(document.getElementById("prescription-content-data").textContent),
+            insertTemplate(tpl) {
+                this.prescriptionContent = this.prescriptionContent
+                    ? this.prescriptionContent + "\n" + tpl.text
+                    : tpl.text;
+            },
+            toggle(id) {
+                if (this.selected.includes(id)) {
+                    this.selected = this.selected.filter((x) => x !== id);
+                } else {
+                    this.selected.push(id);
+                }
+            },
+            get total() {
+                return this.acts
+                    .filter((a) => this.selected.includes(a.id))
+                    .reduce((sum, a) => sum + a.price, 0);
+            },
+            get ga() {
+                if (!this.lmp) return null;
+                const diffMs = new Date() - new Date(this.lmp + "T00:00:00");
+                const diffDays = Math.floor(diffMs / 86400000);
+                if (diffDays < 0) return null;
+                return { weeks: Math.floor(diffDays / 7), days: diffDays % 7 };
+            },
+            beforeSubmit() {
+                if (window.lucide) lucide.createIcons();
+            },
+        };
+    }
+</script>
+{% endblock %}

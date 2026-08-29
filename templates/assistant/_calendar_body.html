@@ -1,0 +1,7 @@
+<div id="calendar-body">
+    {% if view_mode == 'month' %}
+        {% include "assistant/_calendar_month.html" %}
+    {% else %}
+        {% include "assistant/_calendar_day.html" %}
+    {% endif %}
+</div>

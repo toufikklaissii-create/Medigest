@@ -1,0 +1,15 @@
+{% extends "pdf/_base_pdf.html" %}
+{% block doc_type %}Compte rendu{% endblock %}
+{% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
+{% block body %}
+<table class="info-table">
+    <tr><th>Indication / Motif</th><td>{{ reason|default:"—" }}</td></tr>
+    <tr><th>DDR</th><td>{{ last_menstrual_period|date:"d/m/Y"|default:"—" }}</td></tr>
+    <tr><th>Âge gestationnel</th><td>{% if gestational_age %}{{ gestational_age }}{% else %}—{% endif %}</td></tr>
+    <tr><th>Biométrie fœtale</th><td style="white-space: pre-line;">{{ ultrasound_notes|default:"—" }}</td></tr>
+    <tr><th>Conclusion / Conduite à tenir</th><td style="white-space: pre-line;">{{ diagnostic|default:"—" }}</td></tr>
+</table>
+{% if clinical_notes %}
+<p style="margin-top: 18px;"><strong>Examen clinique :</strong><br>{{ clinical_notes|linebreaksbr }}</p>
+{% endif %}
+{% endblock %}

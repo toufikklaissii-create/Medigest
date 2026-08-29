@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Patientes — Medigest{% endblock %}
+{% block content %}
+<div class="max-w-5xl mx-auto px-6 py-7">
+    <div class="flex items-center justify-between mb-7">
+        <div>
+            <h1 class="text-2xl font-bold text-text-main tracking-tight">Patientes</h1>
+            <p class="text-sm text-text-muted mt-0.5 tabular-nums">{{ patients|length }} dossier{{ patients|length|pluralize }} enregistré{{ patients|length|pluralize }}</p>
+        </div>
+        <a href="{% url 'patients:create_patient' %}"
+           class="btn-tactile text-sm font-medium text-white bg-sauge-600 rounded-lg px-3.5 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-1.5">
+            <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75"></i> Nouvelle patiente
+        </a>
+    </div>
+
+    <div class="bg-surface rounded-xl border border-border-subtle shadow-sm divide-y divide-border-subtle overflow-hidden">
+        {% for patient in patients %}
+        <div class="flex items-center gap-3 px-4 py-3.5 hover:bg-canvas transition-colors duration-150">
+            <div class="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-sauge-100 to-sauge-50 flex items-center justify-center text-sauge-600 font-semibold text-xs">
+                {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="font-medium text-sm text-text-main truncate">{{ patient.first_name }} {{ patient.last_name }}</p>
+                <p class="text-xs text-text-muted mt-0.5">{{ patient.patient_number }}{% if patient.phone %} · {{ patient.phone }}{% endif %}</p>
+            </div>
+            {% if patient.allergies %}
+            <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-2 py-0.5">
+                <i data-lucide="triangle-alert" class="w-3 h-3" stroke-width="1.75"></i> Allergie
+            </span>
+            {% endif %}
+            <a href="{% url 'appointments:create_appointment_for' patient.pk %}"
+               title="Prendre RDV"
+               class="btn-tactile shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i>
+            </a>
+        </div>
+        {% empty %}
+        <div class="px-4 py-14 text-center">
+            <i data-lucide="users" class="w-8 h-8 text-slate-300 mx-auto mb-2" stroke-width="1.5"></i>
+            <p class="text-sm text-text-muted">Aucune patiente enregistrée pour le moment.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

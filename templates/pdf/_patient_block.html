@@ -1,0 +1,8 @@
+<table class="patient-table">
+    <tr>
+        <td><span class="label">Patiente : </span>{{ patient.first_name }} {{ patient.last_name }}</td>
+        <td>{% if patient.age %}<span class="label">Âge : </span>{{ patient.age }} ans{% endif %}</td>
+        <td><span class="label">Réf. dossier : </span>{{ patient.patient_number }}</td>
+        <td><span class="label">Date : </span>{{ doc_date|date:"d/m/Y" }}</td>
+    </tr>
+</table>

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Nouveau RDV{% endblock %}
+{% block content %}
+<div class="max-w-xl mx-auto px-6 py-8">
+    <div class="flex items-center gap-2 mb-7">
+        <a href="{% url 'appointments:assistant_dashboard' %}" class="btn-tactile text-text-muted hover:text-sauge-600 hover:bg-sauge-50 p-2 rounded-lg">
+            <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75"></i>
+        </a>
+        <h1 class="text-xl font-bold text-text-main tracking-tight">
+            Nouveau RDV{% if patient %} — {{ patient }}{% endif %}
+        </h1>
+    </div>
+
+    <form method="post" class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 space-y-3.5">
+        {% csrf_token %}
+        {% if not patient %}
+        <select name="patient" required class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+            <option value="">Sélectionner une patiente…</option>
+            {% for p in patients %}
+            <option value="{{ p.pk }}">{{ p.first_name }} {{ p.last_name }} — {{ p.patient_number }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <div>
+            <label class="block text-xs font-medium text-text-muted mb-1.5">Date &amp; heure</label>
+            <input type="datetime-local" name="date" required
+                   class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-text-muted mb-1.5">Durée (minutes)</label>
+            <input type="number" name="duration_minutes" value="30" min="5" step="5"
+                   class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-text-muted mb-1.5">Motif</label>
+            <input type="text" name="reason" placeholder="Ex : Consultation de suivi"
+                   class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60">
+        </div>
+        <button type="submit" class="btn-tactile w-full bg-sauge-600 text-white text-sm font-semibold rounded-lg py-2.5 shadow-sm hover:bg-sauge-900 flex items-center justify-center gap-2">
+            <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i> Créer le RDV
+        </button>
+    </form>
+</div>
+{% endblock %}

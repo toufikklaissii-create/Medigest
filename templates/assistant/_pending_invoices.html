@@ -1,0 +1,83 @@
+<div id="pending-invoices" class="flex flex-col gap-2.5">
+    {% for invoice in pending_invoices %}
+    <div class="card-soft flex items-center justify-between gap-3 bg-surface rounded-xl border border-border-subtle shadow-sm p-3.5 hover:shadow-card"
+         x-data="{ open: false, paid: false, method: 'cash' }">
+        <div class="min-w-0">
+            <p class="font-medium text-sm text-text-main truncate">{{ invoice.patient.first_name }} {{ invoice.patient.last_name }}</p>
+            <p class="text-[11px] text-text-muted">{{ invoice.invoice_number }}</p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+            <p class="text-lg font-bold text-text-main whitespace-nowrap tabular-nums">{{ invoice.total_amount }} <span class="text-xs font-medium text-text-muted">DH</span></p>
+            <button @click="open = true"
+                class="btn-tactile inline-flex items-center gap-1.5 text-xs font-semibold bg-sauge-600 text-white rounded-lg px-3 py-2 shadow-sm hover:bg-sauge-900">
+                <i data-lucide="banknote" class="w-3.5 h-3.5" stroke-width="1.75"></i> Encaisser
+            </button>
+        </div>
+
+        <!-- Pay modal for this invoice -->
+        <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4">
+            <div @click.outside="open = false" x-show="open"
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 scale-95"
+                 x-transition:enter-end="opacity-100 scale-100"
+                 class="relative bg-surface rounded-2xl shadow-popover border border-slate-200/70 w-full max-w-sm p-6 overflow-hidden">
+
+                <!-- Success overlay -->
+                <div x-show="paid" x-cloak x-transition.opacity
+                     class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface">
+                    <span class="h-14 w-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center"
+                          x-show="paid" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="scale-0" x-transition:enter-end="scale-100">
+                        <i data-lucide="check" class="w-7 h-7 text-emerald-600" stroke-width="2"></i>
+                    </span>
+                    <p class="text-sm font-semibold text-text-main">Paiement validé</p>
+                    <p class="text-xs text-text-muted">Reçu en cours d'ouverture…</p>
+                </div>
+
+                <h3 class="font-semibold text-text-main mb-1 flex items-center gap-2">
+                    <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                        <i data-lucide="banknote" class="w-4 h-4" stroke-width="1.75"></i>
+                    </span>
+                    Encaisser la facture
+                </h3>
+                <p class="text-sm text-text-muted mb-5 ml-10">{{ invoice.invoice_number }} — <span class="font-semibold text-text-main">{{ invoice.total_amount }} DH</span></p>
+
+                <form
+                    hx-post="{% url 'billing:pay_invoice' invoice.pk %}"
+                    hx-target="#pending-invoices"
+                    hx-swap="outerHTML swap:700ms"
+                    @htmx:after-request="paid = true">
+                    <div class="grid grid-cols-3 gap-2 mb-5">
+                        <label class="btn-tactile flex flex-col items-center gap-1.5 border rounded-xl py-3 text-xs font-medium cursor-pointer"
+                               :class="method === 'cash' ? 'border-sauge-600 bg-sauge-50 text-sauge-600 ring-1 ring-sauge-600' : 'border-border-subtle text-text-muted hover:border-sauge-200'">
+                            <input type="radio" name="payment_method" value="cash" x-model="method" class="hidden">
+                            <i data-lucide="banknote" class="w-[18px] h-[18px]" stroke-width="1.75"></i> Espèces
+                        </label>
+                        <label class="btn-tactile flex flex-col items-center gap-1.5 border rounded-xl py-3 text-xs font-medium cursor-pointer"
+                               :class="method === 'card' ? 'border-sauge-600 bg-sauge-50 text-sauge-600 ring-1 ring-sauge-600' : 'border-border-subtle text-text-muted hover:border-sauge-200'">
+                            <input type="radio" name="payment_method" value="card" x-model="method" class="hidden">
+                            <i data-lucide="credit-card" class="w-[18px] h-[18px]" stroke-width="1.75"></i> Carte
+                        </label>
+                        <label class="btn-tactile flex flex-col items-center gap-1.5 border rounded-xl py-3 text-xs font-medium cursor-pointer"
+                               :class="method === 'check' ? 'border-sauge-600 bg-sauge-50 text-sauge-600 ring-1 ring-sauge-600' : 'border-border-subtle text-text-muted hover:border-sauge-200'">
+                            <input type="radio" name="payment_method" value="check" x-model="method" class="hidden">
+                            <i data-lucide="file-text" class="w-[18px] h-[18px]" stroke-width="1.75"></i> Chèque
+                        </label>
+                    </div>
+                    <div class="flex gap-2 justify-end pt-2 border-t border-border-subtle">
+                        <button type="button" @click="open = false" class="btn-tactile text-sm font-medium text-text-muted px-3.5 py-2 rounded-lg hover:text-text-main hover:bg-slate-50">Annuler</button>
+                        <button type="submit" class="btn-tactile text-sm font-semibold bg-sauge-600 text-white rounded-lg px-4 py-2.5 shadow-sm hover:bg-sauge-900 inline-flex items-center gap-1.5">
+                            <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75"></i>
+                            Valider &amp; imprimer le reçu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="flex flex-col items-center justify-center gap-1.5 py-8 text-center">
+        <i data-lucide="badge-check" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
+        <p class="text-sm text-text-muted italic">Aucune facture en attente.</p>
+    </div>
+    {% endfor %}
+</div>

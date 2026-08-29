@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    @page {
+        size: {% block page_size %}A4{% endblock %};
+        margin: 1.6cm 1.4cm;
+    }
+    body {
+        font-family: Helvetica, Arial, sans-serif;
+        color: #1E293B;
+        font-size: 11pt;
+        line-height: 1.5;
+    }
+    table.header-table {
+        width: 100%;
+        border-collapse: collapse;
+        border-bottom: 2px solid #5B8266;
+        padding-bottom: 8px;
+        margin-bottom: 18px;
+    }
+    table.header-table td { vertical-align: top; padding-bottom: 10px; }
+    .clinic-name {
+        font-size: 15pt;
+        font-weight: bold;
+        color: #3D5A47;
+        margin: 0 0 2px 0;
+    }
+    .clinic-sub {
+        font-size: 9pt;
+        color: #64748B;
+        margin: 0;
+    }
+    .doc-type {
+        text-align: right;
+        font-size: 12pt;
+        font-weight: bold;
+        color: #5B8266;
+        text-transform: uppercase;
+    }
+    table.patient-table {
+        width: 100%;
+        background-color: #E8F0EB;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    table.patient-table td {
+        padding: 8px 12px;
+        font-size: 10pt;
+    }
+    .label { color: #3D5A47; font-weight: bold; }
+    .content { margin-bottom: 30px; }
+    table.info-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    table.info-table th, table.info-table td {
+        border: 1px solid #E2E8F0;
+        padding: 6px 10px;
+        text-align: left;
+        font-size: 10pt;
+        vertical-align: top;
+    }
+    table.info-table th { background-color: #F8FAFC; width: 32%; color: #3D5A47; }
+    .footer-line {
+        margin-top: 40px;
+        padding-top: 10px;
+        border-top: 1px solid #E2E8F0;
+        font-size: 8.5pt;
+        color: #64748B;
+        text-align: center;
+    }
+    table.signature-table { width: 100%; margin-top: 24px; }
+    .signature-box {
+        width: 6cm;
+        text-align: center;
+        border-top: 1px solid #94A3B8;
+        padding-top: 6px;
+        font-size: 9pt;
+        color: #3D5A47;
+        float: right;
+    }
+</style>
+</head>
+<body>
+    <table class="header-table">
+        <tr>
+            <td style="width: 68%;">
+                <p class="clinic-name">Cabinet de Gynécologie-Obstétrique — Dr ERRMILI Khadija</p>
+                <p class="clinic-sub">
+                    Spécialiste en Gynécologie Médicale et Chirurgicale — Suivi de grossesse — Échographie 2D/3D/4D<br/>
+                    12 Avenue Hassan II, Résidence Al Amal, 2ᵉ étage — Casablanca<br/>
+                    Tél. : 05 22 00 00 00 — Mob. : 06 61 00 00 00
+                </p>
+            </td>
+            <td class="doc-type">{% block doc_type %}Document{% endblock %}</td>
+        </tr>
+    </table>
+
+    {% block patient_block %}{% endblock %}
+
+    <div class="content">
+        {% block body %}{% endblock %}
+    </div>
+
+    <table class="signature-table">
+        <tr><td class="signature-box">Signature et cachet du médecin</td></tr>
+    </table>
+
+    <p class="footer-line">Cabinet Dr ERRMILI Khadija — 12 Avenue Hassan II, Casablanca — Tél. 05 22 00 00 00</p>
+</body>
+</html>

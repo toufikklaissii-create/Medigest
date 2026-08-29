@@ -1,0 +1,57 @@
+<div class="bg-surface rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div class="flex">
+        <!-- Time labels -->
+        <div class="w-14 shrink-0 border-r border-slate-100">
+            {% for slot in slots|slice:":-1" %}
+            <div class="h-12 flex items-start justify-end pr-2 pt-1 text-xs text-slate-400 border-b border-dashed border-slate-100 last:border-0">
+                {{ slot|time:"H:i" }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Grid + cards -->
+        <div class="relative flex-1 h-[960px]">
+            {% for slot in slots|slice:":-1" %}
+            <button type="button"
+                    hx-get="{% url 'appointments:appointment_modal' %}?date={{ current_date|date:'Y-m-d' }}&time={{ slot|time:'H:i' }}"
+                    hx-target="#modal-container" hx-swap="innerHTML"
+                    class="btn-tactile relative w-full h-12 border-b border-dashed border-slate-100 last:border-0 hover:bg-slate-50 group">
+                <span class="hidden group-hover:flex absolute inset-0 items-center justify-center">
+                    <i data-lucide="plus" class="w-4 h-4 text-sauge-500" stroke-width="2"></i>
+                </span>
+            </button>
+            {% endfor %}
+
+            {% if now_pct is not None %}
+            <div class="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style="top: {{ now_pct }}%;">
+                <span class="relative flex h-2.5 w-2.5 -ml-1 shrink-0">
+                    <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-sauge-500 opacity-60"></span>
+                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sauge-500"></span>
+                </span>
+                <span class="flex-1 h-px bg-sauge-500"></span>
+            </div>
+            {% endif %}
+
+            {% for appt in day_appointments %}
+            <div class="absolute left-2 right-2 z-10 rounded-lg bg-white border border-slate-100 border-l-4 px-3 py-1.5 overflow-hidden cursor-pointer shadow-sm
+                    hover:-translate-y-0.5 hover:shadow-md transition-all duration-200
+                    {% if appt.status == 'scheduled' %}border-l-sauge-500
+                    {% elif appt.status == 'arrived' %}border-l-amber-400
+                    {% elif appt.status == 'waiting' %}border-l-sky-400
+                    {% elif appt.status == 'in_consultation' %}border-l-emerald-400
+                    {% elif appt.status == 'completed' %}border-l-slate-300
+                    {% elif appt.status == 'cancelled' %}border-l-rose-300 opacity-60
+                    {% else %}border-l-sauge-500{% endif %}"
+                 style="top: {{ appt.top_pct }}%; height: {{ appt.height_pct }}%;"
+                 hx-get="{% url 'appointments:appointment_drawer' appt.pk %}"
+                 hx-target="#drawer-container" hx-swap="innerHTML">
+                <p class="text-sm font-semibold text-slate-800 truncate leading-tight">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                <p class="text-xs text-slate-500 truncate leading-tight">{{ appt.reason|default:"—" }}</p>
+                <p class="text-[11px] text-slate-400 truncate leading-tight flex items-center gap-1 mt-0.5">
+                    <i data-lucide="clock" class="w-2.5 h-2.5" stroke-width="1.75"></i>{{ appt.time_display }}{% if appt.patient.phone %} · {{ appt.patient.phone }}{% endif %}
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

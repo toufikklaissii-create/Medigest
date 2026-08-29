@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Accueil — Assistante{% endblock %}
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-7">
+
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-7">
+        <div>
+            <h1 class="text-2xl font-bold text-text-main tracking-tight">Espace Accueil &amp; Coordination</h1>
+            <p class="text-sm text-text-muted mt-0.5">File d'attente et gestion du jour</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{% url 'appointments:calendar' %}"
+               class="btn-tactile text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3.5 py-2 hover:bg-sauge-50 flex items-center gap-1.5">
+                <i data-lucide="calendar-days" class="w-4 h-4" stroke-width="1.75"></i> Planning / Agenda
+            </a>
+            <a href="{% url 'patients:create_patient' %}"
+               class="btn-tactile text-sm font-medium text-white bg-sauge-600 rounded-lg px-3.5 py-2 shadow-sm hover:bg-sauge-900 flex items-center gap-1.5">
+                <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75"></i> Nouvelle patiente
+            </a>
+            <a href="{% url 'appointments:create_appointment' %}"
+               class="btn-tactile text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3.5 py-2 hover:bg-sauge-50 flex items-center gap-1.5">
+                <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i> Nouveau RDV
+            </a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <i data-lucide="users" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">jour</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ today_total }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Patientes reçues aujourd'hui</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
+                    <i data-lucide="banknote" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">à faire</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ pending_invoices|length }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Encaissements en attente</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
+                    <i data-lucide="calendar-clock" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">restant</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ scheduled_today|length }}</p>
+            <p class="text-xs text-text-muted mt-0.5">RDV programmés</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px] hover:shadow-card hover:-translate-y-0.5">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="list-checks" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">actives</span>
+            </div>
+            <p class="text-2xl font-bold text-text-main tabular-nums">{{ my_tasks|length }}</p>
+            <p class="text-xs text-text-muted mt-0.5">Tâches à traiter</p>
+        </div>
+    </div>
+
+    <!-- Universal search -->
+    <div class="mb-7 relative">
+        <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" stroke-width="1.75"></i>
+            <input
+                type="search"
+                name="q"
+                placeholder="Rechercher une patiente (nom, téléphone, CIN, N° dossier)…"
+                class="w-full pl-11 pr-4 py-3 rounded-xl border border-border-subtle bg-surface shadow-sm text-sm transition-shadow duration-150 hover:shadow-card focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"
+                hx-get="{% url 'appointments:patient_search' %}"
+                hx-trigger="keyup changed delay:250ms, search"
+                hx-target="#search-results"
+                hx-swap="innerHTML"
+                autocomplete="off">
+        </div>
+        <div id="search-results"></div>
+    </div>
+
+    <!-- File du jour — Kanban -->
+    <div class="mb-7">
+        <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3">File d'attente du jour</h2>
+        {% include "assistant/_queue_board.html" %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
+                <i data-lucide="banknote" class="w-4 h-4" stroke-width="1.75"></i> Facturation &amp; encaissements
+            </h2>
+            {% include "assistant/_pending_invoices.html" %}
+        </div>
+
+        <div class="flex flex-col gap-6">
+            <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
+                <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
+                    <i data-lucide="calendar-clock" class="w-4 h-4" stroke-width="1.75"></i> RDV du jour
+                </h2>
+                {% include "assistant/_today_list.html" %}
+            </div>
+
+            <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
+                <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
+                    <i data-lucide="message-circle" class="w-4 h-4" stroke-width="1.75"></i> Rappels WhatsApp J+2
+                </h2>
+                {% include "assistant/_j2_reminders.html" %}
+            </div>
+        </div>
+
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
+            <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
+                <i data-lucide="list-checks" class="w-4 h-4" stroke-width="1.75"></i> Tâches
+            </h2>
+            {% include "communications/_tasks_panel.html" with tasks=my_tasks %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

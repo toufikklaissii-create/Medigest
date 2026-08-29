@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Rendez-vous — Medigest{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto px-6 py-7">
+    <div class="mb-7">
+        <h1 class="text-2xl font-bold text-text-main tracking-tight">Rendez-vous</h1>
+        <p class="text-sm text-text-muted mt-0.5 tabular-nums">{{ appointments|length }} rendez-vous{{ appointments|length|pluralize }}</p>
+    </div>
+
+    <div class="bg-surface rounded-xl border border-border-subtle shadow-sm divide-y divide-border-subtle overflow-hidden">
+        {% for appt in appointments %}
+        <div class="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-canvas transition-colors duration-150">
+            <div class="min-w-0">
+                <p class="font-medium text-sm text-text-main truncate">{{ appt.patient }}</p>
+                <p class="text-xs text-text-muted mt-0.5 tabular-nums">{{ appt.date }}</p>
+            </div>
+            <span class="shrink-0 text-[11px] font-semibold rounded-full px-2.5 py-1 border bg-sauge-50 text-sauge-600 border-sauge-100">
+                {{ appt.get_status_display }}
+            </span>
+        </div>
+        {% empty %}
+        <div class="px-4 py-14 text-center">
+            <i data-lucide="calendar-x" class="w-8 h-8 text-slate-300 mx-auto mb-2" stroke-width="1.5"></i>
+            <p class="text-sm text-text-muted">Aucun rendez-vous.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

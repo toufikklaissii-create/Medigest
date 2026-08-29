@@ -1,0 +1,22 @@
+<div class="absolute left-0 right-0 mt-2 bg-surface rounded-xl border border-border-subtle shadow-popover divide-y divide-border-subtle overflow-hidden z-30">
+    {% if query %}
+        {% for p in patients %}
+        <a href="{% url 'appointments:create_appointment_for' p.pk %}"
+           class="btn-tactile flex items-center justify-between px-4 py-2.5 text-sm hover:bg-sauge-50/50">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="shrink-0 h-7 w-7 rounded-full bg-sauge-100 flex items-center justify-center text-sauge-600 text-[11px] font-semibold">
+                    {{ p.first_name|slice:":1" }}{{ p.last_name|slice:":1" }}
+                </span>
+                <span class="font-medium text-text-main truncate">{{ p.first_name }} {{ p.last_name }}</span>
+                <span class="text-text-muted shrink-0">{{ p.patient_number }}</span>
+            </div>
+            <div class="text-text-muted flex items-center gap-3 shrink-0">
+                {% if p.phone %}<span class="flex items-center gap-1"><i data-lucide="phone" class="w-3.5 h-3.5" stroke-width="1.75"></i>{{ p.phone }}</span>{% endif %}
+                {% if p.cin %}<span>{{ p.cin }}</span>{% endif %}
+            </div>
+        </a>
+        {% empty %}
+        <div class="px-4 py-3 text-sm text-text-muted">Aucune patiente trouvée pour « {{ query }} ».</div>
+        {% endfor %}
+    {% endif %}
+</div>

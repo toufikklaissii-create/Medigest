@@ -1,0 +1,56 @@
+<div id="patient-picker" x-data="{ hasPatient: {{ selected_patient|yesno:'true,false' }}, expressMode: false }">
+    <input type="hidden" name="patient" value="{{ selected_patient.pk|default:'' }}" x-ref="patientId">
+
+    {% if selected_patient %}
+    <div x-show="hasPatient" x-cloak class="flex items-center justify-between gap-2 rounded-lg border border-sauge-100 bg-sauge-50 px-3 py-2.5">
+        <div class="flex items-center gap-2 min-w-0">
+            <span class="h-7 w-7 rounded-full bg-sauge-600 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">
+                {{ selected_patient.first_name|slice:":1" }}{{ selected_patient.last_name|slice:":1" }}
+            </span>
+            <div class="min-w-0">
+                <p class="text-sm font-medium text-text-main truncate">{{ selected_patient.first_name }} {{ selected_patient.last_name }}</p>
+                <p class="text-[11px] text-text-muted">{{ selected_patient.patient_number }}</p>
+            </div>
+        </div>
+        <button type="button" @click="hasPatient = false; $refs.patientId.value = ''"
+                class="btn-tactile shrink-0 text-xs font-medium text-text-muted hover:text-rose-600">
+            Changer
+        </button>
+    </div>
+    {% endif %}
+
+    <div x-show="!hasPatient" x-cloak>
+        <label class="block text-xs font-medium text-text-muted mb-1.5">Patiente</label>
+        <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" stroke-width="1.75"></i>
+            <input type="text" name="q" placeholder="Rechercher par nom, téléphone, CIN…" autocomplete="off"
+                   class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-border-subtle text-sm focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500"
+                   hx-get="{% url 'appointments:patient_picker_search' %}"
+                   hx-trigger="keyup changed delay:250ms"
+                   hx-target="#patient-picker-results" hx-swap="innerHTML">
+        </div>
+        {% if express_error %}<p class="text-xs text-rose-600 mt-1.5">Prénom et nom requis pour créer la patiente.</p>{% endif %}
+        <div id="patient-picker-results" class="mt-1.5 max-h-40 overflow-y-auto"></div>
+
+        <button type="button" @click="expressMode = !expressMode"
+                class="btn-tactile mt-2.5 text-xs font-medium text-sauge-600 flex items-center gap-1.5">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+            <span x-text="expressMode ? 'Annuler' : 'Créer une patiente express'"></span>
+        </button>
+        <div x-show="expressMode" x-cloak class="mt-2 grid grid-cols-3 gap-1.5">
+            <input type="text" name="first_name" id="express-first-name" placeholder="Prénom"
+                   class="rounded-lg border border-border-subtle px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sauge-500/40">
+            <input type="text" name="last_name" id="express-last-name" placeholder="Nom"
+                   class="rounded-lg border border-border-subtle px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sauge-500/40">
+            <input type="text" name="phone" id="express-phone" placeholder="Téléphone"
+                   class="rounded-lg border border-border-subtle px-2.5 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sauge-500/40">
+            <button type="button"
+                    class="btn-tactile col-span-3 text-xs font-semibold bg-sauge-600 text-white rounded-lg py-2 hover:bg-sauge-900"
+                    hx-post="{% url 'appointments:quick_create_patient' %}"
+                    hx-include="#express-first-name,#express-last-name,#express-phone"
+                    hx-target="#patient-picker" hx-swap="outerHTML">
+                Créer &amp; sélectionner
+            </button>
+        </div>
+    </div>
+</div>

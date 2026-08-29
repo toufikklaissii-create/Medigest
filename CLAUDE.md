@@ -1,45 +1,53 @@
-# Directives Système & Design System - Cabinet Médical Dr ERRMILI KHADIJA (Medigest)
+# Medigest — Cabinet Dr ERRMILI Khadija (Gynécologie & Obstétrique)
 
-## 1. Identité Visuelle & Tokens (« Clinique Apaisante » Haut de Gamme)
-- **Palette Principale :**
-  - Vert Sauge Médical (Primary) : 
-    - `sauge-50`: `#F4F7F5` (surfaces actives)
-    - `sauge-100`: `#E3ECE7` (bordures douces / tags)
-    - `sauge-500`: `#52796F` (accents & boutons secondaires)
-    - `sauge-600`: `#354F52` (boutons d'action principaux, focus)
-    - `sauge-900`: `#2F3E46` (titres et forts contrastes)
-  - Neutres & Surfaces :
-    - `canvas`: `#FBFBFC` (fond général, jamais de blanc pur éblouissant)
-    - `surface`: `#FFFFFF` (cartes, tiroirs, modals)
-    - `border-subtle`: `#E2E8F0` / `#EAEBED` (bordures 1px chirurgicales)
-    - `text-main`: `#0F172A` (ardoise sombre, lisibilité optimale)
-    - `text-muted`: `#64748B` (métadonnées)
-  - Statuts Pastel Médicaux :
-    - Arrivée : `bg-amber-50 text-amber-700 border-amber-200`
-    - En attente : `bg-sky-50 text-sky-700 border-sky-200`
-    - En consultation : `bg-emerald-50 text-emerald-700 border-emerald-200`
-    - Terminée : `bg-slate-50 text-slate-600 border-slate-200`
-    - Alerte/Allergie/Urgence : `bg-rose-50 text-rose-700 border-rose-200`
+Plateforme de gestion de cabinet médical. Django + templates HTML, HTMX, Alpine.js, Tailwind (CDN). Deux rôles strictement cloisonnés : **Médecin** et **Assistante**.
 
-- **Typographie & Éléments UI :**
-  - Police : 'Plus Jakarta Sans' (Google Fonts).
-  - Rayon des bordures : `rounded-xl` (12px pour cartes) et `rounded-2xl` (16px pour modals).
-  - Ombres : Ultra-douces `shadow-sm` (`box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.03)`).
-  - Icônes : Lucide Icons avec `stroke-width="1.75"`.
+> **RÈGLE N°1 — DESIGN : lire `DESIGN.md` avant TOUT travail sur l'UI.**
+> Ce fichier (CLAUDE.md) contient les règles projet. Le design system complet (tokens, composants, layout sidebar, motion, checklist qualité) vit dans **`DESIGN.md`**. Le plan de refonte écran par écran vit dans **`REDESIGN_PLAN.md`**. La maquette de référence validée est **`design_reference/dashboard_reference.html`** — c'est le niveau de finition attendu partout.
 
-## 2. Références de Design & Standards d'Exécution
-- **21st.dev :** Utiliser les composants UI modernes (metric cards, headers, drawers) via le serveur MCP.
-- **Uiverse.io :** S'inspirer pour les micro-interactions élégantes (boutons tactiles, spinners de chargement discrets, toggles, badges animés subtils).
-- **Bklit.com :** S'inspirer pour l'organisation aérée des tableaux de bord (padding généreux de 24px, hiérarchie claire, zéro encombrement visuel).
-- **Awesome-Design-MD & Impeccable :** Appliquer systématiquement les contrôles de contraste, l'alignement typographique, les micro-transitions (`transition-all duration-150 ease-in-out`) et l'élimination de tout layout shift.
+## 1. Architecture & Stack
+
+- Django, apps dans `apps/` : `accounts`, `appointments`, `billing`, `clinical`, `communications`, `patients`, `common`.
+- Templates dans `templates/` : `base.html` (config Tailwind + HTMX + Alpine + Lucide), puis un dossier par domaine (`assistant/`, `doctor/`, `patients/`, `billing/`, `pdf/`…). Les partials commencent par `_` et sont les cibles des swaps HTMX.
+- Base SQLite (`db.sqlite3`), tests avec pytest (`run_tests.ps1`), démarrage via `start_cabinet.ps1`.
+- Tailwind est configuré inline dans `base.html` (`tailwind.config`) : **tout nouveau token de design se déclare LÀ, jamais en valeur codée en dur dans un template.**
+
+## 2. Workflow de travail (obligatoire)
+
+1. **UI / refonte d'écran** → lire `DESIGN.md`, ouvrir la maquette de référence, puis suivre l'étape correspondante de `REDESIGN_PLAN.md`.
+2. **Skills à invoquer selon la tâche :**
+   - Refonte / création d'écran : `ui-ux-pro-max` (recherche de patterns), `web-design-guidelines`, `design-taste-frontend`, `high-end-visual-design`.
+   - Reprise d'un écran existant : `redesign-existing-projects`.
+   - Reproduction d'une maquette/capture : `image-to-code`.
+   - Le hook `impeccable` tourne automatiquement après chaque Edit/Write et au Stop — **corriger ses findings avant de conclure**, ne jamais les ignorer.
+3. **Toute modification de comportement** passe par les partials HTMX existants — pas de rechargement de page complet pour : statuts, encaissements, pagination, filtres, recherche.
+4. **Vérification avant de conclure** : lancer le serveur, tester le parcours dans le navigateur (les deux rôles si l'écran est partagé), vérifier l'absence de layout shift et les états vides/chargement/erreur.
 
 ## 3. Règles d'Or UX & Interaction
-- **Zéro Rechargement de Page Inutile :** Toutes les actions de changement de statut, d'encaissement, de pagination et de filtres utilisent HTMX et Alpine.js.
-- **Recherche Instantanée :** Barre de recherche HTMX avec debounce 250ms multi-critères (Nom, Prénom, Tél, CIN, N° Dossier).
-- **Feedback Immédiat :** Chaque action déclenche une mise à jour d'état visuelle immédiate et un toast de confirmation Alpine.js.
-- **Focus Médical :** La fiche clinique du médecin doit permettre de renseigner les données d'un geste (DDR calculant automatiquement l'âge gestationnel en SA, modèles d'ordonnances en 1 clic, sélection rapide des actes avec total dynamique).
+
+- **Zéro rechargement inutile** : HTMX + Alpine.js pour statuts, encaissement, pagination, filtres, recherche.
+- **Recherche instantanée** : debounce 250 ms, multi-critères (Nom, Prénom, Tél, CIN, N° Dossier).
+- **Feedback immédiat** : chaque action → mise à jour visuelle optimiste + toast Alpine.js. Barre de progression HTMX globale déjà en place dans `base.html`.
+- **Focus médical (fiche clinique médecin)** : DDR → âge gestationnel en SA calculé automatiquement ; modèles d'ordonnances en 1 clic ; sélection rapide des actes avec total dynamique.
+- **Chaque écran doit avoir** : état vide soigné (illustration + phrase + action), état de chargement (skeleton, jamais de spinner plein écran), état d'erreur récupérable.
 
 ## 4. Sécurité & Cloisonnement des Données
-- Séparation stricte des accès Médecin / Assistante côté serveur (middleware + décorateurs).
-- L'assistante encaisse et gère la file d'attente sans AUCUN accès aux données cliniques sensibles (diagnostics, observations médicales, ordonnances).
-- Génération PDF sécurisée pour les ordonnances, comptes rendus et reçus avec archivage automatique.
+
+- Séparation stricte Médecin / Assistante **côté serveur** (middleware + décorateurs) — jamais seulement dans le template.
+- L'assistante encaisse et gère la file d'attente **sans AUCUN accès** aux données cliniques sensibles (diagnostics, observations, ordonnances).
+- Génération PDF sécurisée (ordonnances, comptes rendus, reçus) avec archivage automatique — templates dans `templates/pdf/`.
+- Aucune donnée patiente réelle dans les fixtures, captures ou commits.
+
+## 5. Langue & Contenu
+
+- Interface 100 % en français. Dates au format long français (« samedi 29 août 2026 »), montants en DH (« 250,00 DH »).
+- Vocabulaire métier : patiente (féminin), RDV, encaissement, file d'attente, actes, DDR, SA.
+- Micro-copie : ton calme et professionnel, jamais technique (« Aucune patiente pour le moment » plutôt que « 0 résultats »).
+
+## 6. Interdits
+
+- Couleur, ombre, rayon ou espacement en dur hors des tokens de `base.html` / `DESIGN.md`.
+- Bleu/violet génériques « Tailwind par défaut » — la palette est le vert sauge et ses pastels médicaux définis dans `DESIGN.md`.
+- Spinner plein écran, `alert()`, rechargement complet pour une action locale.
+- Emoji en guise d'icône — uniquement Lucide (`stroke-width="1.75"`).
+- Supprimer ou contourner le hook impeccable.

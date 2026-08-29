@@ -1,0 +1,49 @@
+<div id="j2-reminders" class="flex flex-col gap-2">
+    {% for appt in j2_appointments %}
+    <div class="border-b border-border-subtle pb-2.5 last:border-0">
+        <div class="flex items-center justify-between mb-1.5">
+            <div>
+                <p class="font-medium text-text-main text-sm">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                <p class="text-xs text-text-muted">{{ appt.date|date:"d/m H:i" }}</p>
+            </div>
+            <span class="text-[10px] font-semibold uppercase rounded-full px-2 py-0.5 border
+                {% if appt.whatsapp_status == 'confirmed' %}bg-emerald-50 text-emerald-700 border-emerald-200
+                {% elif appt.whatsapp_status == 'sent' %}bg-sky-50 text-sky-700 border-sky-200
+                {% elif appt.whatsapp_status == 'rescheduled' %}bg-amber-50 text-amber-700 border-amber-200
+                {% elif appt.whatsapp_status == 'cancelled' %}bg-rose-50 text-rose-700 border-rose-200
+                {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
+                {{ appt.get_whatsapp_status_display }}
+            </span>
+        </div>
+
+        {% if appt.whatsapp_status == "pending" %}
+        <button
+            hx-post="{% url 'appointments:whatsapp_action' appt.pk 'send' %}"
+            hx-target="#j2-reminders" hx-swap="outerHTML"
+            class="btn-tactile w-full text-xs font-medium text-sauge-600 border border-sauge-100 rounded-lg px-2.5 py-1.5 hover:bg-sauge-50 hover:border-sauge-200 flex items-center justify-center gap-1">
+            <i data-lucide="send" class="w-3.5 h-3.5" stroke-width="1.75"></i> Simuler envoi rappel
+        </button>
+        {% elif appt.whatsapp_status == "sent" %}
+        <div class="grid grid-cols-3 gap-1.5">
+            <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'confirm' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
+                    class="btn-tactile text-xs font-medium text-emerald-700 border border-emerald-200 rounded-lg py-1.5 hover:bg-emerald-50">
+                Confirmer
+            </button>
+            <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'reschedule' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
+                    class="btn-tactile text-xs font-medium text-amber-700 border border-amber-200 rounded-lg py-1.5 hover:bg-amber-50">
+                Déplacer
+            </button>
+            <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'cancel' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
+                    class="btn-tactile text-xs font-medium text-rose-700 border border-rose-200 rounded-lg py-1.5 hover:bg-rose-50">
+                Annuler
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="flex flex-col items-center justify-center gap-1.5 py-6 text-center">
+        <i data-lucide="message-circle" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
+        <p class="text-sm text-text-muted italic">Aucun RDV à J+2 ({{ j2_date|date:"d/m/Y" }}).</p>
+    </div>
+    {% endfor %}
+</div>

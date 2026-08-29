@@ -1,0 +1,16 @@
+<div id="today-list" class="flex flex-col gap-2">
+    {% for appt in scheduled_today %}
+    <div class="flex items-center justify-between text-sm border-b border-border-subtle pb-2 last:border-0 hover:bg-canvas -mx-1 px-1 rounded-md transition-colors duration-150">
+        <div>
+            <p class="font-medium text-text-main">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+            <p class="text-xs text-text-muted tabular-nums">{{ appt.date|date:"H:i" }}</p>
+        </div>
+        <span class="text-[11px] font-medium text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-2 py-0.5 whitespace-nowrap">{{ appt.get_status_display }}</span>
+    </div>
+    {% empty %}
+    <div class="flex flex-col items-center justify-center gap-1.5 py-6 text-center">
+        <i data-lucide="calendar-check" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
+        <p class="text-sm text-text-muted italic">Aucun RDV planifié restant aujourd'hui.</p>
+    </div>
+    {% endfor %}
+</div>

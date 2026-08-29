@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Communications — Medigest{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-6 py-7">
+    <div class="mb-7">
+        <h1 class="text-2xl font-bold text-text-main tracking-tight">Communications</h1>
+        <p class="text-sm text-text-muted mt-0.5">Consignes et tâches qui vous sont assignées</p>
+    </div>
+
+    <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-[18px]">
+        <h2 class="text-sm font-semibold text-text-muted uppercase tracking-wide mb-3.5 flex items-center gap-2">
+            <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                <i data-lucide="list-checks" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+            </span>
+            Tâches actives
+        </h2>
+        {% include "communications/_tasks_panel.html" %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+<div id="queue-board" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    {% for status, label, items in columns %}
+    <div class="bg-canvas rounded-xl border border-border-subtle flex flex-col">
+        <div class="px-4 py-3.5 flex items-center justify-between">
+            <h3 class="font-semibold text-sm text-text-main flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                    {% if status == 'in_consultation' %}<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>{% endif %}
+                    <span class="relative inline-flex h-2 w-2 rounded-full
+                        {% if status == 'arrived' %}bg-amber-400
+                        {% elif status == 'waiting' %}bg-sky-400
+                        {% elif status == 'in_consultation' %}bg-emerald-400
+                        {% else %}bg-slate-400{% endif %}"></span>
+                </span>
+                {{ label }}
+            </h3>
+            <span class="text-xs font-semibold rounded-full px-2 py-0.5 tabular-nums
+                {% if status == 'arrived' %}bg-amber-50 text-amber-700
+                {% elif status == 'waiting' %}bg-sky-50 text-sky-700
+                {% elif status == 'in_consultation' %}bg-emerald-50 text-emerald-700
+                {% else %}bg-slate-50 text-slate-600{% endif %}">{{ items|length }}</span>
+        </div>
+        <div class="px-2 pb-2 flex flex-col gap-2.5 min-h-[100px]">
+            {% for appt in items %}
+            <div class="card-soft bg-surface rounded-xl border border-border-subtle shadow-sm p-3.5 hover:shadow-card hover:-translate-y-0.5">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sm text-text-main truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                        <p class="text-[11px] text-text-muted">{{ appt.patient.patient_number }}</p>
+                    </div>
+                    <span class="shrink-0 text-[11px] font-semibold rounded-full px-2 py-0.5 whitespace-nowrap tabular-nums
+                        {% if status == 'arrived' %}bg-amber-50 text-amber-700 border border-amber-200
+                        {% elif status == 'waiting' %}bg-sky-50 text-sky-700 border border-sky-200
+                        {% elif status == 'in_consultation' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                        {% else %}bg-slate-50 text-slate-600 border border-slate-200{% endif %}">
+                        {{ appt.date|date:"H:i" }}
+                    </span>
+                </div>
+
+                <p class="text-xs text-text-muted mb-1 truncate">{{ appt.reason|default:"—" }}</p>
+                <p class="flex items-center gap-1 text-[11px] text-text-muted mb-3">
+                    <i data-lucide="clock" class="w-3 h-3" stroke-width="1.75"></i>
+                    Depuis {{ appt.date|timesince }}
+                </p>
+
+                <div class="flex items-center gap-1.5">
+                    {% if appt.next_label %}
+                    <button
+                        hx-post="{% url 'appointments:advance_status' appt.pk %}"
+                        hx-target="#queue-board"
+                        hx-swap="outerHTML"
+                        class="btn-tactile flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium bg-sauge-600 text-white rounded-lg py-1.5 shadow-sm hover:bg-sauge-900">
+                        <i data-lucide="{% if status == 'scheduled' %}door-open{% elif status == 'arrived' %}hourglass{% elif status == 'waiting' %}stethoscope{% else %}check-check{% endif %}" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                        {{ appt.next_label }}
+                    </button>
+                    {% endif %}
+                    {% if status != 'completed' %}
+                    <a href="{% url 'clinical:consultation_detail' appt.pk %}"
+                       title="Ouvrir le dossier"
+                       class="btn-tactile inline-flex items-center justify-center text-text-muted hover:text-sauge-600 hover:border-sauge-200 hover:bg-sauge-50 border border-border-subtle rounded-lg h-7 w-7">
+                        <i data-lucide="folder-open" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="flex flex-col items-center justify-center gap-1.5 px-2 py-8 text-center">
+                <i data-lucide="inbox" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
+                <p class="text-xs text-text-muted italic">Aucune patiente.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>

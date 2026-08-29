@@ -1,0 +1,26 @@
+{% extends "pdf/_base_pdf.html" %}
+{% block page_size %}A5{% endblock %}
+{% block doc_type %}Reçu de consultation{% endblock %}
+{% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
+{% block body %}
+<table class="info-table">
+    <tr><th>N° reçu</th><td>{{ invoice.invoice_number }}</td></tr>
+    <tr><th>Date / heure</th><td>{{ invoice.paid_at|date:"d/m/Y H:i" }}</td></tr>
+    <tr><th>Mode de paiement</th><td>{{ invoice.get_payment_method_display }}</td></tr>
+</table>
+
+<table class="info-table" style="margin-top: 6px;">
+    <tr><th style="width: auto;">Prestation</th><th style="width: 30%;">Montant</th></tr>
+    {% for item in items %}
+    <tr><td>{{ item.act.name }}</td><td>{{ item.price }} DH</td></tr>
+    {% endfor %}
+    <tr>
+        <td style="font-weight: bold; color: #3D5A47;">Total réglé</td>
+        <td style="font-weight: bold; color: #3D5A47;">{{ invoice.total_amount }} DH</td>
+    </tr>
+</table>
+
+<p style="margin-top: 16px; font-size: 9pt; color: #64748B;">
+    Reçu remis à titre de justificatif de paiement. Les détails cliniques ne figurent pas sur ce document.
+</p>
+{% endblock %}

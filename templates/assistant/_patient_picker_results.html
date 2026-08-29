@@ -1,0 +1,18 @@
+{% if query %}
+    {% for p in patients %}
+    <button type="button"
+            hx-post="{% url 'appointments:select_patient_for_slot' p.pk %}"
+            hx-target="#patient-picker" hx-swap="outerHTML"
+            class="btn-tactile w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg border border-border-subtle hover:border-sauge-200 hover:bg-sauge-50 transition-colors duration-150 mb-1 last:mb-0">
+        <span class="flex items-center gap-2 min-w-0">
+            <span class="h-6 w-6 rounded-full bg-sauge-100 text-sauge-600 flex items-center justify-center text-[10px] font-semibold shrink-0">
+                {{ p.first_name|slice:":1" }}{{ p.last_name|slice:":1" }}
+            </span>
+            <span class="font-medium text-text-main truncate">{{ p.first_name }} {{ p.last_name }}</span>
+        </span>
+        <span class="text-xs text-text-muted shrink-0">{{ p.patient_number }}</span>
+    </button>
+    {% empty %}
+    <p class="text-xs text-text-muted italic px-1 py-1.5">Aucune patiente trouvée pour « {{ query }} ».</p>
+    {% endfor %}
+{% endif %}

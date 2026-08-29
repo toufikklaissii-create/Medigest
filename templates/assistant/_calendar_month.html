@@ -1,0 +1,49 @@
+<div class="bg-surface rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+    <div class="grid grid-cols-7 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+        <div class="px-2 py-2 text-center">Lun</div>
+        <div class="px-2 py-2 text-center">Mar</div>
+        <div class="px-2 py-2 text-center">Mer</div>
+        <div class="px-2 py-2 text-center">Jeu</div>
+        <div class="px-2 py-2 text-center">Ven</div>
+        <div class="px-2 py-2 text-center">Sam</div>
+        <div class="px-2 py-2 text-center">Dim</div>
+    </div>
+    <div class="grid grid-cols-7">
+        {% for week in month_grid %}
+            {% for day in week %}
+            <a hx-get="{% url 'appointments:calendar' %}?view=day&date={{ day.date|date:'Y-m-d' }}"
+               hx-target="#calendar-body" hx-swap="outerHTML" hx-push-url="true"
+               class="btn-tactile min-h-[96px] border-b border-r border-slate-100 p-1.5 flex flex-col gap-1 [&:nth-child(7n)]:border-r-0
+                   {% if not day.in_month %}bg-canvas/60{% else %}bg-surface{% endif %} hover:bg-slate-50">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold h-5 w-5 rounded-full flex items-center justify-center
+                        {% if day.is_today %}bg-sauge-600 text-white{% elif day.in_month %}text-text-main{% else %}text-text-muted{% endif %}">
+                        {{ day.date.day }}
+                    </span>
+                    {% if day.total > 0 %}
+                    <span class="h-1.5 w-1.5 rounded-full
+                        {% if day.load == 'normal' %}bg-sauge-500
+                        {% elif day.load == 'busy' %}bg-amber-500
+                        {% else %}bg-rose-500{% endif %}" title="{{ day.total }} RDV"></span>
+                    {% endif %}
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    {% for appt in day.appointments %}
+                    <span class="text-[10px] truncate rounded px-1 py-0.5
+                        {% if appt.status == 'arrived' %}bg-amber-50 text-amber-700
+                        {% elif appt.status == 'waiting' %}bg-sky-50 text-sky-700
+                        {% elif appt.status == 'in_consultation' %}bg-emerald-50 text-emerald-700
+                        {% elif appt.status == 'completed' %}bg-slate-50 text-slate-600
+                        {% else %}bg-sauge-50 text-sauge-600{% endif %}">
+                        {{ appt.date|date:"H:i" }} {{ appt.patient.last_name }}
+                    </span>
+                    {% endfor %}
+                    {% if day.extra_count %}
+                    <span class="text-[10px] text-text-muted">+{{ day.extra_count }} autres</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>

@@ -3,11 +3,11 @@
 {% block content %}
 <div class="max-w-4xl mx-auto px-6 py-7">
     <div class="mb-7">
-        <h1 class="text-2xl font-bold text-text-main tracking-tight">Dossier clinique</h1>
-        <p class="text-sm text-text-muted mt-0.5 tabular-nums">{{ consultations|length }} consultation{{ consultations|length|pluralize }}</p>
+        <h1 class="font-display text-[28px] font-semibold text-text-main tracking-tight leading-tight">Dossier clinique</h1>
+        <p class="text-sm text-text-muted mt-1 tabular-nums">{{ consultations|length }} consultation{{ consultations|length|pluralize }}</p>
     </div>
 
-    <div class="bg-surface rounded-xl border border-border-subtle shadow-sm divide-y divide-border-subtle overflow-hidden">
+    <div class="bg-surface rounded-2xl border border-border-subtle shadow-card divide-y divide-border-subtle overflow-hidden">
         {% for c in consultations %}
         <div class="flex items-center justify-between gap-3 px-4 py-3.5 hover:bg-canvas transition-colors duration-150">
             <div class="min-w-0">

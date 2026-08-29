@@ -6,12 +6,12 @@
         <a href="{% url 'appointments:assistant_dashboard' %}" class="btn-tactile text-text-muted hover:text-sauge-600 hover:bg-sauge-50 p-2 rounded-lg">
             <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75"></i>
         </a>
-        <h1 class="text-xl font-bold text-text-main tracking-tight">
+        <h1 class="font-display text-xl font-semibold text-text-main tracking-tight">
             Nouveau RDV{% if patient %} — {{ patient }}{% endif %}
         </h1>
     </div>
 
-    <form method="post" class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 space-y-3.5">
+    <form method="post" class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6 space-y-5">
         {% csrf_token %}
         {% if not patient %}
         <select name="patient" required class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">

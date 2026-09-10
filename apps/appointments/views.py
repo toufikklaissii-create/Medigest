@@ -4,12 +4,15 @@ from datetime import date, datetime, time, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.accounts.models import Profile
 from apps.billing.models import Invoice
+from apps.clinical.models import Consultation
 from apps.communications.views import _active_tasks_for
 from apps.patients.models import Patient
 
@@ -65,18 +68,24 @@ def _toast_header(message, toast_type="success"):
     return json.dumps({"toast": {"message": message, "type": toast_type}})
 
 
-def _today_appointments():
+def _cabinet_doctor(cabinet):
+    return User.objects.filter(
+        profile__role=Profile.Role.DOCTOR, profile__cabinet=cabinet
+    ).first()
+
+
+def _today_appointments(cabinet):
     today = timezone.localdate()
     return (
         Appointment.objects.select_related("patient")
-        .filter(date__date=today)
+        .filter(cabinet=cabinet, date__date=today)
         .exclude(status=Appointment.Status.CANCELLED)
         .order_by("date")
     )
 
 
-def _queue_board_context():
-    appointments = _today_appointments()
+def _queue_board_context(cabinet):
+    appointments = _today_appointments(cabinet)
     for appointment in appointments:
         appointment.next_label = NEXT_STATUS_LABEL.get(appointment.status)
     columns = []
@@ -85,17 +94,17 @@ def _queue_board_context():
     return {"columns": columns}
 
 
-def _today_list_context():
-    appointments = _today_appointments()
+def _today_list_context(cabinet):
+    appointments = _today_appointments(cabinet)
     scheduled_today = [a for a in appointments if a.status == Appointment.Status.SCHEDULED]
     return {"scheduled_today": scheduled_today}
 
 
-def _j2_context():
+def _j2_context(cabinet):
     target_date = timezone.localdate() + timezone.timedelta(days=2)
     appointments = (
         Appointment.objects.select_related("patient")
-        .filter(date__date=target_date)
+        .filter(cabinet=cabinet, date__date=target_date)
         .exclude(status=Appointment.Status.CANCELLED)
         .order_by("date")
     )
@@ -128,10 +137,10 @@ def _day_slots():
     return slots
 
 
-def _day_context(current_date, status_filter="all"):
+def _day_context(cabinet, current_date, status_filter="all"):
     appointments = (
         Appointment.objects.select_related("patient")
-        .filter(date__date=current_date)
+        .filter(cabinet=cabinet, date__date=current_date)
         .order_by("date")
     )
     if status_filter and status_filter != "all":
@@ -164,13 +173,13 @@ def _day_context(current_date, status_filter="all"):
     }
 
 
-def _month_context(current_date):
+def _month_context(cabinet, current_date):
     cal = calendar_module.Calendar(firstweekday=0)
     weeks = list(cal.monthdatescalendar(current_date.year, current_date.month))
 
     month_appointments = (
         Appointment.objects.select_related("patient")
-        .filter(date__date__gte=weeks[0][0], date__date__lte=weeks[-1][-1])
+        .filter(cabinet=cabinet, date__date__gte=weeks[0][0], date__date__lte=weeks[-1][-1])
         .exclude(status=Appointment.Status.CANCELLED)
         .order_by("date")
     )
@@ -209,7 +218,7 @@ def _month_context(current_date):
     return {"month_grid": grid}
 
 
-def _calendar_extra_context(current_date):
+def _calendar_extra_context(cabinet, current_date):
     return {
         "today": timezone.localdate(),
         "prev_date": current_date - timedelta(days=1),
@@ -218,7 +227,7 @@ def _calendar_extra_context(current_date):
         "next_month": _shift_month(current_date, 1),
         "reason_presets": REASON_PRESETS,
         "status_filters": STATUS_FILTERS,
-        **_month_context(current_date),
+        **_month_context(cabinet, current_date),
     }
 
 
@@ -230,17 +239,18 @@ def appointment_calendar(request):
     current_date = _parse_date(request.GET.get("date")) or timezone.localdate()
     status_filter = request.GET.get("status", "all")
 
+    cabinet = request.user.profile.cabinet
     context = {
         "view_mode": view_mode,
         "current_date": current_date,
         "status_filter": status_filter,
-        **_calendar_extra_context(current_date),
+        **_calendar_extra_context(cabinet, current_date),
     }
     if view_mode == "day":
-        context.update(_day_context(current_date, status_filter))
+        context.update(_day_context(cabinet, current_date, status_filter))
 
     if request.headers.get("HX-Request"):
-        response = render(request, "assistant/_calendar_body.html", context)
+        response = render(request, "assistant/_calendar_container.html", context)
         response.headers["HX-Push-Url"] = (
             f"{request.path}?view={view_mode}&date={current_date.isoformat()}&status={status_filter}"
         )
@@ -249,12 +259,13 @@ def appointment_calendar(request):
 
 
 def _render_day_fragment(request, anchor_date, toast_message=None):
+    cabinet = request.user.profile.cabinet
     context = {
         "view_mode": "day",
         "current_date": anchor_date,
         "status_filter": "all",
-        **_calendar_extra_context(anchor_date),
-        **_day_context(anchor_date),
+        **_calendar_extra_context(cabinet, anchor_date),
+        **_day_context(cabinet, anchor_date),
     }
     response = render(request, "assistant/_calendar_body.html", context)
     events = {"refreshCalendar": True}
@@ -286,15 +297,96 @@ def appointment_modal(request):
 @login_required
 def appointment_drawer(request, pk):
     """GET: renders the appointment detail drawer content."""
-    appointment = get_object_or_404(Appointment.objects.select_related("patient"), pk=pk)
+    appointment = get_object_or_404(
+        Appointment.objects.select_related("patient"),
+        pk=pk,
+        cabinet=request.user.profile.cabinet,
+    )
+    consultation = Consultation.objects.filter(appointment=appointment).first()
     return render(
         request,
         "assistant/_appointment_drawer_content.html",
         {
             "appointment": appointment,
             "next_label": NEXT_STATUS_LABEL.get(appointment.status),
+            "consultation": consultation,
         },
     )
+
+
+@login_required
+def intake_vitals_modal(request, pk):
+    """GET: renders the standalone 'Constantes d'accueil' modal for the kanban entry point."""
+    appointment = get_object_or_404(
+        Appointment.objects.select_related("patient"),
+        pk=pk,
+        cabinet=request.user.profile.cabinet,
+    )
+    consultation = Consultation.objects.filter(appointment=appointment).first()
+    return render(
+        request,
+        "assistant/_intake_vitals_modal.html",
+        {"appointment": appointment, "consultation": consultation},
+    )
+
+
+@login_required
+def save_intake_vitals(request, pk):
+    """POST: saves Tension/Poids/Taille/DDR onto the appointment's Consultation.
+
+    Only ever touches these four intake fields — never clinical_notes,
+    diagnostic, or ultrasound_notes — so this endpoint stays safe to expose
+    to the assistant role regardless of caller.
+    """
+    cabinet = request.user.profile.cabinet
+    appointment = get_object_or_404(Appointment, pk=pk, cabinet=cabinet)
+    consultation = Consultation.objects.filter(appointment=appointment).first()
+    error_message = None
+
+    if request.method == "POST":
+        if consultation is None:
+            doctor = _cabinet_doctor(cabinet)
+            if doctor is None:
+                error_message = (
+                    "Aucun médecin n'est rattaché à ce cabinet : "
+                    "impossible d'enregistrer les constantes."
+                )
+            else:
+                consultation = Consultation.objects.create(
+                    appointment=appointment,
+                    patient=appointment.patient,
+                    cabinet=cabinet,
+                    doctor=doctor,
+                )
+
+        if consultation is not None:
+            consultation.blood_pressure = request.POST.get("blood_pressure", "")
+            consultation.weight_kg = request.POST.get("weight_kg") or None
+            consultation.height_cm = request.POST.get("height_cm") or None
+            consultation.last_menstrual_period = (
+                request.POST.get("last_menstrual_period") or None
+            )
+            consultation.save(
+                update_fields=[
+                    "blood_pressure",
+                    "weight_kg",
+                    "height_cm",
+                    "last_menstrual_period",
+                ]
+            )
+
+    response = render(
+        request,
+        "assistant/_intake_vitals_form.html",
+        {"appointment": appointment, "consultation": consultation},
+    )
+    if error_message:
+        response.headers["HX-Trigger"] = _toast_header(error_message, "error")
+    elif consultation is not None:
+        response.headers["HX-Trigger"] = _toast_header(
+            f"{appointment.patient} — constantes enregistrées."
+        )
+    return response
 
 
 @login_required
@@ -310,10 +402,13 @@ def create_appointment_ajax(request):
     toast_message = None
 
     if patient_id and date_str and time_str:
-        patient = get_object_or_404(Patient, pk=patient_id)
+        patient = get_object_or_404(
+            Patient, pk=patient_id, cabinet=request.user.profile.cabinet
+        )
         naive_dt = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         parsed_date = timezone.make_aware(naive_dt)
         Appointment.objects.create(
+            cabinet=request.user.profile.cabinet,
             patient=patient,
             date=parsed_date,
             duration_minutes=request.POST.get("duration_minutes") or 30,
@@ -329,7 +424,9 @@ def create_appointment_ajax(request):
 @login_required
 def update_appointment_ajax(request, pk):
     """POST: reschedules a RDV to a new date/heure and refreshes the day grid."""
-    appointment = get_object_or_404(Appointment, pk=pk)
+    appointment = get_object_or_404(
+        Appointment, pk=pk, cabinet=request.user.profile.cabinet
+    )
     anchor_date = timezone.localtime(appointment.date).date()
     toast_message = None
 
@@ -352,7 +449,9 @@ def update_appointment_ajax(request, pk):
 @login_required
 def cancel_appointment_ajax(request, pk):
     """POST: sets a RDV status to 'Cancelled' and refreshes the day grid."""
-    appointment = get_object_or_404(Appointment, pk=pk)
+    appointment = get_object_or_404(
+        Appointment, pk=pk, cabinet=request.user.profile.cabinet
+    )
     toast_message = None
     anchor_date = timezone.localtime(appointment.date).date()
 
@@ -366,7 +465,9 @@ def cancel_appointment_ajax(request, pk):
 
 @login_required
 def calendar_advance_status(request, pk):
-    appointment = get_object_or_404(Appointment, pk=pk)
+    appointment = get_object_or_404(
+        Appointment, pk=pk, cabinet=request.user.profile.cabinet
+    )
     toast_message = None
     anchor_date = timezone.localtime(appointment.date).date()
 
@@ -390,7 +491,8 @@ def patient_picker_search(request):
             | Q(last_name__icontains=query)
             | Q(phone__icontains=query)
             | Q(cin__icontains=query)
-            | Q(patient_number__icontains=query)
+            | Q(patient_number__icontains=query),
+            cabinet=request.user.profile.cabinet,
         )[:8]
     return render(
         request, "assistant/_patient_picker_results.html", {"patients": patients, "query": query}
@@ -399,7 +501,7 @@ def patient_picker_search(request):
 
 @login_required
 def select_patient_for_slot(request, pk):
-    patient = get_object_or_404(Patient, pk=pk)
+    patient = get_object_or_404(Patient, pk=pk, cabinet=request.user.profile.cabinet)
     return render(request, "assistant/_patient_picker.html", {"selected_patient": patient})
 
 
@@ -410,6 +512,7 @@ def quick_create_patient(request):
         last_name = request.POST.get("last_name", "").strip()
         if first_name and last_name:
             patient = Patient.objects.create(
+                cabinet=request.user.profile.cabinet,
                 first_name=first_name,
                 last_name=last_name,
                 phone=request.POST.get("phone", "").strip(),
@@ -422,35 +525,40 @@ def quick_create_patient(request):
 
 @login_required
 def assistant_dashboard(request):
+    cabinet = request.user.profile.cabinet
     pending_invoices = Invoice.objects.select_related("patient").filter(
-        status=Invoice.Status.PENDING
+        status=Invoice.Status.PENDING, cabinet=cabinet
     )
     my_tasks = _active_tasks_for(request.user)
     context = {
-        **_queue_board_context(),
-        **_today_list_context(),
-        **_j2_context(),
+        **_queue_board_context(cabinet),
+        **_today_list_context(cabinet),
+        **_j2_context(cabinet),
         "pending_invoices": pending_invoices,
         "pending_invoices_total": pending_invoices.aggregate(total=Sum("total_amount"))["total"] or 0,
         "my_tasks": my_tasks,
         "urgent_tasks_count": sum(1 for t in my_tasks if t.priority == "urgent"),
-        "today_total": _today_appointments().count(),
+        "today_total": _today_appointments(cabinet).count(),
     }
     return render(request, "assistant/dashboard.html", context)
 
 
 @login_required
 def create_appointment(request, patient_id=None):
-    patient = get_object_or_404(Patient, pk=patient_id) if patient_id else None
+    cabinet = request.user.profile.cabinet
+    patient = (
+        get_object_or_404(Patient, pk=patient_id, cabinet=cabinet) if patient_id else None
+    )
     if request.method == "POST":
         patient_pk = patient_id or request.POST.get("patient")
-        patient = get_object_or_404(Patient, pk=patient_pk)
+        patient = get_object_or_404(Patient, pk=patient_pk, cabinet=cabinet)
         date = request.POST.get("date")
         if date:
             parsed_date = datetime.fromisoformat(date)
             if timezone.is_naive(parsed_date):
                 parsed_date = timezone.make_aware(parsed_date)
             Appointment.objects.create(
+                cabinet=cabinet,
                 patient=patient,
                 date=parsed_date,
                 duration_minutes=request.POST.get("duration_minutes") or 30,
@@ -460,7 +568,7 @@ def create_appointment(request, patient_id=None):
             return redirect("appointments:assistant_dashboard")
         messages.error(request, "La date du RDV est obligatoire.")
 
-    patients = Patient.objects.all()[:100] if not patient else None
+    patients = Patient.objects.filter(cabinet=cabinet)[:100] if not patient else None
     return render(
         request, "appointments/create.html", {"patient": patient, "patients": patients}
     )
@@ -476,14 +584,16 @@ def patient_search(request):
             | Q(last_name__icontains=query)
             | Q(phone__icontains=query)
             | Q(cin__icontains=query)
-            | Q(patient_number__icontains=query)
+            | Q(patient_number__icontains=query),
+            cabinet=request.user.profile.cabinet,
         )[:15]
     return render(request, "assistant/_search_results.html", {"patients": patients, "query": query})
 
 
 @login_required
 def advance_status(request, pk):
-    appointment = get_object_or_404(Appointment, pk=pk)
+    cabinet = request.user.profile.cabinet
+    appointment = get_object_or_404(Appointment, pk=pk, cabinet=cabinet)
     toast_message = None
     if request.method == "POST":
         next_status = NEXT_STATUS.get(appointment.status)
@@ -492,7 +602,7 @@ def advance_status(request, pk):
             appointment.save(update_fields=["status"])
             toast_message = f"{appointment.patient} — statut mis à jour."
 
-    response = render(request, "assistant/_queue_board.html", _queue_board_context())
+    response = render(request, "assistant/_queue_board.html", _queue_board_context(cabinet))
     if toast_message:
         response.headers["HX-Trigger"] = _toast_header(toast_message)
     return response
@@ -508,7 +618,8 @@ WHATSAPP_ACTIONS = {
 
 @login_required
 def whatsapp_action(request, pk, action):
-    appointment = get_object_or_404(Appointment, pk=pk)
+    cabinet = request.user.profile.cabinet
+    appointment = get_object_or_404(Appointment, pk=pk, cabinet=cabinet)
     toast_message = None
     if request.method == "POST" and action in WHATSAPP_ACTIONS:
         new_status, message_template = WHATSAPP_ACTIONS[action]
@@ -516,7 +627,7 @@ def whatsapp_action(request, pk, action):
         appointment.save(update_fields=["whatsapp_status"])
         toast_message = message_template.format(patient=appointment.patient)
 
-    response = render(request, "assistant/_j2_reminders.html", _j2_context())
+    response = render(request, "assistant/_j2_reminders.html", _j2_context(cabinet))
     if toast_message:
         response.headers["HX-Trigger"] = _toast_header(toast_message)
     return response

@@ -1,0 +1,34 @@
+<div data-intake-vitals-root class="border-t border-border-subtle pt-4 mb-4">
+    <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2 flex items-center gap-1.5">
+        <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i> Constantes d'accueil
+    </p>
+    <form hx-post="{% url 'appointments:save_intake_vitals' appointment.pk %}"
+          hx-target="closest [data-intake-vitals-root]" hx-swap="outerHTML"
+          class="grid grid-cols-2 gap-2.5">
+        {% csrf_token %}
+        <div>
+            <label class="block text-[11px] font-medium text-text-muted mb-1">Tension (mmHg)</label>
+            <input type="text" name="blood_pressure" value="{{ consultation.blood_pressure|default:'' }}" placeholder="12/8"
+                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        </div>
+        <div>
+            <label class="block text-[11px] font-medium text-text-muted mb-1">Poids (kg)</label>
+            <input type="number" step="0.1" name="weight_kg" value="{{ consultation.weight_kg|default:'' }}"
+                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        </div>
+        <div>
+            <label class="block text-[11px] font-medium text-text-muted mb-1">Taille (cm)</label>
+            <input type="number" step="0.1" name="height_cm" value="{{ consultation.height_cm|default:'' }}"
+                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        </div>
+        <div>
+            <label class="block text-[11px] font-medium text-text-muted mb-1">DDR</label>
+            <input type="date" name="last_menstrual_period" value="{{ consultation.last_menstrual_period|date:'Y-m-d'|default:'' }}"
+                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+        </div>
+        <button type="submit"
+                class="btn-tactile col-span-2 inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-sauge-600 text-white rounded-lg py-2.5 shadow-sm hover:bg-sauge-900">
+            <i data-lucide="save" class="w-4 h-4" stroke-width="1.75"></i> Enregistrer les constantes
+        </button>
+    </form>
+</div>

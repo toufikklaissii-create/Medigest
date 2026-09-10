@@ -1,0 +1,25 @@
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
+     x-data="{ open: true }" x-show="open" x-cloak
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div @click.outside="open = false" @keydown.escape.window="open = false"
+         x-trap="open"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         class="bg-surface rounded-2xl shadow-popover border border-slate-200/70 w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="font-semibold text-text-main flex items-center gap-2">
+                <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="activity" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                Constantes d'accueil
+            </h3>
+            <button type="button" @click="open = false" class="btn-tactile inline-flex items-center justify-center h-8 w-8 rounded-full text-text-muted hover:text-rose-600 hover:bg-rose-50">
+                <i data-lucide="x" class="w-4 h-4" stroke-width="1.75"></i>
+            </button>
+        </div>
+        <p class="text-xs text-text-muted mb-1">{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</p>
+
+        {% include "assistant/_intake_vitals_form.html" %}
+    </div>
+</div>

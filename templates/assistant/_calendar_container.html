@@ -1,0 +1,108 @@
+<div id="calendar-container" class="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
+
+    <!-- Sidebar -->
+    <aside class="flex flex-col gap-5">
+        <!-- Mini calendar -->
+        <div class="bg-surface rounded-2xl border border-border-subtle shadow-sm p-4 hover:shadow-card transition-shadow duration-150">
+            <div class="flex items-center justify-between mb-3">
+                <a hx-get="{% url 'appointments:calendar' %}?view={{ view_mode }}&date={{ prev_month|date:'Y-m-d' }}&status={{ status_filter }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile h-6 w-6 inline-flex items-center justify-center rounded-md text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+                    <i data-lucide="chevron-left" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </a>
+                <span class="text-xs font-semibold text-text-main capitalize">{{ current_date|date:"F Y" }}</span>
+                <a hx-get="{% url 'appointments:calendar' %}?view={{ view_mode }}&date={{ next_month|date:'Y-m-d' }}&status={{ status_filter }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile h-6 w-6 inline-flex items-center justify-center rounded-md text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+                    <i data-lucide="chevron-right" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </a>
+            </div>
+            <div class="grid grid-cols-7 text-center text-[10px] font-medium text-text-muted mb-1.5">
+                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+            <div class="grid grid-cols-7 gap-y-1">
+                {% for week in month_grid %}
+                    {% for day in week %}
+                    <a hx-get="{% url 'appointments:calendar' %}?view=day&date={{ day.date|date:'Y-m-d' }}"
+                       hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                       class="relative btn-tactile mx-auto h-7 w-7 flex items-center justify-center rounded-full text-[11px]
+                           {% if day.date == current_date and view_mode == 'day' %}bg-sauge-600 text-white font-semibold
+                           {% elif day.is_today %}border border-sauge-100 text-sauge-600 font-semibold
+                           {% elif not day.in_month %}text-text-muted/40
+                           {% else %}text-text-main hover:bg-sauge-50{% endif %}">
+                        {{ day.date.day }}
+                        {% if day.total > 0 %}
+                        <span class="absolute bottom-0.5 h-1 w-1 rounded-full
+                            {% if day.date == current_date and view_mode == 'day' %}bg-white/80{% else %}bg-sauge-500{% endif %}"></span>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Status filters -->
+        {% if view_mode == 'day' %}
+        <div class="bg-surface rounded-2xl border border-border-subtle shadow-sm p-4">
+            <p class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-2.5">Filtrer par statut</p>
+            <div class="flex flex-wrap gap-1.5">
+                {% for value, label in status_filters %}
+                <a hx-get="{% url 'appointments:calendar' %}?view=day&date={{ current_date|date:'Y-m-d' }}&status={{ value }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1 border
+                       {% if status_filter == value %}bg-sauge-50 text-sauge-600 border-sauge-200{% else %}bg-surface text-text-soft border-border-subtle hover:border-sauge-200 hover:bg-sauge-25{% endif %}">
+                    <span class="h-1.5 w-1.5 rounded-full shrink-0
+                        {% if value == 'arrived' %}bg-amber-400
+                        {% elif value == 'waiting' %}bg-sky-400
+                        {% elif value == 'in_consultation' %}bg-emerald-400
+                        {% elif value == 'completed' %}bg-slate-400
+                        {% else %}bg-sauge-400{% endif %}"></span>
+                    {{ label }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </aside>
+
+    <!-- Main -->
+    <div class="min-w-0">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="inline-flex rounded-lg border border-border-subtle bg-surface p-1 shadow-sm">
+                <a hx-get="{% url 'appointments:calendar' %}?view=day&date={{ current_date|date:'Y-m-d' }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile text-sm font-medium px-3.5 py-1.5 rounded-md {% if view_mode == 'day' %}bg-sauge-600 text-white shadow-sm{% else %}text-text-muted hover:text-sauge-600{% endif %}">
+                    Vue jour
+                </a>
+                <a hx-get="{% url 'appointments:calendar' %}?view=month&date={{ current_date|date:'Y-m-d' }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile text-sm font-medium px-3.5 py-1.5 rounded-md {% if view_mode == 'month' %}bg-sauge-600 text-white shadow-sm{% else %}text-text-muted hover:text-sauge-600{% endif %}">
+                    Vue mois
+                </a>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+                <a hx-get="{% url 'appointments:calendar' %}?view={{ view_mode }}&date={% if view_mode == 'month' %}{{ prev_month|date:'Y-m-d' }}{% else %}{{ prev_date|date:'Y-m-d' }}{% endif %}&status={{ status_filter }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border-subtle text-text-muted hover:text-sauge-600">
+                    <i data-lucide="chevron-left" class="w-4 h-4" stroke-width="1.75"></i>
+                </a>
+                <a hx-get="{% url 'appointments:calendar' %}?view={{ view_mode }}&date={{ today|date:'Y-m-d' }}&status={{ status_filter }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile text-sm font-medium text-sauge-600 border border-sauge-100 bg-sauge-50 rounded-lg px-3 py-1.5">
+                    Aujourd'hui
+                </a>
+                <a hx-get="{% url 'appointments:calendar' %}?view={{ view_mode }}&date={% if view_mode == 'month' %}{{ next_month|date:'Y-m-d' }}{% else %}{{ next_date|date:'Y-m-d' }}{% endif %}&status={{ status_filter }}"
+                   hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
+                   class="btn-tactile h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border-subtle text-text-muted hover:text-sauge-600">
+                    <i data-lucide="chevron-right" class="w-4 h-4" stroke-width="1.75"></i>
+                </a>
+                <span class="text-sm font-semibold text-text-main ml-1 capitalize">
+                    {% if view_mode == 'month' %}{{ current_date|date:"F Y" }}{% else %}{{ current_date|date:"l d F Y" }}{% endif %}
+                </span>
+            </div>
+        </div>
+
+        {% include "assistant/_calendar_body.html" %}
+    </div>
+</div>

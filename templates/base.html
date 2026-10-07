@@ -168,10 +168,10 @@
     <!-- Marque -->
     <div class="flex items-center gap-3 px-2 pt-1.5 pb-5">
         <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-sauge-500 to-sauge-700 flex items-center justify-center text-white shadow-sm">
-            <i data-lucide="heart-pulse" class="w-[18px] h-[18px]" stroke-width="1.75"></i>
+            {{ request.user.profile.cabinet.initiales_logo|default:"CAB" }}
         </div>
         <div class="min-w-0 inline md:hidden lg:block">
-            <p class="font-bold text-sm text-white leading-tight truncate">Cabinet Dr ERRMILI</p>
+            <p class="font-bold text-sm text-white leading-tight truncate">{{ request.user.profile.cabinet.nom|default:"Mon Cabinet" }}</p>
             <p class="text-[11.5px] text-white/45 leading-tight mt-0.5 truncate">Gynécologie &amp; Obstétrique</p>
         </div>
     </div>
@@ -217,11 +217,11 @@
     <div class="mt-auto pt-3.5 border-t border-white/10">
         <div class="flex items-center gap-2.5 px-2 py-2 rounded-xl md:justify-center lg:justify-start">
             <div class="h-[34px] w-[34px] shrink-0 rounded-full bg-sauge-100 text-sauge-700 flex items-center justify-center text-[12.5px] font-bold">
-                {% if request.user.first_name %}{{ request.user.first_name|slice:":1" }}{{ request.user.last_name|slice:":1" }}{% else %}{{ request.user.username|slice:":2"|upper }}{% endif %}
+                {% if request.user.first_name %}{{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}{% else %}{{ request.user.username|first|upper }}{% endif %}
             </div>
             <div class="min-w-0 inline-block md:hidden lg:block">
                 <p class="text-[13px] font-semibold text-white truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
-                <p class="text-[11.5px] text-white/45 truncate">{% if role == 'doctor' %}Médecin{% else %}Assistante{% endif %}</p>
+                <p class="text-[11.5px] text-white/45 truncate">{{ request.user.profile.get_role_display|default:"Utilisateur" }}</p>
             </div>
             <form method="post" action="{% url 'accounts:logout' %}" class="ml-auto inline md:hidden lg:inline">
                 {% csrf_token %}

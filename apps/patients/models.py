@@ -2,6 +2,8 @@ from django.db import models
 from django.db.models import Max
 from django.utils import timezone
 
+from apps.accounts.models import Cabinet
+
 
 class Patient(models.Model):
     class BloodGroup(models.TextChoices):
@@ -14,10 +16,19 @@ class Patient(models.Model):
         O_POS = "O+", "O+"
         O_NEG = "O-", "O-"
 
+    cabinet = models.ForeignKey(
+        Cabinet, on_delete=models.CASCADE, related_name="patients", null=True, blank=True
+    )
     patient_number = models.CharField(max_length=20, unique=True, editable=False)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     cin = models.CharField("CIN", max_length=20, blank=True)
+    social_security_number = models.CharField(
+        "N° de Sécurité Sociale", max_length=20, blank=True
+    )
+    organisme_social = models.CharField(
+        "Organisme de sécurité sociale", max_length=100, blank=True
+    )
     birth_date = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=30, blank=True)
     emergency_contact = models.CharField(max_length=150, blank=True)

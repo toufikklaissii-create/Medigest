@@ -12,11 +12,13 @@ from apps.clinical.models import Consultation, ConsultationAct
 from apps.patients.models import Patient
 
 ACTS_CATALOG = [
-    ("CONS_GYN", "Consultation gynécologique", 300),
-    ("ECHO_OBST", "Échographie obstétricale", 500),
-    ("ECHO_PELV", "Échographie pelvienne", 400),
-    ("FROTTIS", "Frottis cervico-vaginal", 250),
-    ("STERILET", "Pose stérilet", 450),
+    ("CONS_GYN", "Consultation gynécologique", 300, False),
+    ("ECHO_OBST", "Échographie obstétricale", 500, False),
+    ("ECHO_PELV", "Échographie pelvienne", 400, False),
+    ("FROTTIS", "Frottis cervico-vaginal", 250, True),
+    ("STERILET", "Pose stérilet", 450, False),
+    ("PRELEV_BACT", "Prélèvement bactériologique", 150, True),
+    ("POSE_SONDE", "Pose de sonde vésicale", 120, True),
 ]
 
 PATIENTS_DATA = [
@@ -49,9 +51,15 @@ class Command(BaseCommand):
         self._create_user("assistante", "assistante2026", Profile.Role.ASSISTANT, "Assistante", "Cabinet")
 
         acts = {}
-        for code, name, price in ACTS_CATALOG:
+        for code, name, price, is_quick_exam in ACTS_CATALOG:
             act, _ = MedicalAct.objects.update_or_create(
-                code=code, defaults={"name": name, "price": price, "is_active": True}
+                code=code,
+                defaults={
+                    "name": name,
+                    "price": price,
+                    "is_active": True,
+                    "is_quick_exam": is_quick_exam,
+                },
             )
             acts[code] = act
         self.stdout.write(self.style.SUCCESS(f"{len(acts)} actes médicaux dans le catalogue."))

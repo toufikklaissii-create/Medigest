@@ -1,0 +1,40 @@
+{% extends "pdf/_base_pdf.html" %}
+{% block doc_type %}Dossier patiente{% endblock %}
+{% block patient_block %}{% endblock %}
+{% block body %}
+<table class="info-table">
+    <tr><th>Nom complet</th><td>{{ patient.first_name }} {{ patient.last_name }}</td></tr>
+    <tr><th>N° dossier</th><td>{{ patient.patient_number }}</td></tr>
+    <tr><th>Âge</th><td>{% if patient.age %}{{ patient.age }} ans{% else %}—{% endif %}</td></tr>
+    <tr><th>Date de naissance</th><td>{{ patient.birth_date|date:"d/m/Y"|default:"—" }}</td></tr>
+    <tr><th>Téléphone</th><td>{{ patient.phone|default:"—" }}</td></tr>
+    <tr><th>N° Sécurité Sociale</th><td>{{ patient.social_security_number|default:"—" }}</td></tr>
+    <tr><th>Organisme / Assurance</th><td>{{ patient.organisme_social|default:"—" }}</td></tr>
+    <tr><th>Groupe sanguin</th><td>{{ patient.blood_group|default:"—" }}</td></tr>
+</table>
+
+<table class="info-table">
+    <tr><th>Antécédents médicaux</th><td style="white-space: pre-line;">{{ patient.medical_history|default:"Aucun antécédent renseigné." }}</td></tr>
+    <tr><th>Allergies</th><td style="white-space: pre-line;">{{ patient.allergies|default:"Aucune allergie connue." }}</td></tr>
+</table>
+
+<p style="margin-top: 18px;"><strong>Historique des consultations</strong></p>
+<table class="info-table" style="margin-top: 8px;">
+    <tr>
+        <th style="width: 16%;">Date</th>
+        <th style="width: 24%;">Motif</th>
+        <th style="width: 30%;">Diagnostic / synthèse</th>
+        <th style="width: 30%;">Examens / échographie</th>
+    </tr>
+    {% for consultation in consultations %}
+    <tr>
+        <td>{{ consultation.created_at|date:"d/m/Y" }}</td>
+        <td>{{ consultation.appointment.reason|default:"—" }}</td>
+        <td style="white-space: pre-line;">{{ consultation.diagnostic|default:"—" }}</td>
+        <td style="white-space: pre-line;">{{ consultation.ultrasound_notes|default:"—" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Aucune consultation enregistrée.</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}

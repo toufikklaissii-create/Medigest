@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Sum
 
+from apps.accounts.models import Cabinet
 from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, InvoiceItem, MedicalAct
 from apps.patients.models import Patient
@@ -12,6 +13,9 @@ class Consultation(models.Model):
         DRAFT = "draft", "Brouillon"
         VALIDATED = "validated", "Validée"
 
+    cabinet = models.ForeignKey(
+        Cabinet, on_delete=models.CASCADE, related_name="consultations", null=True, blank=True
+    )
     appointment = models.OneToOneField(
         Appointment, on_delete=models.CASCADE, related_name="consultation"
     )
@@ -25,6 +29,9 @@ class Consultation(models.Model):
     blood_pressure = models.CharField("Tension", max_length=20, blank=True)
     weight_kg = models.DecimalField(
         "Poids (kg)", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    height_cm = models.DecimalField(
+        "Taille (cm)", max_digits=5, decimal_places=1, null=True, blank=True
     )
     clinical_notes = models.TextField(blank=True)
     diagnostic = models.TextField(blank=True)
@@ -65,7 +72,9 @@ class Consultation(models.Model):
         if self.invoice_id:
             invoice = self.invoice
         else:
-            invoice = Invoice.objects.create(patient=self.patient, status=Invoice.Status.PENDING)
+            invoice = Invoice.objects.create(
+                cabinet=self.cabinet, patient=self.patient, status=Invoice.Status.PENDING
+            )
             Consultation.objects.filter(pk=self.pk).update(invoice=invoice)
             self.invoice = invoice
 
@@ -99,6 +108,9 @@ class Document(models.Model):
     class DocumentType(models.TextChoices):
         PRESCRIPTION = "prescription", "Ordonnance"
         REPORT = "report", "Compte-rendu"
+        LETTER = "letter", "Lettre à un confrère"
+        CERTIFICATE = "certificate", "Certificat de prise en charge"
+        PREANESTHESIA = "preanesthesia", "Consultation pré-anesthésie"
 
     consultation = models.ForeignKey(
         Consultation, on_delete=models.CASCADE, related_name="documents"
@@ -114,3 +126,29 @@ class Document(models.Model):
 
     def __str__(self):
         return f"{self.get_document_type_display()} — {self.consultation}"
+
+
+class PatientDocument(models.Model):
+    class DocumentType(models.TextChoices):
+        RADIO = "radio", "Radio"
+        BILAN = "bilan", "Bilan"
+        AUTRE = "autre", "Autre"
+
+    cabinet = models.ForeignKey(
+        Cabinet, on_delete=models.CASCADE, related_name="patient_documents", null=True, blank=True
+    )
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="documents_joints"
+    )
+    title = models.CharField(max_length=150)
+    document_type = models.CharField(max_length=20, choices=DocumentType.choices, default=DocumentType.AUTRE)
+    file = models.FileField(upload_to="patient_documents/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Document patiente"
+        verbose_name_plural = "Documents patiente"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} — {self.patient}"

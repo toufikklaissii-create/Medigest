@@ -37,6 +37,18 @@
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div>
+                <label for="id_social_security_number" class="block text-[13px] font-medium text-text-soft mb-1.5">N° de Sécurité Sociale</label>
+                <input type="text" name="social_security_number" id="id_social_security_number"
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
+            <div>
+                <label for="id_organisme_social" class="block text-[13px] font-medium text-text-soft mb-1.5">Organisme de sécurité sociale</label>
+                <input type="text" name="organisme_social" id="id_organisme_social" placeholder="CNSS, CNOPS, mutuelle..."
+                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
                 <label for="id_phone" class="block text-[13px] font-medium text-text-soft mb-1.5">Téléphone</label>
                 <input type="tel" name="phone" id="id_phone" autocomplete="tel"
                        class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
@@ -57,16 +69,6 @@
                 <option value="AB+">AB+</option><option value="AB-">AB-</option>
                 <option value="O+">O+</option><option value="O-">O-</option>
             </select>
-        </div>
-        <div>
-            <label for="id_allergies" class="block text-[13px] font-medium text-text-soft mb-1.5">Allergies</label>
-            <textarea name="allergies" id="id_allergies" rows="2" placeholder="Aucune si non renseigné"
-                      class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-400/30 focus:border-rose-300 placeholder:text-text-faint"></textarea>
-        </div>
-        <div>
-            <label for="id_medical_history" class="block text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux</label>
-            <textarea name="medical_history" id="id_medical_history" rows="2"
-                      class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500"></textarea>
         </div>
         <button type="submit" class="btn-tactile w-full h-10 bg-sauge-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2">
             <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75"></i> Créer la patiente et prendre RDV

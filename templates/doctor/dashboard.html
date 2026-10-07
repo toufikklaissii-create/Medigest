@@ -2,9 +2,30 @@
 {% block title %}Tableau de bord — Médecin{% endblock %}
 {% block content %}
 <div class="max-w-5xl mx-auto px-6 py-7">
-    <div class="mb-7">
-        <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Bonjour, Dr. ERRMILI</h1>
-        <p class="text-sm text-text-muted mt-1">Voici l'état de votre file d'attente aujourd'hui.</p>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-7">
+        <div>
+            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Bonjour, Dr. ERRMILI</h1>
+            <p class="text-sm text-text-muted mt-1">
+                {% if is_today %}Voici l'état de votre file d'attente aujourd'hui.{% else %}Rendez-vous programmés pour le {{ selected_date|date:"l d F Y" }}.{% endif %}
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="?date={{ prev_date|date:'Y-m-d' }}"
+               class="btn-tactile h-9 w-9 inline-flex items-center justify-center rounded-lg border border-border-subtle text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+                <i data-lucide="chevron-left" class="w-4 h-4" stroke-width="1.75"></i>
+            </a>
+            {% if not is_today %}
+            <a href="?date={{ today|date:'Y-m-d' }}"
+               class="btn-tactile text-sm font-medium text-sauge-600 border border-sauge-100 bg-sauge-50 rounded-lg px-3 py-2">
+                Aujourd'hui
+            </a>
+            {% endif %}
+            <span class="text-sm font-semibold text-text-main px-1 capitalize">{{ selected_date|date:"l d F Y" }}</span>
+            <a href="?date={{ next_date|date:'Y-m-d' }}"
+               class="btn-tactile h-9 w-9 inline-flex items-center justify-center rounded-lg border border-border-subtle text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+                <i data-lucide="chevron-right" class="w-4 h-4" stroke-width="1.75"></i>
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
@@ -16,7 +37,7 @@
                 <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">jour</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ queue|length }}</p>
-            <p class="text-xs text-text-muted mt-0.5">Patientes en attente</p>
+            <p class="text-xs text-text-muted mt-0.5">{% if is_today %}Patientes en attente{% else %}Rendez-vous programmés{% endif %}</p>
         </div>
 
         <div class="card-soft bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] hover:-translate-y-0.5 hover:shadow-popover">
@@ -38,7 +59,7 @@
                 <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">total</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ today_total }}</p>
-            <p class="text-xs text-text-muted mt-0.5">Consultations aujourd'hui</p>
+            <p class="text-xs text-text-muted mt-0.5">{% if is_today %}Consultations aujourd'hui{% else %}Consultations ce jour-là{% endif %}</p>
         </div>
 
         <div class="card-soft bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] hover:-translate-y-0.5 hover:shadow-popover">
@@ -49,7 +70,7 @@
                 <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200">terminé</span>
             </div>
             <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ completed_today }}</p>
-            <p class="text-xs text-text-muted mt-0.5">Terminées aujourd'hui</p>
+            <p class="text-xs text-text-muted mt-0.5">{% if is_today %}Terminées aujourd'hui{% else %}Terminées ce jour-là{% endif %}</p>
         </div>
     </div>
 
@@ -88,7 +109,9 @@
             {% empty %}
             <div class="flex flex-col items-center justify-center gap-1.5 px-4 py-10 text-center">
                 <i data-lucide="check-circle-2" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
-                <p class="text-sm text-text-muted italic">Aucune patiente en attente aujourd'hui.</p>
+                <p class="text-sm text-text-muted italic">
+                    {% if is_today %}Aucune patiente en attente aujourd'hui.{% else %}Aucun rendez-vous programmé pour le {{ selected_date|date:"d F Y" }}.{% endif %}
+                </p>
             </div>
             {% endfor %}
         </div>

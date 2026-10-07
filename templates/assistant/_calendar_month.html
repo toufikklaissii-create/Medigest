@@ -12,7 +12,7 @@
         {% for week in month_grid %}
             {% for day in week %}
             <a hx-get="{% url 'appointments:calendar' %}?view=day&date={{ day.date|date:'Y-m-d' }}"
-               hx-target="#calendar-body" hx-swap="outerHTML" hx-push-url="true"
+               hx-target="#calendar-container" hx-swap="outerHTML" hx-push-url="true"
                class="btn-tactile min-h-[96px] border-b border-r border-slate-100 p-1.5 flex flex-col gap-1 [&:nth-child(7n)]:border-r-0
                    {% if not day.in_month %}bg-canvas/60{% else %}bg-surface{% endif %} hover:bg-slate-50">
                 <div class="flex items-center justify-between">

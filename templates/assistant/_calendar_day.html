@@ -45,8 +45,13 @@
                  style="top: {{ appt.top_pct }}%; height: {{ appt.height_pct }}%;"
                  hx-get="{% url 'appointments:appointment_drawer' appt.pk %}"
                  hx-target="#drawer-container" hx-swap="innerHTML">
-                <p class="text-sm font-semibold text-slate-800 truncate leading-tight">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
-                <p class="text-xs text-slate-500 truncate leading-tight">{{ appt.reason|default:"—" }}</p>
+                <div class="flex items-center justify-between gap-1.5">
+                    <p class="text-sm font-semibold text-slate-800 truncate leading-tight {% if appt.status == 'cancelled' %}line-through text-slate-400{% endif %}">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                    {% if appt.status == 'cancelled' %}
+                    <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide bg-rose-50 text-rose-600 border border-rose-200 rounded-full px-1.5 py-0.5">Annulé</span>
+                    {% endif %}
+                </div>
+                <p class="text-xs text-slate-500 truncate leading-tight {% if appt.status == 'cancelled' %}line-through{% endif %}">{{ appt.reason|default:"—" }}</p>
                 <p class="text-[11px] text-slate-400 truncate leading-tight flex items-center gap-1 mt-0.5">
                     <i data-lucide="clock" class="w-2.5 h-2.5" stroke-width="1.75"></i>{{ appt.time_display }}{% if appt.patient.phone %} · {{ appt.patient.phone }}{% endif %}
                 </p>

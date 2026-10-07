@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Trouver mon cabinet — Medigest{% endblock %}
+{% block content %}
+<div class="min-h-screen w-full flex">
+
+    <!-- Colonne de gauche : formulaire -->
+    <div class="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24 bg-white">
+        <div class="w-full max-w-sm mx-auto lg:mx-0">
+            <img src="{% static 'images/logo-medigest.png' %}" alt="Medigest" class="h-24 w-auto mb-12">
+
+            <h1 class="text-3xl font-bold text-text-main">Bienvenue sur votre espace</h1>
+            <p class="text-text-muted mt-2 mb-8">Connectez-vous pour accéder à la gestion de votre cabinet</p>
+
+            {% if error %}
+            <div class="mb-5 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 px-3.5 py-3 text-sm" role="alert">
+                <i data-lucide="triangle-alert" class="w-4 h-4 mt-0.5 shrink-0" stroke-width="1.75"></i>
+                <p>{{ error }}</p>
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-5" x-data="{ submitting: false }"
+                  @submit="submitting = true; $nextTick(() => window.lucide && lucide.createIcons())">
+                {% csrf_token %}
+                <div>
+                    <label for="id_slug" class="block text-[13px] font-medium text-text-soft mb-1.5">Identifiant de votre espace de travail</label>
+                    <input type="text" name="slug" id="id_slug" required autofocus autocomplete="off"
+                           class="w-full rounded-xl border border-border-subtle p-3.5 focus:ring-2 focus:ring-sauge-500 focus:border-sauge-500 transition-all shadow-sm">
+                </div>
+                <button type="submit" :disabled="submitting"
+                        class="btn-tactile w-full bg-sauge-600 hover:bg-sauge-700 text-white font-semibold py-3.5 rounded-xl shadow-md transition-colors mt-6 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-90 disabled:cursor-wait">
+                    <template x-if="!submitting">
+                        <span class="flex items-center gap-2">
+                            <i data-lucide="arrow-right" class="w-4 h-4" stroke-width="1.75"></i> Trouver mon cabinet
+                        </span>
+                    </template>
+                    <template x-if="submitting">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin motion-reduce:animate-none" stroke-width="1.75"></i>
+                    </template>
+                </button>
+            </form>
+
+            <p class="text-center text-xs text-text-faint mt-8">Accès réservé au personnel du cabinet.</p>
+        </div>
+    </div>
+
+    <!-- Colonne de droite : branding -->
+    <div class="hidden lg:flex w-1/2 bg-gradient-to-br from-[#2F3E46] to-[#1A2429] p-16 flex-col justify-center relative overflow-hidden">
+        <div class="blur-[100px] bg-white/10 rounded-full w-96 h-96 absolute -top-10 -right-10" aria-hidden="true"></div>
+        <div class="blur-[100px] bg-white/10 rounded-full w-96 h-96 absolute -bottom-24 -left-16" aria-hidden="true"></div>
+
+        <div class="relative">
+            <h2 class="text-5xl font-extrabold text-white leading-tight">Votre cabinet, réinventé.</h2>
+            <p class="text-sauge-100/80 mt-6 text-lg">Une plateforme premium, fluide et sécurisée. Moins de paperasse, plus de temps pour vos patients.</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

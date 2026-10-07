@@ -1,5 +1,7 @@
 from django.contrib import admin
 
+from apps.accounts.admin import TenantScopedAdmin
+
 from .models import Invoice, InvoiceItem, MedicalAct
 
 
@@ -16,9 +18,9 @@ class InvoiceItemInline(admin.TabularInline):
 
 
 @admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ("invoice_number", "patient", "total_amount", "status", "created_at")
-    list_filter = ("status", "payment_method")
+class InvoiceAdmin(TenantScopedAdmin):
+    list_display = ("invoice_number", "patient", "total_amount", "status", "cabinet", "created_at")
+    list_filter = ("status", "payment_method", "cabinet")
     search_fields = ("invoice_number", "patient__first_name", "patient__last_name")
     readonly_fields = ("invoice_number", "created_at")
     inlines = [InvoiceItemInline]

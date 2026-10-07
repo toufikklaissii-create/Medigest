@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Documents — {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto px-6 py-7">
+    <a href="{% url 'patients:index' %}" class="btn-tactile text-sm text-text-muted hover:text-sauge-600 hover:bg-sauge-50 rounded-lg inline-flex items-center gap-1.5 px-2.5 py-1.5 mb-4 -ml-2.5">
+        <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75"></i> Retour aux patientes
+    </a>
+
+    <div class="flex items-center gap-3 mb-7">
+        <div class="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+            {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+        </div>
+        <div>
+            <h1 class="text-xl font-semibold text-text-main leading-tight">{{ patient.first_name }} {{ patient.last_name }}</h1>
+            <p class="text-xs text-text-muted mt-0.5">{{ patient.patient_number }} · Documents joints (bilans, radios)</p>
+        </div>
+    </div>
+
+    <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6">
+        {% if documents %}
+        <ul class="flex flex-col gap-2 mb-5">
+            {% for doc in documents %}
+            <li class="flex items-center justify-between gap-3 border border-border-subtle rounded-lg px-3.5 py-2.5">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <i data-lucide="file-text" class="w-4 h-4 shrink-0 text-sauge-600" stroke-width="1.75"></i>
+                    <div class="min-w-0">
+                        <p class="text-sm font-medium text-text-main truncate">{{ doc.title }}</p>
+                        <p class="text-xs text-text-muted">{{ doc.get_document_type_display }} · {{ doc.created_at|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+                <a href="{{ doc.file.url }}" target="_blank" rel="noopener noreferrer"
+                   class="btn-tactile shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-sauge-600 border border-sauge-100 bg-sauge-50 rounded-lg px-2.5 py-1.5 hover:bg-sauge-600 hover:text-white">
+                    <i data-lucide="download" class="w-3.5 h-3.5" stroke-width="1.75"></i> Voir / Télécharger
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-sm text-text-faint italic mb-5">Aucun document joint pour cette patiente.</p>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="flex flex-wrap items-end gap-2.5 border-t border-border-subtle pt-4">
+            {% csrf_token %}
+            <div class="flex-1 min-w-[160px]">
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Titre</label>
+                <input type="text" name="title" placeholder="Ex. Bilan sanguin 03/09"
+                       class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            </div>
+            <div>
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Type</label>
+                <select name="document_type"
+                        class="rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                    {% for value, label in document_type_choices %}
+                    <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[180px]">
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Fichier</label>
+                <input type="file" name="file" required
+                       class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm file:mr-2 file:rounded-md file:border-0 file:bg-sauge-50 file:text-sauge-600 file:px-2.5 file:py-1.5 file:text-xs file:font-medium">
+            </div>
+            <button type="submit"
+                    class="btn-tactile shrink-0 h-[42px] inline-flex items-center gap-1.5 text-sm font-medium bg-sauge-600 text-white rounded-lg px-3.5 hover:bg-sauge-900">
+                <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75"></i> Ajouter
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

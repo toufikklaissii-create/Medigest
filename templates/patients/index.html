@@ -2,7 +2,7 @@
 {% block title %}Patientes — Medigest{% endblock %}
 {% block content %}
 <div class="max-w-5xl mx-auto px-6 py-7">
-    <div class="flex items-center justify-between mb-7">
+    <div class="flex items-center justify-between mb-5">
         <div>
             <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Patientes</h1>
             <p class="text-sm text-text-muted mt-1 tabular-nums">{{ patients|length }} dossier{{ patients|length|pluralize }} enregistré{{ patients|length|pluralize }}</p>
@@ -10,6 +10,19 @@
         <a href="{% url 'patients:create_patient' %}"
            class="btn-tactile text-sm font-medium text-white bg-sauge-600 rounded-lg px-3.5 py-2.5 shadow-sm hover:bg-sauge-700 flex items-center gap-1.5">
             <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75"></i> Nouvelle patiente
+        </a>
+    </div>
+
+    <div class="inline-flex items-center gap-1 bg-slate-50/70 border border-border-subtle rounded-lg p-1 mb-5">
+        <a href="{% url 'patients:index' %}"
+           class="btn-tactile text-sm font-medium rounded-md px-3 py-1.5 {% if view_filter != 'completed' %}bg-white shadow-sm text-text-main{% else %}text-text-muted hover:text-text-main{% endif %}">
+            Toutes
+        </a>
+        <a href="{% url 'patients:index' %}?view=completed"
+           class="btn-tactile text-sm font-medium rounded-md px-3 py-1.5 flex items-center gap-1.5 {% if view_filter == 'completed' %}bg-white shadow-sm text-text-main{% else %}text-text-muted hover:text-text-main{% endif %}">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+            Consultations terminées
+            <span class="text-[11px] font-semibold bg-sauge-50 text-sauge-700 rounded-full px-1.5 py-0.5 tabular-nums">{{ completed_count }}</span>
         </a>
     </div>
 
@@ -22,7 +35,12 @@
                         <th class="text-left font-bold px-5 py-3">Patiente</th>
                         <th class="text-left font-bold px-4 py-3">N° dossier</th>
                         <th class="text-left font-bold px-4 py-3">Téléphone</th>
+                        <th class="text-left font-bold px-4 py-3">Organisme</th>
+                        {% if view_filter == 'completed' %}
+                        <th class="text-left font-bold px-4 py-3">Dernière consultation</th>
+                        {% else %}
                         <th class="text-left font-bold px-4 py-3">Alertes</th>
+                        {% endif %}
                         <th class="text-right font-bold px-5 py-3">Actions</th>
                     </tr>
                 </thead>
@@ -37,8 +55,35 @@
                                 <p class="font-medium text-text-main truncate">{{ patient.first_name }} {{ patient.last_name }}</p>
                             </div>
                         </td>
-                        <td class="px-4 text-text-soft tabular-nums whitespace-nowrap">{{ patient.patient_number }}</td>
+                        <td class="px-4 text-text-soft tabular-nums whitespace-nowrap">
+                            {{ patient.patient_number }}
+                            {% if patient.social_security_number %}
+                            <p class="text-[11px] text-text-faint mt-0.5">N° SS {{ patient.social_security_number }}</p>
+                            {% endif %}
+                        </td>
                         <td class="px-4 text-text-soft whitespace-nowrap">{{ patient.phone|default:"—" }}</td>
+                        <td class="px-4 whitespace-nowrap">
+                            {% if patient.organisme_social %}
+                            <span class="inline-flex items-center text-[11px] font-medium bg-sauge-50 text-sauge-700 border border-sauge-200 rounded-full px-2 py-0.5">
+                                {{ patient.organisme_social }}
+                            </span>
+                            {% else %}
+                            <span class="text-text-faint">—</span>
+                            {% endif %}
+                        </td>
+                        {% if view_filter == 'completed' %}
+                        <td class="px-4 whitespace-nowrap">
+                            {% if patient.last_completed_consultation %}
+                            <a href="{% url 'clinical:consultation_detail' patient.last_completed_consultation.appointment_id %}"
+                               class="inline-flex items-center gap-1.5 text-sauge-700 hover:text-sauge-900 hover:underline">
+                                <i data-lucide="folder-open" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                                {{ patient.last_completed_consultation.created_at|date:"d/m/Y" }}
+                            </a>
+                            {% else %}
+                            <span class="text-text-faint">—</span>
+                            {% endif %}
+                        </td>
+                        {% else %}
                         <td class="px-4">
                             {% if patient.allergies %}
                             <span class="inline-flex items-center gap-1 text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200 rounded-full px-2 py-0.5 whitespace-nowrap">
@@ -46,12 +91,37 @@
                             </span>
                             {% endif %}
                         </td>
+                        {% endif %}
                         <td class="px-5 text-right">
-                            <a href="{% url 'appointments:create_appointment_for' patient.pk %}"
-                               title="Prendre RDV" aria-label="Prendre RDV pour {{ patient.first_name }} {{ patient.last_name }}"
-                               class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
-                                <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i>
-                            </a>
+                            <div class="inline-flex items-center gap-1.5">
+                                <a href="{% url 'patients:edit_patient' patient.pk %}"
+                                   title="Modifier le dossier" aria-label="Modifier le dossier de {{ patient.first_name }} {{ patient.last_name }}"
+                                   class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                                    <i data-lucide="pencil" class="w-4 h-4" stroke-width="1.75"></i>
+                                </a>
+                                <a href="{% url 'appointments:create_appointment_for' patient.pk %}"
+                                   title="Prendre RDV" aria-label="Prendre RDV pour {{ patient.first_name }} {{ patient.last_name }}"
+                                   class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                                    <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i>
+                                </a>
+                                {% if patient.next_appointment.whatsapp_reminder_link %}
+                                <a href="{{ patient.next_appointment.whatsapp_reminder_link }}" target="_blank" rel="noopener noreferrer"
+                                   title="Rappel WhatsApp" aria-label="Envoyer un rappel WhatsApp à {{ patient.first_name }} {{ patient.last_name }}"
+                                   class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 border border-border-subtle">
+                                    <i data-lucide="message-circle" class="w-4 h-4" stroke-width="1.75"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'patients:patient_documents' patient.pk %}"
+                                   title="Documents (bilans, radios)" aria-label="Documents de {{ patient.first_name }} {{ patient.last_name }}"
+                                   class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                                    <i data-lucide="paperclip" class="w-4 h-4" stroke-width="1.75"></i>
+                                </a>
+                                <a href="{% url 'patients:patient_full_archive' patient.pk %}"
+                                   title="Télécharger dossier complet (ZIP)" aria-label="Télécharger le dossier complet de {{ patient.first_name }} {{ patient.last_name }}"
+                                   class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-sauge-700 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                                    <i data-lucide="folder-archive" class="w-4 h-4" stroke-width="1.75"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -60,8 +130,10 @@
         </div>
         {% else %}
         <div class="px-4 py-16 text-center">
-            <i data-lucide="users" class="w-8 h-8 text-slate-300 mx-auto mb-2" stroke-width="1.5"></i>
-            <p class="text-sm text-text-muted">Aucune patiente enregistrée pour le moment.</p>
+            <i data-lucide="{% if view_filter == 'completed' %}check-circle-2{% else %}users{% endif %}" class="w-8 h-8 text-slate-300 mx-auto mb-2" stroke-width="1.5"></i>
+            <p class="text-sm text-text-muted">
+                {% if view_filter == 'completed' %}Aucune patiente avec une consultation terminée pour le moment.{% else %}Aucune patiente enregistrée pour le moment.{% endif %}
+            </p>
         </div>
         {% endif %}
     </div>

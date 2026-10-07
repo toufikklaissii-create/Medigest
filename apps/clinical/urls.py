@@ -17,4 +17,19 @@ urlpatterns = [
         views.download_report_pdf,
         name="report_pdf",
     ),
+    path(
+        "consultation/<int:appointment_id>/pdf/letter/<str:letter_type>/",
+        views.download_letter_pdf,
+        name="letter_pdf",
+    ),
+    path(
+        "consultation/<int:appointment_id>/documents/upload/",
+        views.upload_patient_document,
+        name="upload_patient_document",
+    ),
+    path(
+        "consultation/<int:appointment_id>/pdf/dossier/",
+        views.download_patient_record_pdf,
+        name="patient_record_pdf",
+    ),
 ]

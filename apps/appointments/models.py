@@ -1,5 +1,8 @@
 from django.db import models
+from django.utils import timezone
 
+from apps.accounts.models import Cabinet
+from apps.common.whatsapp import appointment_reminder_link
 from apps.patients.models import Patient
 
 
@@ -19,6 +22,9 @@ class Appointment(models.Model):
         RESCHEDULED = "rescheduled", "Reprogrammé"
         CANCELLED = "cancelled", "Annulé"
 
+    cabinet = models.ForeignKey(
+        Cabinet, on_delete=models.CASCADE, related_name="appointments", null=True, blank=True
+    )
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="appointments"
     )
@@ -41,3 +47,10 @@ class Appointment(models.Model):
 
     def __str__(self):
         return f"{self.patient} — {self.date:%d/%m/%Y %H:%M}"
+
+    @property
+    def whatsapp_reminder_link(self):
+        local_dt = timezone.localtime(self.date)
+        return appointment_reminder_link(
+            self.patient, local_dt.strftime("%d/%m/%Y"), local_dt.strftime("%H:%M")
+        )

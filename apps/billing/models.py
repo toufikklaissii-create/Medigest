@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Max
 from django.utils import timezone
 
+from apps.accounts.models import Cabinet
 from apps.patients.models import Patient
 
 
@@ -10,6 +11,9 @@ class MedicalAct(models.Model):
     name = models.CharField(max_length=150)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     is_active = models.BooleanField(default=True)
+    is_quick_exam = models.BooleanField(
+        "Examen complémentaire rapide", default=False
+    )
 
     class Meta:
         verbose_name = "Acte médical"
@@ -31,6 +35,9 @@ class Invoice(models.Model):
         CARD = "card", "Carte"
         CHECK = "check", "Chèque"
 
+    cabinet = models.ForeignKey(
+        Cabinet, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True
+    )
     invoice_number = models.CharField(max_length=20, unique=True, editable=False)
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="invoices"

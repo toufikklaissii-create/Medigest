@@ -20,7 +20,7 @@ def index(request):
 def _active_tasks_for(user):
     return (
         Task.objects.select_related("author", "patient")
-        .filter(assignee=user)
+        .filter(assignee=user, cabinet=user.profile.cabinet)
         .exclude(status=Task.Status.COMPLETED)
         .order_by("-priority", "-created_at")
     )
@@ -35,7 +35,9 @@ def tasks_panel(request):
 
 @login_required
 def toggle_task(request, pk):
-    task = get_object_or_404(Task, pk=pk, assignee=request.user)
+    task = get_object_or_404(
+        Task, pk=pk, assignee=request.user, cabinet=request.user.profile.cabinet
+    )
     toast_message = None
     if request.method == "POST":
         task.status = Task.Status.COMPLETED
@@ -56,12 +58,20 @@ def toggle_task(request, pk):
 @role_required("doctor")
 def create_task(request):
     if request.method == "POST":
+        cabinet = request.user.profile.cabinet
         title = request.POST.get("title", "").strip()
         if title:
-            assignee = User.objects.filter(profile__role=Profile.Role.ASSISTANT).first()
+            assignee = User.objects.filter(
+                profile__role=Profile.Role.ASSISTANT, profile__cabinet=cabinet
+            ).first()
             patient_id = request.POST.get("patient") or None
-            patient = Patient.objects.filter(pk=patient_id).first() if patient_id else None
+            patient = (
+                Patient.objects.filter(pk=patient_id, cabinet=cabinet).first()
+                if patient_id
+                else None
+            )
             Task.objects.create(
+                cabinet=cabinet,
                 author=request.user,
                 assignee=assignee or request.user,
                 title=title,

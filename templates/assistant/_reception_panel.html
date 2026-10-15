@@ -1,0 +1,108 @@
+{% load medigest_format %}
+{% comment %}
+Panneau d'accueil de la patiente sélectionnée. Données administratives uniquement :
+aucune donnée clinique (diagnostic, observations, ordonnances) n'est rendue ici.
+{% endcomment %}
+<div id="patient-panel"
+     hx-get="{% url 'appointments:reception_panel' appointment.pk %}"
+     hx-trigger="panel-refresh from:body, invoice-paid from:body"
+     hx-swap="outerHTML"
+     class="divide-y divide-border-subtle">
+
+    <!-- En-tête -->
+    <div class="p-5">
+        <div class="flex items-start gap-3">
+            <div class="size-11 shrink-0 rounded-full bg-sauge-100 text-sauge-700 grid place-items-center text-sm font-bold" aria-hidden="true">
+                {{ appointment.patient.first_name|slice:":1"|upper }}{{ appointment.patient.last_name|slice:":1"|upper }}
+            </div>
+            <div class="min-w-0 flex-1">
+                <h2 class="text-base font-semibold leading-tight text-text-main break-words">{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</h2>
+                <p class="mt-0.5 text-[13px] text-text-muted tabular-nums">
+                    {{ appointment.patient.patient_number }}{% if appointment.patient.phone %} · {{ appointment.patient.phone }}{% endif %}
+                </p>
+            </div>
+            {% include "assistant/_appointment_status_badge.html" %}
+        </div>
+        <p class="mt-3 flex items-center gap-1.5 text-[13px] text-text-soft">
+            <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
+            <span class="tabular-nums">{{ appointment.date|date:"H:i" }}</span> · <span class="truncate">{{ appointment.reason|default:"Consultation" }}</span>
+        </p>
+        {% if action_label %}
+        <div class="mt-4">{% include "assistant/_reception_action.html" with wide=True %}</div>
+        {% endif %}
+    </div>
+
+    <!-- Constantes d'accueil -->
+    {% if appointment.status != "completed" and appointment.status != "cancelled" %}
+    <div class="px-5 pt-1">
+        {% include "assistant/_intake_vitals_form.html" %}
+    </div>
+    {% endif %}
+
+    <!-- Rappel WhatsApp -->
+    <div class="p-5">
+        <div class="flex items-center justify-between gap-2">
+            <h3 class="text-[13px] font-semibold text-text-main">Rappel WhatsApp</h3>
+            {% if appointment.whatsapp_status == "confirmed" %}{% include "_status_badge.html" with tone="emerald" label=appointment.get_whatsapp_status_display %}
+            {% elif appointment.whatsapp_status == "sent" %}{% include "_status_badge.html" with tone="sky" label="Envoyé" %}
+            {% elif appointment.whatsapp_status == "rescheduled" %}{% include "_status_badge.html" with tone="amber" label=appointment.get_whatsapp_status_display %}
+            {% elif appointment.whatsapp_status == "cancelled" %}{% include "_status_badge.html" with tone="rose" label=appointment.get_whatsapp_status_display %}
+            {% else %}{% include "_status_badge.html" with tone="slate" label="Non envoyé" %}{% endif %}
+        </div>
+        {% if appointment.whatsapp_reminder_link %}
+        <a href="{{ appointment.whatsapp_reminder_link }}" target="_blank" rel="noopener noreferrer"
+           class="btn-tactile mt-3 w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600" stroke-width="1.75" aria-hidden="true"></i>
+            Ouvrir WhatsApp avec le rappel
+        </a>
+        {% else %}
+        <p class="mt-2 text-[13px] text-text-muted">Aucun numéro de téléphone : ajoutez-le dans la fiche patiente pour envoyer un rappel.</p>
+        {% endif %}
+    </div>
+
+    <!-- Encaissement -->
+    <div class="p-5 focus:outline-none" id="panel-payment" tabindex="-1">
+        <h3 class="text-[13px] font-semibold text-text-main">Encaissement</h3>
+        {% if invoice and invoice.status == "pending" and invoice.total_amount %}
+        <p class="mt-2 flex items-baseline justify-between gap-2">
+            <span class="text-[13px] text-text-muted">{{ invoice.invoice_number }}</span>
+            <span class="text-2xl font-bold text-text-main tabular-nums">{{ invoice.total_amount|dh }}</span>
+        </p>
+        <form hx-post="{% url 'billing:pay_invoice' invoice.pk %}"
+              hx-target="#pending-invoices" hx-swap="outerHTML"
+              hx-disabled-elt="#panel-payment button"
+              class="mt-4 grid grid-cols-3 gap-2" aria-label="Moyen de paiement">
+            <button type="submit" name="payment_method" value="cash"
+                    class="btn-tactile flex flex-col items-center justify-center gap-1.5 h-20 rounded-xl border border-sauge-200 bg-sauge-25 text-sm font-semibold text-sauge-700 hover:bg-sauge-600 hover:text-white hover:border-sauge-600 disabled:opacity-60">
+                <i data-lucide="banknote" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i> Espèces
+            </button>
+            <button type="submit" name="payment_method" value="card"
+                    class="btn-tactile flex flex-col items-center justify-center gap-1.5 h-20 rounded-xl border border-sauge-200 bg-sauge-25 text-sm font-semibold text-sauge-700 hover:bg-sauge-600 hover:text-white hover:border-sauge-600 disabled:opacity-60">
+                <i data-lucide="credit-card" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i> Carte
+            </button>
+            <button type="submit" name="payment_method" value="check"
+                    class="btn-tactile flex flex-col items-center justify-center gap-1.5 h-20 rounded-xl border border-sauge-200 bg-sauge-25 text-sm font-semibold text-sauge-700 hover:bg-sauge-600 hover:text-white hover:border-sauge-600 disabled:opacity-60">
+                <i data-lucide="file-text" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i> Chèque
+            </button>
+        </form>
+        <p class="mt-2 text-[12px] text-text-muted">Un clic encaisse la facture et ouvre le reçu.</p>
+        {% elif invoice and invoice.status == "paid" %}
+        <div class="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p class="text-sm text-emerald-800">
+                <span class="font-semibold tabular-nums">{{ invoice.total_amount|dh }}</span> encaissés
+                <span class="block text-[12px] text-emerald-700">{{ invoice.get_payment_method_display }}{% if invoice.paid_at %} à {{ invoice.paid_at|date:"H:i" }}{% endif %}</span>
+            </p>
+            <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank" rel="noopener"
+               class="btn-tactile shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100">
+                <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Reçu
+            </a>
+        </div>
+        {% elif invoice and invoice.status == "pending" %}
+        <p class="mt-2 text-[13px] text-text-muted">Aucun acte facturé sur cette consultation : rien à encaisser.</p>
+        {% elif appointment.status == "completed" %}
+        <p class="mt-2 text-[13px] text-text-muted">La facture apparaîtra ici dès que le médecin aura validé la consultation.</p>
+        {% else %}
+        <p class="mt-2 text-[13px] text-text-muted">L'encaissement sera possible à la fin de la consultation.</p>
+        {% endif %}
+    </div>
+</div>

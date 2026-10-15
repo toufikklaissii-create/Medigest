@@ -104,6 +104,50 @@ def _queue_board_context(cabinet):
     return {"columns": columns}
 
 
+# Action contextuelle de l'accueil : l'assistante ne fait avancer que l'arrivée et la mise en attente,
+# le médecin prend le relais ensuite ; l'encaissement apparaît quand la facture est prête.
+RECEPTION_ACTION_LABEL = {
+    Appointment.Status.SCHEDULED: "Arrivée",
+    Appointment.Status.ARRIVED: "Mettre en attente",
+}
+
+
+def _consultation_for(appointment):
+    # Accès inverse OneToOne : RelatedObjectDoesNotExist hérite d'AttributeError.
+    return getattr(appointment, "consultation", None)
+
+
+def _invoice_for(appointment):
+    consultation = _consultation_for(appointment)
+    return consultation.invoice if consultation and consultation.invoice_id else None
+
+
+def _timeline_context(cabinet):
+    appointments = list(
+        _today_appointments(cabinet).select_related("consultation__invoice")
+    )
+    for appointment in appointments:
+        appointment.action_label = RECEPTION_ACTION_LABEL.get(appointment.status)
+        appointment.invoice = _invoice_for(appointment)
+    return {"timeline": appointments, **_day_counters(cabinet, appointments)}
+
+
+def _day_counters(cabinet, appointments):
+    S = Appointment.Status
+    today = timezone.localdate()
+    cashed = (
+        Invoice.objects.filter(cabinet=cabinet, status=Invoice.Status.PAID, paid_at__date=today)
+        .aggregate(total=Sum("total_amount"))["total"]
+        or 0
+    )
+    return {
+        "count_total": len(appointments),
+        "count_waiting": sum(1 for a in appointments if a.status in (S.ARRIVED, S.WAITING)),
+        "count_in_consultation": sum(1 for a in appointments if a.status == S.IN_CONSULTATION),
+        "cashed_today": cashed,
+    }
+
+
 def _today_list_context(cabinet):
     appointments = _today_appointments(cabinet)
     scheduled_today = [a for a in appointments if a.status == Appointment.Status.SCHEDULED]
@@ -550,8 +594,7 @@ def assistant_dashboard(request):
     )
     my_tasks = _active_tasks_for(request.user)
     context = {
-        **_queue_board_context(cabinet),
-        **_today_list_context(cabinet),
+        **_timeline_context(cabinet),
         **_j2_context(cabinet),
         "pending_invoices": pending_invoices,
         "pending_invoices_total": pending_invoices.aggregate(total=Sum("total_amount"))["total"] or 0,
@@ -621,10 +664,48 @@ def advance_status(request, pk):
             appointment.save(update_fields=["status"])
             toast_message = f"{appointment.patient} — statut mis à jour."
 
+    if request.headers.get("HX-Target") == "timeline":
+        response = render(request, "assistant/_timeline.html", _timeline_context(cabinet))
+        if toast_message:
+            response.headers["HX-Trigger"] = json.dumps(
+                {"toast": {"message": toast_message, "type": "success"}, "panel-refresh": True}
+            )
+        return response
+
     response = render(request, "assistant/_queue_board.html", _queue_board_context(cabinet))
     if toast_message:
         response.headers["HX-Trigger"] = _toast_header(toast_message)
     return response
+
+
+@login_required
+def reception_timeline(request):
+    """GET (HTMX, toutes les 15 s) : timeline du jour + compteurs en hx-swap-oob."""
+    return render(request, "assistant/_timeline.html", _timeline_context(request.user.profile.cabinet))
+
+
+@login_required
+def reception_panel(request, pk):
+    """GET (HTMX) : panneau d'accueil de la patiente sélectionnée.
+
+    Uniquement des données administratives : constantes d'accueil, rappel WhatsApp,
+    encaissement. Aucune donnée clinique (diagnostic, observations, ordonnances).
+    """
+    cabinet = request.user.profile.cabinet
+    appointment = get_object_or_404(
+        Appointment.objects.select_related("patient", "consultation__invoice"), pk=pk, cabinet=cabinet
+    )
+    consultation = _consultation_for(appointment)
+    return render(
+        request,
+        "assistant/_reception_panel.html",
+        {
+            "appointment": appointment,
+            "consultation": consultation,
+            "invoice": _invoice_for(appointment),
+            "action_label": RECEPTION_ACTION_LABEL.get(appointment.status),
+        },
+    )
 
 
 WHATSAPP_ACTIONS = {

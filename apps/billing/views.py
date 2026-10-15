@@ -42,7 +42,7 @@ def pay_invoice(request, pk):
         request, "assistant/_pending_invoices.html", {"pending_invoices": pending_invoices}
     )
     if toast_message:
-        events = {"toast": {"message": toast_message, "type": "success"}}
+        events = {"toast": {"message": toast_message, "type": "success"}, "invoice-paid": True}
         if receipt_url:
             events["receipt-ready"] = {"url": receipt_url}
         response.headers["HX-Trigger"] = json.dumps(events)

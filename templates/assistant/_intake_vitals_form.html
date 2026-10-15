@@ -1,6 +1,9 @@
 {% load l10n %}
 {% with base="w-full rounded-lg border px-2.5 py-2 text-sm transition-colors duration-150 focus:outline-none focus:ring-2" ok="border-border-subtle hover:border-sauge-500/50 focus:ring-sauge-500/40 focus:border-sauge-500" ko="border-rose-300 bg-rose-50/40 focus:ring-rose-200 focus:border-rose-400" %}
-<div data-intake-vitals-root class="border-t border-border-subtle pt-4 mb-4">
+<div data-intake-vitals-root class="border-t border-border-subtle pt-4 mb-4"
+     data-ddr="{% if values %}{{ values.last_menstrual_period }}{% else %}{{ consultation.last_menstrual_period|date:'Y-m-d'|default:'' }}{% endif %}"
+     data-reference="{{ appointment.date|date:'Y-m-d' }}"
+     x-data="intakeTerm($el.dataset.ddr, $el.dataset.reference)">
     <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2 flex items-center gap-1.5">
         <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i> Constantes d'accueil
     </p>
@@ -34,10 +37,12 @@
         </div>
         <div>
             <label for="iv-lmp-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">DDR</label>
-            <input type="date" id="iv-lmp-{{ appointment.pk }}" name="last_menstrual_period"
+            <input type="date" id="iv-lmp-{{ appointment.pk }}" name="last_menstrual_period" x-model="ddr"
+                   aria-describedby="iv-lmp-term-{{ appointment.pk }}"
                    value="{% if values %}{{ values.last_menstrual_period }}{% else %}{{ consultation.last_menstrual_period|date:'Y-m-d'|default:'' }}{% endif %}"
                    {% if errors.last_menstrual_period %}aria-invalid="true" aria-describedby="iv-lmp-err-{{ appointment.pk }}"{% endif %}
                    class="{{ base }} {% if errors.last_menstrual_period %}{{ ko }}{% else %}{{ ok }}{% endif %}">
+            <p id="iv-lmp-term-{{ appointment.pk }}" class="mt-1 min-h-[16px] text-[11px] font-semibold text-emerald-700 tabular-nums" aria-live="polite" x-text="label"></p>
             {% if errors.last_menstrual_period %}<p id="iv-lmp-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.last_menstrual_period }}</p>{% endif %}
         </div>
         <div class="col-span-2">

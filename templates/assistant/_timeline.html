@@ -1,0 +1,49 @@
+{% load medigest_format %}
+{% comment %}
+Timeline du jour (accueil). Se recharge seule toutes les 15 s et après chaque action/encaissement ;
+la sélection vit dans le x-data parent (`selected`), elle survit donc au remplacement du bloc.
+{% endcomment %}
+<div id="timeline"
+     hx-get="{% url 'appointments:reception_timeline' %}"
+     hx-trigger="every 15s, timeline-refresh from:body, invoice-paid from:body"
+     hx-swap="outerHTML">
+    {% if timeline %}
+    <ol class="divide-y divide-border-subtle" aria-label="Rendez-vous du jour">
+        {% for appt in timeline %}
+        <li data-appointment="{{ appt.pk }}" class="group relative grid grid-cols-[48px_minmax(0,1fr)_auto] sm:grid-cols-[52px_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 rounded-xl px-3 py-3 transition-colors duration-150 motion-reduce:transition-none"
+            :class="selected === {{ appt.pk }} ? 'bg-sauge-50' : 'hover:bg-sauge-25'">
+            <span class="absolute left-0 top-3 bottom-3 w-[3px] rounded-full bg-sauge-500 transition-opacity duration-150"
+                  :class="selected === {{ appt.pk }} ? 'opacity-100' : 'opacity-0'" aria-hidden="true"></span>
+
+            <time datetime="{{ appt.date|date:'c' }}"
+                  class="text-sm font-semibold tabular-nums {% if appt.status == 'completed' %}text-text-faint{% else %}text-text-main{% endif %}">{{ appt.date|date:"H:i" }}</time>
+
+            <button type="button" @click="select({{ appt.pk }})"
+                    :aria-pressed="(selected === {{ appt.pk }}).toString()"
+                    class="min-w-0 text-left after:absolute after:inset-0 after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-sauge-600/30">
+                <span class="block truncate text-sm font-semibold {% if appt.status == 'completed' %}text-text-soft{% else %}text-text-main{% endif %}">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</span>
+                <span class="block truncate text-[13px] text-text-muted">{{ appt.reason|default:"Consultation" }}</span>
+            </button>
+
+            <span class="hidden sm:block">{% include "assistant/_appointment_status_badge.html" with appointment=appt %}</span>
+
+            <div class="relative z-10 col-start-2 col-span-2 sm:col-start-auto sm:col-span-1 flex justify-start sm:justify-end">
+                {% include "assistant/_reception_action.html" with appointment=appt action_label=appt.action_label invoice=appt.invoice wide=False %}
+            </div>
+        </li>
+        {% endfor %}
+    </ol>
+    {% else %}
+    <div class="flex flex-col items-center justify-center gap-3 py-14 text-center">
+        <span class="size-11 rounded-xl bg-slate-100 text-text-muted grid place-items-center">
+            <i data-lucide="calendar-x-2" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i>
+        </span>
+        <p class="text-sm text-text-soft">Aucun rendez-vous pour aujourd'hui.</p>
+        <a href="{% url 'appointments:calendar' %}"
+           class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+            <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Planifier un RDV
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% if not initial %}{% include "assistant/_day_counters.html" with oob=True %}{% endif %}

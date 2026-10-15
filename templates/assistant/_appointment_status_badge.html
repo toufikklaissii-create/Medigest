@@ -1,0 +1,6 @@
+{% if appointment.status == "arrived" %}{% include "_status_badge.html" with tone="amber" label=appointment.get_status_display %}
+{% elif appointment.status == "waiting" %}{% include "_status_badge.html" with tone="sky" label=appointment.get_status_display %}
+{% elif appointment.status == "in_consultation" %}{% include "_status_badge.html" with tone="emerald" label=appointment.get_status_display %}
+{% elif appointment.status == "completed" %}{% include "_status_badge.html" with tone="slate" label=appointment.get_status_display %}
+{% elif appointment.status == "cancelled" %}{% include "_status_badge.html" with tone="rose" label=appointment.get_status_display %}
+{% else %}{% include "_status_badge.html" with tone="sauge" label=appointment.get_status_display %}{% endif %}

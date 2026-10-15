@@ -252,6 +252,7 @@
             <i data-lucide="calendar" class="w-4 h-4" stroke-width="1.75"></i>
             {% now "l d F Y" %}
         </span>
+        {% block topbar_status %}
         <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
             <span class="relative flex h-1.5 w-1.5">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -259,10 +260,13 @@
             </span>
             Live
         </span>
+        {% endblock %}
+        {% block topbar_search %}
         <div class="hidden lg:flex items-center gap-2.5 ml-auto w-[300px] rounded-lg border border-border-subtle bg-surface px-3 py-2 text-text-faint text-[13px]">
             <i data-lucide="search" class="w-[15px] h-[15px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate">Rechercher…</span>
         </div>
+        {% endblock %}
     </header>
 {% endwith %}
 {% endif %}
@@ -307,6 +311,24 @@
 {% endif %}
 
 <script>
+    // Terme (SA + j) et DPA calculés en direct depuis la DDR, au jour du RDV — même règle que pregnancy_dates().
+    function intakeTerm(initialDdr, referenceDate) {
+        return {
+            ddr: initialDdr,
+            get label() {
+                if (!this.ddr || !referenceDate) return "";
+                const day = 86400000;
+                const lmp = Date.parse(this.ddr + "T00:00:00Z");
+                const ref = Date.parse(referenceDate + "T00:00:00Z");
+                if (Number.isNaN(lmp) || Number.isNaN(ref)) return "";
+                const elapsed = Math.round((ref - lmp) / day);
+                if (elapsed < 0 || elapsed > 280 + 21) return "Hors grossesse en cours";
+                const due = new Date(lmp + 280 * day).toLocaleDateString("fr-FR", { timeZone: "UTC" });
+                return `${Math.floor(elapsed / 7)} SA + ${elapsed % 7} j · DPA ${due}`;
+            },
+        };
+    }
+
     function toastHub() {
         return {
             toasts: [],

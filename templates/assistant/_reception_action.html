@@ -1,0 +1,42 @@
+{% load medigest_format %}
+{% comment %}
+Action contextuelle unique d'un RDV à l'accueil (timeline et panneau).
+Arrivée → Mettre en attente → (médecin) → Encaisser X DH quand la facture est prête.
+`appointment.action_label` / `appointment.invoice` sont posés par _timeline_context ; `wide` étire le bouton.
+{% endcomment %}
+{% if action_label %}
+<button type="button"
+        hx-post="{% url 'appointments:advance_status' appointment.pk %}"
+        hx-target="#timeline" hx-swap="outerHTML"
+        class="btn-tactile relative z-10 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg border border-sauge-200 bg-surface px-3 text-[13px] font-semibold text-sauge-700 whitespace-nowrap hover:bg-sauge-50 hover:border-sauge-400 {% if wide %}w-full h-10{% endif %}">
+    <i data-lucide="{% if appointment.status == 'scheduled' %}door-open{% else %}hourglass{% endif %}" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+    {{ action_label }}
+</button>
+{% elif appointment.status == "waiting" or appointment.status == "in_consultation" %}
+<span class="inline-flex items-center gap-1.5 text-[13px] text-text-muted whitespace-nowrap">
+    <i data-lucide="stethoscope" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+    {% if appointment.status == "waiting" %}Attend le médecin{% else %}Chez le médecin{% endif %}
+</span>
+{% elif appointment.status == "completed" %}
+    {% if invoice and invoice.status == "pending" and invoice.total_amount %}
+    {% if not wide %}
+    <button type="button" @click="select({{ appointment.pk }}, true)"
+            class="btn-tactile relative z-10 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-sauge-600 px-3 text-[13px] font-semibold text-white whitespace-nowrap shadow-sm hover:bg-sauge-700">
+        <i data-lucide="banknote" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+        Encaisser {{ invoice.total_amount|dh }}
+    </button>
+    {% endif %}
+    {% elif invoice and invoice.status == "pending" %}
+    <span class="inline-flex items-center gap-1.5 text-[13px] text-text-muted whitespace-nowrap" title="Aucun acte saisi sur cette facture">
+        <i data-lucide="file-minus" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Aucun acte
+    </span>
+    {% elif invoice and invoice.status == "paid" %}
+    <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-700 whitespace-nowrap">
+        <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Encaissé
+    </span>
+    {% else %}
+    <span class="inline-flex items-center gap-1.5 text-[13px] text-text-muted whitespace-nowrap">
+        <i data-lucide="file-clock" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Facture à venir
+    </span>
+    {% endif %}
+{% endif %}

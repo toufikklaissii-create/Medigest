@@ -1,152 +1,189 @@
 {% extends "base.html" %}
-{% block title %}Accueil — Assistante{% endblock %}
-{% block content %}
-<div class="max-w-7xl mx-auto px-6 py-7">
+{% block title %}Accueil · Assistante{% endblock %}
 
-    <div class="flex flex-wrap items-center justify-between gap-4 mb-7">
-        <div>
-            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Espace Accueil &amp; Coordination</h1>
-            <p class="text-sm text-text-muted mt-1">File d'attente et gestion du jour</p>
-        </div>
-        <div class="flex items-center gap-2">
+{% block topbar_status %}{% endblock %}
+
+{% block topbar_search %}
+<div class="relative ml-auto w-full max-w-[380px]" x-data
+     @keydown.escape="$refs.results.innerHTML = ''; $refs.search.blur()"
+     @click.outside="$refs.results.innerHTML = ''">
+    <label for="patient-search" class="sr-only">Rechercher une patiente</label>
+    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-faint pointer-events-none" stroke-width="1.75" aria-hidden="true"></i>
+    <input id="patient-search" x-ref="search" type="search" name="q" autocomplete="off" spellcheck="false"
+           placeholder="Patiente : nom, téléphone, CIN, N° dossier…"
+           hx-get="{% url 'appointments:patient_search' %}"
+           hx-trigger="keyup changed delay:250ms, search"
+           hx-target="#search-results" hx-swap="innerHTML"
+           class="w-full h-10 rounded-lg border border-border-subtle bg-surface pl-9 pr-3 text-sm text-text-main transition-colors duration-150 hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">
+    <div id="search-results" x-ref="results"></div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 py-6" x-data="reception('{% url 'appointments:reception_panel' 0 %}')">
+
+    <!-- Ligne de tête : titre + compteurs + actions -->
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mb-6">
+        <h1 class="text-[22px] font-semibold leading-tight text-text-main">Accueil</h1>
+        {% include "assistant/_day_counters.html" %}
+        <div class="ml-auto flex items-center gap-2">
             <a href="{% url 'appointments:calendar' %}"
-               class="btn-tactile text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3.5 py-2 hover:bg-sauge-50 flex items-center gap-1.5">
-                <i data-lucide="calendar-days" class="w-4 h-4" stroke-width="1.75"></i> Planning / Agenda
+               class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg px-3 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                <i data-lucide="calendar-days" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Planning
             </a>
             <a href="{% url 'patients:create_patient' %}"
-               class="btn-tactile text-sm font-medium text-white bg-sauge-600 rounded-lg px-3.5 py-2 shadow-sm hover:bg-sauge-900 flex items-center gap-1.5">
-                <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75"></i> Nouvelle patiente
+               class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                <i data-lucide="user-plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Nouvelle patiente
             </a>
             <a href="{% url 'appointments:create_appointment' %}"
-               class="btn-tactile text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3.5 py-2 hover:bg-sauge-50 flex items-center gap-1.5">
-                <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75"></i> Nouveau RDV
+               class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg bg-sauge-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+                <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Nouveau RDV
             </a>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-7">
-        <div class="bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200">
-            <div class="flex items-center justify-between mb-4">
-                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="users" class="w-5 h-5" stroke-width="1.75"></i>
-                </span>
-                <span class="text-xs text-text-muted">Jour</span>
-            </div>
-            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ today_total }}</p>
-            <p class="text-sm font-medium text-text-muted mt-2">Patientes reçues aujourd'hui</p>
-        </div>
+    <div class="grid gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
 
-        <a href="{% url 'billing:index' %}"
-           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-            <div class="flex items-center justify-between mb-4">
-                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="banknote" class="w-5 h-5" stroke-width="1.75"></i>
-                </span>
-                <span class="text-xs text-text-muted">À faire</span>
-            </div>
-            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ pending_invoices|length }}</p>
-            <p class="text-sm font-medium text-text-muted mt-2">Encaissements en attente</p>
-            {% if pending_invoices_total %}
-            <span class="inline-block mt-3 text-xs font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ pending_invoices_total }} DH au total</span>
-            {% endif %}
-        </a>
+        <!-- ═══ Gauche (60 %) : timeline + bloc repliable ═══ -->
+        <div class="min-w-0 space-y-5">
+            <section class="bg-surface rounded-2xl border border-border-subtle shadow-card" aria-labelledby="timeline-title">
+                <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
+                    <h2 id="timeline-title" class="text-[15px] font-semibold text-text-main">Rendez-vous du jour</h2>
+                    <p class="text-[12px] text-text-faint">Mise à jour automatique</p>
+                </div>
+                <div class="px-2 pb-2">
+                    {% include "assistant/_timeline.html" with initial=True %}
+                </div>
+            </section>
 
-        <a href="{% url 'appointments:calendar' %}"
-           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-            <div class="flex items-center justify-between mb-4">
-                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="calendar-clock" class="w-5 h-5" stroke-width="1.75"></i>
-                </span>
-                <span class="text-xs text-text-muted">Restant</span>
-            </div>
-            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ scheduled_today|length }}</p>
-            <p class="text-sm font-medium text-text-muted mt-2">RDV programmés</p>
-            {% with next_rdv=scheduled_today|first %}
-            {% if next_rdv %}
-            <span class="inline-block mt-3 text-xs font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">Prochain à {{ next_rdv.date|date:"H:i" }}</span>
-            {% endif %}
-            {% endwith %}
-        </a>
-
-        <a href="{% url 'communications:index' %}"
-           class="btn-tactile block bg-surface rounded-2xl border border-border-subtle shadow-sm p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
-            <div class="flex items-center justify-between mb-4">
-                <span class="size-10 rounded-xl bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="list-checks" class="w-5 h-5" stroke-width="1.75"></i>
-                </span>
-                <span class="text-xs text-text-muted">Actives</span>
-            </div>
-            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ my_tasks|length }}</p>
-            <p class="text-sm font-medium text-text-muted mt-2">Tâches à traiter</p>
-            {% if urgent_tasks_count %}
-            <span class="inline-block mt-3 text-xs font-semibold text-sauge-700 bg-sauge-50 rounded-md px-2 py-1 tabular-nums">{{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }}</span>
-            {% endif %}
-        </a>
-    </div>
-
-    <!-- Universal search -->
-    <div class="mb-7 relative">
-        <div class="relative">
-            <i data-lucide="search" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-text-muted" stroke-width="1.75"></i>
-            <input
-                type="search"
-                name="q"
-                placeholder="Rechercher une patiente (nom, téléphone, CIN, N° dossier)…"
-                class="w-full pl-11 pr-4 py-3 rounded-xl border border-border-subtle bg-surface shadow-sm text-sm transition-shadow duration-150 hover:shadow-card focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500 placeholder:text-text-muted/60"
-                hx-get="{% url 'appointments:patient_search' %}"
-                hx-trigger="keyup changed delay:250ms, search"
-                hx-target="#search-results"
-                hx-swap="innerHTML"
-                autocomplete="off">
-        </div>
-        <div id="search-results"></div>
-    </div>
-
-    <!-- File du jour — Kanban -->
-    <div class="mb-7">
-        <div class="flex items-center justify-between mb-3.5">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint flex items-center gap-2">
-                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5" stroke-width="1.75"></i> File d'attente du jour
-            </h2>
-            <a href="{% url 'appointments:calendar' %}" class="text-[12.5px] font-semibold text-sauge-500 hover:text-sauge-600 hover:underline">Vue planning →</a>
-        </div>
-        {% include "assistant/_queue_board.html" %}
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-[5fr_4fr_3fr] gap-5">
-        <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint flex items-center gap-2">
-                    <i data-lucide="banknote" class="w-3.5 h-3.5" stroke-width="1.75"></i> Facturation &amp; encaissements
+            <!-- Rappels J+2, tâches, autres encaissements : repliable -->
+            <section class="bg-surface rounded-2xl border border-border-subtle shadow-card"
+                     x-data="{ open: {% if urgent_tasks_count %}true{% else %}false{% endif %} }"
+                     x-init="try { const v = localStorage.getItem('medigest:reception-more'); if (v !== null) open = v === '1'; } catch (e) {}
+                             $watch('open', (v) => { try { localStorage.setItem('medigest:reception-more', v ? '1' : '0'); } catch (e) {} })">
+                <h2>
+                    <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-controls="reception-more"
+                            class="btn-tactile w-full flex items-center justify-between gap-3 rounded-2xl px-5 min-h-[56px] text-left hover:bg-sauge-25">
+                        <span class="text-[15px] font-semibold text-text-main">Rappels, tâches et factures en attente</span>
+                        <span class="flex items-center gap-2 text-[12px] text-text-muted">
+                            <span class="tabular-nums">{{ j2_appointments|length }} rappel{{ j2_appointments|length|pluralize }} · {{ my_tasks|length }} tâche{{ my_tasks|length|pluralize }}{% if urgent_tasks_count %} <span class="font-semibold text-rose-700">({{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }})</span>{% endif %} · {{ pending_invoices|length }} facture{{ pending_invoices|length|pluralize }}</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none" :class="open && 'rotate-180'" stroke-width="1.75" aria-hidden="true"></i>
+                        </span>
+                    </button>
                 </h2>
-                <a href="{% url 'billing:index' %}" class="text-[12.5px] font-semibold text-sauge-500 hover:text-sauge-600 hover:underline">Tout voir</a>
-            </div>
-            {% include "assistant/_pending_invoices.html" %}
+                <div id="reception-more" x-show="open" x-cloak x-transition.opacity.duration.150ms
+                     class="grid gap-6 border-t border-border-subtle p-5 md:grid-cols-2 xl:grid-cols-3">
+                    <div class="min-w-0">
+                        <h3 class="mb-3 text-[13px] font-semibold text-text-main">Rappels WhatsApp J+2</h3>
+                        {% include "assistant/_j2_reminders.html" %}
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="mb-3 text-[13px] font-semibold text-text-main">Tâches</h3>
+                        {% include "communications/_tasks_panel.html" with tasks=my_tasks %}
+                    </div>
+                    <div class="min-w-0 md:col-span-2 xl:col-span-1">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <h3 class="text-[13px] font-semibold text-text-main">Encaissements en attente</h3>
+                            <a href="{% url 'billing:index' %}" class="text-[12px] font-medium text-sauge-600 hover:underline">Facturation</a>
+                        </div>
+                        {% include "assistant/_pending_invoices.html" %}
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <div class="flex flex-col gap-5">
-            <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
-                <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-3.5 flex items-center gap-2">
-                    <i data-lucide="calendar-clock" class="w-3.5 h-3.5" stroke-width="1.75"></i> RDV du jour
-                </h2>
-                {% include "assistant/_today_list.html" %}
+        <!-- ═══ Droite (40 %, sticky) : panneau de la patiente sélectionnée ═══ -->
+        <aside class="min-w-0 lg:self-start lg:sticky lg:top-[88px]" aria-label="Patiente sélectionnée">
+            <div id="panel-slot" x-ref="panelSlot" aria-live="polite"
+                 class="bg-surface rounded-2xl border border-border-subtle shadow-card lg:max-h-[calc(100dvh-112px)] lg:overflow-y-auto overscroll-contain">
+                <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                    <span class="size-11 rounded-xl bg-slate-100 text-text-muted grid place-items-center">
+                        <i data-lucide="mouse-pointer-click" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i>
+                    </span>
+                    <p class="text-sm font-medium text-text-main">Aucune patiente sélectionnée</p>
+                    <p class="max-w-[260px] text-[13px] text-text-muted">Choisissez un rendez-vous dans la liste pour saisir les constantes, envoyer le rappel ou encaisser.</p>
+                </div>
             </div>
-
-            <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
-                <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-3.5 flex items-center gap-2">
-                    <i data-lucide="message-circle" class="w-3.5 h-3.5" stroke-width="1.75"></i> Rappels WhatsApp J+2
-                </h2>
-                {% include "assistant/_j2_reminders.html" %}
-            </div>
-        </div>
-
-        <div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-3.5 flex items-center gap-2">
-                <i data-lucide="list-checks" class="w-3.5 h-3.5" stroke-width="1.75"></i> Tâches
-            </h2>
-            {% include "communications/_tasks_panel.html" with tasks=my_tasks %}
-        </div>
+        </aside>
     </div>
 
+    <!-- Squelette du panneau (même gabarit que le contenu final) -->
+    <template x-ref="panelSkeleton">
+        <div class="p-5 space-y-5" aria-busy="true">
+            <span class="sr-only">Chargement de la patiente…</span>
+            <div class="flex items-center gap-3">
+                <div class="size-11 rounded-full bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                <div class="flex-1 space-y-2">
+                    <div class="h-4 w-40 rounded bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                    <div class="h-3 w-28 rounded bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2.5">
+                <div class="h-10 rounded-lg bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                <div class="h-10 rounded-lg bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                <div class="h-10 rounded-lg bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                <div class="h-10 rounded-lg bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="h-20 rounded-xl bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                <div class="h-20 rounded-xl bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+                <div class="h-20 rounded-xl bg-slate-100 animate-pulse motion-reduce:animate-none"></div>
+            </div>
+        </div>
+    </template>
+    <template x-ref="panelError">
+        <div class="flex flex-col items-center gap-3 px-6 py-14 text-center">
+            <span class="size-11 rounded-xl bg-rose-50 text-rose-600 grid place-items-center">
+                <i data-lucide="wifi-off" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <p class="text-sm text-text-main">Impossible de charger la patiente.</p>
+            <button type="button" data-retry
+                    class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25">
+                <i data-lucide="rotate-cw" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Réessayer
+            </button>
+        </div>
+    </template>
 </div>
+
+<script>
+    function reception(panelUrlTemplate) {
+        return {
+            selected: null,
+            init() {
+                // Sélection conservée dans l'URL (?rdv=) : survit au rechargement de la page.
+                const fromUrl = parseInt(new URLSearchParams(location.search).get("rdv"), 10);
+                if (fromUrl && document.querySelector(`#timeline [data-appointment="${fromUrl}"]`)) this.select(fromUrl);
+                this.$refs.panelSlot.addEventListener("click", (event) => {
+                    if (event.target.closest("[data-retry]") && this.selected) this.select(this.selected);
+                });
+            },
+            select(pk, focusPayment = false) {
+                this.selected = pk;
+                try {
+                    const url = new URL(location.href);
+                    url.searchParams.set("rdv", pk);
+                    history.replaceState(null, "", url);
+                } catch (e) { /* sans importance */ }
+                const slot = this.$refs.panelSlot;
+                slot.replaceChildren(this.$refs.panelSkeleton.content.cloneNode(true));
+                if (window.matchMedia("(max-width: 1023px)").matches) slot.scrollIntoView({ behavior: "smooth", block: "start" });
+                htmx.ajax("GET", panelUrlTemplate.replace("/0/", `/${pk}/`), { target: slot, swap: "innerHTML" })
+                    .then(() => {
+                        if (this.selected !== pk) return;
+                        if (!slot.querySelector("#patient-panel")) {
+                            slot.replaceChildren(this.$refs.panelError.content.cloneNode(true));
+                        }
+                        if (window.lucide) lucide.createIcons();
+                        if (focusPayment) {
+                            const payment = slot.querySelector("#panel-payment");
+                            if (payment) { payment.scrollIntoView({ behavior: "smooth", block: "nearest" }); payment.focus({ preventScroll: true }); }
+                        }
+                    })
+                    .catch(() => {
+                        if (this.selected === pk) slot.replaceChildren(this.$refs.panelError.content.cloneNode(true));
+                    });
+            },
+        };
+    }
+</script>
 {% endblock %}

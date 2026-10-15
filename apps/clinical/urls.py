@@ -8,6 +8,11 @@ urlpatterns = [
     path("", views.doctor_dashboard, name="doctor_dashboard"),
     path("consultation/<int:appointment_id>/", views.consultation_detail, name="consultation_detail"),
     path(
+        "consultation/<int:appointment_id>/autosave/",
+        views.autosave_consultation,
+        name="autosave_consultation",
+    ),
+    path(
         "consultation/<int:appointment_id>/pdf/prescription/",
         views.download_prescription_pdf,
         name="prescription_pdf",

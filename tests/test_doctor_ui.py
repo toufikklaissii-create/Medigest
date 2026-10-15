@@ -53,3 +53,30 @@ class DoctorUiTest(TestCase):
         self.assertLess(html.index("Examens complémentaires"), html.index("Documents joints"))
         self.assertIn("Choisir un fichier", html)
         self.assertIn('id="doc-upload-form"', html)
+
+    def test_autosave_keeps_status_and_saves_fields(self):
+        from apps.clinical.models import Consultation
+
+        url = reverse("clinical:autosave_consultation", args=[self.appt.pk])
+        response = self.client.post(url, {"clinical_exam": "Abdomen souple", "action": "validate"})
+        self.assertEqual(response.status_code, 204)
+        consultation = Consultation.objects.get(appointment=self.appt)
+        self.assertEqual(consultation.clinical_exam, "Abdomen souple")
+        self.assertEqual(consultation.status, Consultation.Status.DRAFT)
+
+        Consultation.objects.filter(pk=consultation.pk).update(status=Consultation.Status.VALIDATED)
+        self.client.post(url, {"clinical_exam": "Examen relu"})
+        consultation.refresh_from_db()
+        self.assertEqual(consultation.status, Consultation.Status.VALIDATED)
+        self.assertEqual(consultation.clinical_exam, "Examen relu")
+        self.assertEqual(self.client.get(url).status_code, 405)
+
+    def test_autosave_forbidden_to_assistant(self):
+        assistant = User.objects.create_user(username="assist_ui", password="testpass123")
+        Profile.objects.update_or_create(
+            user=assistant, defaults={"role": Profile.Role.ASSISTANT, "cabinet": self.cabinet}
+        )
+        client = Client()
+        client.login(username="assist_ui", password="testpass123")
+        url = reverse("clinical:autosave_consultation", args=[self.appt.pk])
+        self.assertEqual(client.post(url, {"clinical_exam": "x"}).status_code, 403)

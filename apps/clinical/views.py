@@ -8,6 +8,7 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
+from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
 from apps.appointments.models import Appointment
@@ -93,6 +94,44 @@ def doctor_dashboard(request):
     )
 
 
+def _apply_consultation_post(request, consultation, cabinet):
+    """Copie les champs de la fiche (POST) sur la consultation, sans toucher au statut ni sauvegarder."""
+    consultation.clinical_exam = request.POST.get("clinical_exam", "")
+    consultation.clinical_notes = request.POST.get("clinical_notes", "")
+    consultation.diagnostic = request.POST.get("diagnostic", "")
+    pregnancy = consultation.pregnancy
+    consultation.gestational_age_weeks = pregnancy["weeks"] if pregnancy else None
+    consultation.ultrasound_notes = request.POST.get("ultrasound_notes", "")
+    if not consultation.doctor_id:
+        consultation.doctor = request.user
+
+    act_ids = [int(v) for v in request.POST.getlist("acts") if v]
+    selected_acts = MedicalAct.objects.filter(cabinet=cabinet, id__in=act_ids)
+
+    consultation.consultation_acts.exclude(act_id__in=act_ids).delete()
+    existing_act_ids = set(consultation.consultation_acts.values_list("act_id", flat=True))
+    for act in selected_acts:
+        if act.id not in existing_act_ids:
+            ConsultationAct.objects.create(consultation=consultation, act=act, price=act.price)
+
+    prescription_content = request.POST.get("prescription_content", "").strip()
+    if prescription_content:
+        Document.objects.update_or_create(
+            consultation=consultation,
+            document_type=Document.DocumentType.PRESCRIPTION,
+            defaults={"content": prescription_content},
+        )
+
+    letter_type = request.POST.get("letter_type", "")
+    letter_content = request.POST.get("letter_content", "").strip()
+    if letter_content and letter_type in LETTER_DOCUMENT_TYPES:
+        Document.objects.update_or_create(
+            consultation=consultation,
+            document_type=LETTER_DOCUMENT_TYPES[letter_type],
+            defaults={"content": letter_content},
+        )
+
+
 @login_required
 @role_required("doctor")
 def consultation_detail(request, appointment_id):
@@ -109,41 +148,7 @@ def consultation_detail(request, appointment_id):
 
     if request.method == "POST":
         action = request.POST.get("action")
-
-        consultation.clinical_exam = request.POST.get("clinical_exam", "")
-        consultation.clinical_notes = request.POST.get("clinical_notes", "")
-        consultation.diagnostic = request.POST.get("diagnostic", "")
-        pregnancy = consultation.pregnancy
-        consultation.gestational_age_weeks = pregnancy["weeks"] if pregnancy else None
-        consultation.ultrasound_notes = request.POST.get("ultrasound_notes", "")
-        if not consultation.doctor_id:
-            consultation.doctor = request.user
-
-        act_ids = [int(v) for v in request.POST.getlist("acts") if v]
-        selected_acts = MedicalAct.objects.filter(cabinet=cabinet, id__in=act_ids)
-
-        consultation.consultation_acts.exclude(act_id__in=act_ids).delete()
-        existing_act_ids = set(consultation.consultation_acts.values_list("act_id", flat=True))
-        for act in selected_acts:
-            if act.id not in existing_act_ids:
-                ConsultationAct.objects.create(consultation=consultation, act=act, price=act.price)
-
-        prescription_content = request.POST.get("prescription_content", "").strip()
-        if prescription_content:
-            Document.objects.update_or_create(
-                consultation=consultation,
-                document_type=Document.DocumentType.PRESCRIPTION,
-                defaults={"content": prescription_content},
-            )
-
-        letter_type = request.POST.get("letter_type", "")
-        letter_content = request.POST.get("letter_content", "").strip()
-        if letter_content and letter_type in LETTER_DOCUMENT_TYPES:
-            Document.objects.update_or_create(
-                consultation=consultation,
-                document_type=LETTER_DOCUMENT_TYPES[letter_type],
-                defaults={"content": letter_content},
-            )
+        _apply_consultation_post(request, consultation, cabinet)
 
         consultation.status = (
             Consultation.Status.VALIDATED if action == "validate" else Consultation.Status.DRAFT
@@ -200,6 +205,12 @@ def consultation_detail(request, appointment_id):
     patient_documents = PatientDocument.objects.filter(
         cabinet=cabinet, patient=appointment.patient
     )
+    previous_consultations = (
+        Consultation.objects.filter(cabinet=cabinet, patient=appointment.patient)
+        .exclude(pk=consultation.pk)
+        .select_related("appointment")
+        .order_by("-appointment__date")[:3]
+    )
     return render(
         request,
         "doctor/consultation.html",
@@ -218,8 +229,31 @@ def consultation_detail(request, appointment_id):
             "letters_json": letters_json,
             "patient_documents": patient_documents,
             "document_type_choices": PatientDocument.DocumentType.choices,
+            "previous_consultations": previous_consultations,
         },
     )
+
+
+@login_required
+@role_required("doctor")
+@require_POST
+def autosave_consultation(request, appointment_id):
+    """Sauvegarde silencieuse (HTMX) de la fiche : ne change jamais le statut de la consultation."""
+    cabinet = request.user.profile.cabinet
+    appointment = get_object_or_404(Appointment, pk=appointment_id, cabinet=cabinet)
+    consultation, _ = Consultation.objects.get_or_create(
+        appointment=appointment,
+        defaults={"patient": appointment.patient, "doctor": request.user, "cabinet": cabinet},
+    )
+    _apply_consultation_post(request, consultation, cabinet)
+    # update_fields exclut `status` : une autosave en vol ne peut pas annuler une validation concurrente.
+    consultation.save(
+        update_fields=[
+            "clinical_exam", "clinical_notes", "diagnostic", "gestational_age_weeks",
+            "ultrasound_notes", "doctor", "updated_at",
+        ]
+    )
+    return HttpResponse(status=204)
 
 
 @login_required

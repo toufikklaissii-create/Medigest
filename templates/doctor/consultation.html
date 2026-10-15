@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Consultation — {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+{% block title %}Consultation · {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
 {% block content %}
 {{ acts_json|json_script:"acts-data" }}
 {{ selected_act_ids|json_script:"selected-acts-data" }}
@@ -8,419 +8,599 @@
 {{ letter_templates_json|json_script:"letter-templates-data" }}
 {{ letters_json|json_script:"letters-data" }}
 
-<div x-data="consultationForm()">
+{% with field_cls="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2.5 text-sm leading-relaxed text-text-main transition-colors duration-150 hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" input_cls="w-full h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main transition-colors duration-150 hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" label_cls="block text-[13px] font-medium text-text-soft mb-1.5" chip_cls="btn-tactile inline-flex items-center gap-1.5 min-h-[36px] rounded-full border px-3.5 text-[13px] font-medium" %}
 
-<!-- En-tête patiente : flottant sous la navbar -->
-<div class="sticky top-16 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
-    <div class="max-w-5xl mx-auto px-6 py-3 flex items-start justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-            <div class="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-sauge-500 to-sauge-900 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
-                {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
-            </div>
+<div x-data="consultationForm({{ consultation.updated_at|date:'U' }}, {{ patient_documents|length }})"
+     class="px-4 sm:px-6 py-6">
+
+<div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[248px_minmax(0,1fr)_288px]">
+
+    <!-- ═══ Colonne gauche : résumé patiente (lecture seule) ═══ -->
+    <aside aria-label="Résumé de la patiente"
+           class="lg:col-span-2 xl:col-span-1 xl:self-start xl:sticky xl:top-[88px] xl:max-h-[calc(100dvh-112px)] xl:overflow-y-auto no-scrollbar
+                  bg-surface rounded-2xl border border-border-subtle shadow-card p-5">
+
+        <a href="{% url 'clinical:doctor_dashboard' %}"
+           class="btn-tactile inline-flex items-center gap-1.5 -ml-1.5 mb-4 h-8 rounded-lg px-1.5 text-[13px] font-medium text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+            <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+            File d'attente
+        </a>
+
+        <div class="grid gap-5 lg:grid-cols-3 xl:grid-cols-1">
+            <!-- Identité + grossesse -->
             <div class="min-w-0">
-                <h1 class="text-lg font-semibold text-text-main leading-tight truncate">{{ patient.first_name }} {{ patient.last_name }}</h1>
-                <p class="text-xs text-text-muted leading-tight mt-0.5">
-                    {{ patient.patient_number }}
-                    {% if patient.age %} · {{ patient.age }} ans{% endif %}
-                    {% if patient.blood_group %} · Groupe {{ patient.blood_group }}{% endif %}
-                    {% if patient.organisme_social %} · {{ patient.organisme_social }}{% endif %}
-                    {% if patient.social_security_number %} · N° SS {{ patient.social_security_number }}{% endif %}
-                    {% if patient.medical_history %} · ATCD : {{ patient.medical_history|truncatechars:60 }}{% endif %}
+                <div class="flex items-center gap-3">
+                    <div class="size-11 shrink-0 rounded-full bg-sauge-100 text-sauge-700 grid place-items-center text-sm font-bold" aria-hidden="true">
+                        {{ patient.first_name|slice:":1"|upper }}{{ patient.last_name|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <h1 class="text-lg font-semibold leading-tight text-text-main truncate" title="{{ patient.first_name }} {{ patient.last_name }}">{{ patient.first_name }} {{ patient.last_name }}</h1>
+                        <p class="mt-0.5 text-[13px] text-text-muted tabular-nums">
+                            {{ patient.patient_number }}{% if patient.age %} · {{ patient.age }} ans{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <p class="mt-3 flex items-center gap-1.5 text-[13px] text-text-soft">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
+                    <span class="truncate">{{ appointment.date|date:"H:i" }} · {{ appointment.reason|default:"Consultation" }}</span>
                 </p>
+
+                {% if pregnancy %}
+                <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-emerald-200 bg-emerald-200">
+                    <div class="min-w-0 bg-emerald-50 px-2.5 py-2.5">
+                        <dt class="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">Terme</dt>
+                        <dd class="mt-0.5 text-sm font-bold text-emerald-900 tabular-nums break-words">{{ pregnancy.weeks }} SA + {{ pregnancy.days }} j</dd>
+                    </div>
+                    <div class="min-w-0 bg-emerald-50 px-2.5 py-2.5">
+                        <dt class="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700"><abbr title="Date prévue d'accouchement" class="no-underline">DPA</abbr></dt>
+                        <dd class="mt-0.5 text-sm font-bold text-emerald-900 tabular-nums break-words">{{ pregnancy.due_date|date:"d/m/Y" }}</dd>
+                    </div>
+                    <div class="col-span-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 bg-emerald-50 px-3 py-2">
+                        <dt class="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">Groupe sanguin</dt>
+                        <dd class="text-sm font-bold text-emerald-900 break-words">{{ patient.blood_group|default:"Inconnu" }}</dd>
+                    </div>
+                </dl>
+                <p class="sr-only">Date prévue d'accouchement : {{ pregnancy.due_date|date:"l j F Y" }}</p>
+                {% elif patient.blood_group %}
+                <p class="mt-4 inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-sauge-25 px-2.5 py-0.5 text-xs font-medium text-text-soft">
+                    <i data-lucide="droplet" class="w-3.5 h-3.5 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i>
+                    Groupe {{ patient.blood_group }}
+                </p>
+                {% endif %}
+
+                {% if patient.allergies %}
+                <div role="note" class="mt-4 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-rose-700">
+                    <i data-lucide="triangle-alert" class="w-4 h-4 mt-0.5 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.08em]">Allergies</p>
+                        <p class="mt-0.5 text-sm font-semibold break-words">{{ patient.allergies }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="mt-4 text-[13px] text-text-muted">Aucune allergie connue.</p>
+                {% endif %}
+            </div>
+
+            <!-- Constantes d'accueil + antécédents -->
+            <div class="min-w-0 xl:border-t xl:border-border-subtle xl:pt-5">
+                <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Constantes d'accueil</h2>
+                <dl class="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-3">
+                    <div>
+                        <dt class="text-[12px] text-text-muted">Tension</dt>
+                        <dd class="text-sm font-semibold text-text-main tabular-nums">{% if consultation.blood_pressure %}{{ consultation.blood_pressure }}{% else %}<span class="font-normal text-text-faint">Non saisie</span>{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-[12px] text-text-muted">IMC</dt>
+                        <dd class="text-sm font-semibold text-text-main tabular-nums">{% if bmi %}{{ bmi|floatformat:1 }} <span class="font-normal text-text-muted">kg/m²</span>{% else %}<span class="font-normal text-text-faint">Non calculé</span>{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-[12px] text-text-muted">Poids</dt>
+                        <dd class="text-sm font-semibold text-text-main tabular-nums">{% if consultation.weight_kg %}{{ consultation.weight_kg|floatformat:"-1" }} kg{% else %}<span class="font-normal text-text-faint">Non saisi</span>{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-[12px] text-text-muted">Taille</dt>
+                        <dd class="text-sm font-semibold text-text-main tabular-nums">{% if consultation.height_cm %}{{ consultation.height_cm|floatformat:"-1" }} cm{% else %}<span class="font-normal text-text-faint">Non saisie</span>{% endif %}</dd>
+                    </div>
+                    <div class="col-span-2">
+                        <dt class="text-[12px] text-text-muted">DDR</dt>
+                        <dd class="text-sm font-semibold text-text-main tabular-nums">{% if consultation.last_menstrual_period %}{{ consultation.last_menstrual_period|date:"j F Y" }}{% else %}<span class="font-normal text-text-faint">Non renseignée</span>{% endif %}</dd>
+                    </div>
+                </dl>
+
+                <h2 class="mt-5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Antécédents</h2>
+                <p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line break-words {% if patient.medical_history %}text-text-main{% else %}text-text-faint{% endif %}">{{ patient.medical_history|default:"Aucun antécédent renseigné." }}</p>
+            </div>
+
+            <!-- Historique -->
+            <div class="min-w-0 xl:border-t xl:border-border-subtle xl:pt-5">
+                <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Dernières consultations</h2>
+                {% if previous_consultations %}
+                <ul class="mt-2 -mx-2 space-y-0.5">
+                    {% for past in previous_consultations %}
+                    <li x-data="{ open: false }">
+                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-controls="past-{{ past.pk }}"
+                                class="btn-tactile w-full flex items-center justify-between gap-2 rounded-lg px-2 min-h-[40px] text-left hover:bg-sauge-25">
+                            <span class="min-w-0">
+                                <span class="block text-[13px] font-semibold text-text-main tabular-nums">{{ past.appointment.date|date:"j F Y" }}</span>
+                                <span class="block text-[12px] text-text-muted truncate">{{ past.appointment.reason|default:"Consultation" }}{% if past.gestational_age_weeks %} · {{ past.gestational_age_weeks }} SA{% endif %}</span>
+                            </span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 text-text-faint transition-transform duration-150 motion-reduce:transition-none" :class="open && 'rotate-180'" stroke-width="1.75" aria-hidden="true"></i>
+                        </button>
+                        <div id="past-{{ past.pk }}" x-show="open" x-cloak x-transition.opacity.duration.150ms class="px-2 pb-2.5 pt-1 text-[13px] leading-relaxed text-text-soft space-y-1.5">
+                            {% if past.diagnostic %}<p><span class="font-medium text-text-main">Synthèse :</span> {{ past.diagnostic|linebreaksbr }}</p>{% endif %}
+                            {% if past.clinical_notes %}<p><span class="font-medium text-text-main">Observations :</span> {{ past.clinical_notes|truncatechars:220 }}</p>{% endif %}
+                            {% if past.blood_pressure or past.weight_kg %}<p class="tabular-nums text-text-muted">{% if past.blood_pressure %}TA {{ past.blood_pressure }}{% endif %}{% if past.blood_pressure and past.weight_kg %} · {% endif %}{% if past.weight_kg %}{{ past.weight_kg|floatformat:"-1" }} kg{% endif %}</p>{% endif %}
+                            {% if not past.diagnostic and not past.clinical_notes %}<p class="text-text-faint">Aucune note saisie lors de cette visite.</p>{% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="mt-3 flex items-center gap-2.5 text-[13px] text-text-muted">
+                    <span class="size-8 shrink-0 rounded-lg bg-slate-100 grid place-items-center">
+                        <i data-lucide="history" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                    </span>
+                    Première consultation au cabinet.
+                </div>
+                {% endif %}
             </div>
         </div>
+    </aside>
 
-        <div class="flex items-center gap-2 shrink-0">
-            {% if patient.allergies %}
-            <div class="bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-1.5 flex items-center gap-2 max-w-xs">
-                <i data-lucide="triangle-alert" class="w-4 h-4 shrink-0" stroke-width="1.75"></i>
-                <p class="text-xs font-semibold truncate">Allergie : {{ patient.allergies }}</p>
-            </div>
-            {% endif %}
-            <a href="{% url 'clinical:doctor_dashboard' %}" class="btn-tactile text-sm text-text-muted hover:text-sauge-600 hover:bg-sauge-50 rounded-lg flex items-center gap-1 px-2.5 py-1.5">
-                <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden sm:inline">Retour</span>
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="max-w-5xl mx-auto px-6 py-7 pb-28">
-    <p class="text-sm text-text-muted mb-5 flex items-center gap-1.5">
-        <i data-lucide="clock" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-        {{ appointment.date|date:"d/m/Y H:i" }} · {{ appointment.reason|default:"—" }}
-    </p>
-
-    <form method="post" action="{% url 'clinical:consultation_detail' appointment.pk %}" @submit="beforeSubmit" id="consultation-form">
+    <!-- ═══ Formulaire : colonne centrale (onglets) + colonne droite (actes) ═══ -->
+    <form method="post" action="{% url 'clinical:consultation_detail' appointment.pk %}" id="consultation-form"
+          class="lg:col-span-2 grid gap-5 lg:grid-cols-subgrid"
+          hx-post="{% url 'clinical:autosave_consultation' appointment.pk %}"
+          hx-trigger="autosave delay:2s, autosave-now"
+          hx-swap="none"
+          hx-sync="this:replace"
+          @input="markDirty()" @change="markDirty()"
+          @htmx:before-request="onBeforeSave($event)"
+          @htmx:after-request="onSaved($event.detail.successful)"
+          @submit="submitting = true">
         {% csrf_token %}
         <input type="hidden" name="action" x-model="action">
 
-        <!-- 0. Patiente & constantes d'accueil (lecture seule, saisies par l'assistante) -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Patiente &amp; constantes
-            </h2>
-            <dl class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Motif</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums"><span class="block truncate">{{ appointment.reason|default:"Consultation" }}</span></dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Âge</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if patient.age %}{{ patient.age }} ans{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Tension</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.blood_pressure %}{{ consultation.blood_pressure }}{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Poids</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.weight_kg %}{{ consultation.weight_kg|floatformat:"-1" }} kg{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Taille</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.height_cm %}{{ consultation.height_cm|floatformat:"-1" }} cm{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">IMC</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if bmi %}{{ bmi|floatformat:1 }} <span class="font-normal text-text-muted">kg/m²</span>{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-            </dl>
-            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">DDR</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.last_menstrual_period %}{{ consultation.last_menstrual_period|date:"j F Y" }}{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Terme</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if pregnancy %}<span class="text-sauge-600">{{ pregnancy.weeks }} SA + {{ pregnancy.days }} j</span>{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
-                    <dt class="text-[11.5px] font-medium text-text-muted">Date prévue d'accouchement</dt>
-                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if pregnancy %}{{ pregnancy.due_date|date:"l j F Y" }}{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
-                </div>
-            </dl>
-            <div>
-                <p class="text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux</p>
-                <div class="w-full rounded-lg border border-border-subtle bg-sauge-25 px-3 py-2.5 text-sm min-h-[42px] whitespace-pre-line {% if patient.medical_history %}text-text-main{% else %}text-text-faint italic{% endif %}">{{ patient.medical_history|default:"Aucun antécédent renseigné." }}</div>
-            </div>
-        </div>
-
-        <!-- 1. Examen clinique -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="stethoscope" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Examen clinique
-            </h2>
-            <label for="clinical-exam" class="sr-only">Examen clinique</label>
-            <textarea id="clinical-exam" name="clinical_exam" rows="5" placeholder="État général, examen des seins, examen abdominal, spéculum, toucher vaginal…"
-                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ consultation.clinical_exam }}</textarea>
-        </div>
-
-        <!-- 2. Échographie -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="scan-line" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Échographie
-            </h2>
-            <div>
-                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Compte rendu échographique</label>
-                <textarea name="ultrasound_notes" rows="6" placeholder="Biométries, présentation, placenta, liquide amniotique, doppler…"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ consultation.ultrasound_notes }}</textarea>
-            </div>
-        </div>
-
-        <!-- 3. Examens complémentaires -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="flask-conical" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Examens complémentaires
-            </h2>
-            <p class="text-[13px] text-text-muted mb-3">Sélection rapide des actes de cabinet courants — répercutée automatiquement sur la facturation ci-dessous.</p>
-            <div class="flex flex-wrap gap-2">
-                <template x-for="act in quickExamActs" :key="act.id">
-                    <button type="button" @click="toggle(act.id)"
-                            class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium rounded-full px-3.5 py-2 border transition-colors duration-150"
-                            :class="selected.includes(act.id) ? 'bg-sauge-600 text-white border-sauge-600' : 'bg-surface text-text-main border-border-subtle hover:border-sauge-200 hover:bg-sauge-50/40'">
-                        <i data-lucide="check" class="w-3.5 h-3.5" stroke-width="2.5" x-show="selected.includes(act.id)"></i>
-                        <span x-text="act.name"></span>
+        <!-- Colonne centrale -->
+        <section class="min-w-0 bg-surface rounded-2xl border border-border-subtle shadow-card" aria-label="Fiche de consultation">
+            <div role="tablist" aria-label="Sections de la consultation"
+                 class="flex gap-0.5 overflow-x-auto no-scrollbar border-b border-border-subtle px-2 sm:px-3"
+                 @keydown.right.prevent="moveTab(1)" @keydown.left.prevent="moveTab(-1)">
+                <template x-for="t in tabs" :key="t.key">
+                    <button type="button" role="tab" :id="'tab-' + t.key" :aria-controls="'panel-' + t.key"
+                            :aria-selected="(tab === t.key).toString()" :tabindex="tab === t.key ? 0 : -1"
+                            @click="setTab(t.key)"
+                            class="relative inline-flex shrink-0 items-center gap-1.5 h-12 px-2 text-[13px] whitespace-nowrap font-medium transition-colors duration-150 motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-sauge-600/30"
+                            :class="tab === t.key ? 'text-text-main' : 'text-text-muted hover:text-text-main'">
+                        <span x-text="t.label"></span>
+                        <span x-show="filled[t.key]" x-cloak
+                              class="size-3.5 rounded-full bg-sauge-100 text-sauge-700 grid place-items-center">
+                            <svg viewBox="0 0 24 24" class="w-2.5 h-2.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                            <span class="sr-only">(renseigné)</span>
+                        </span>
+                        <span class="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-sauge-600 transition-opacity duration-150 motion-reduce:transition-none"
+                              :class="tab === t.key ? 'opacity-100' : 'opacity-0'" aria-hidden="true"></span>
                     </button>
                 </template>
-                <template x-if="quickExamActs.length === 0">
-                    <p class="text-sm text-text-faint italic">Aucun examen rapide configuré dans le catalogue.</p>
-                </template>
             </div>
-        </div>
 
-        <!-- 3bis. Documents joints (bilans / radios) -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="paperclip" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Documents joints (bilans, radios)
-            </h2>
+            <div class="p-5 sm:p-6">
+                <!-- 1. Clinique -->
+                <div role="tabpanel" id="panel-clinique" aria-labelledby="tab-clinique" x-show="tab === 'clinique'" tabindex="0">
+                    <h2 class="text-[15px] font-semibold text-text-main">Examen clinique</h2>
+                    <p class="mt-1 mb-4 text-[13px] text-text-muted">État général, seins, abdomen, spéculum, toucher vaginal.</p>
+                    <label for="clinical-exam" class="sr-only">Examen clinique</label>
+                    <textarea id="clinical-exam" name="clinical_exam" rows="12" x-ref="clinicalExam"
+                              placeholder="Ex. Bon état général. Seins souples, sans masse palpable…"
+                              class="{{ field_cls }} min-h-[280px]">{{ consultation.clinical_exam }}</textarea>
+                </div>
 
-            {% if patient_documents %}
-            <ul class="flex flex-col gap-2 mb-4">
-                {% for doc in patient_documents %}
-                <li class="flex items-center justify-between gap-3 border border-border-subtle rounded-lg px-3.5 py-2.5">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <i data-lucide="file-text" class="w-4 h-4 shrink-0 text-sauge-600" stroke-width="1.75"></i>
-                        <div class="min-w-0">
-                            <p class="text-sm font-medium text-text-main truncate">{{ doc.title }}</p>
-                            <p class="text-xs text-text-muted">{{ doc.get_document_type_display }} · {{ doc.created_at|date:"d/m/Y" }}</p>
+                <!-- 2. Écho -->
+                <div role="tabpanel" id="panel-echo" aria-labelledby="tab-echo" x-show="tab === 'echo'" x-cloak tabindex="0">
+                    <h2 class="text-[15px] font-semibold text-text-main">Échographie</h2>
+                    <p class="mt-1 mb-4 text-[13px] text-text-muted">
+                        {% if pregnancy %}Terme du jour : <span class="font-semibold text-sauge-600 tabular-nums">{{ pregnancy.weeks }} SA + {{ pregnancy.days }} j</span>.{% else %}Biométries, présentation, placenta, liquide amniotique, doppler.{% endif %}
+                    </p>
+                    <label for="ultrasound-notes" class="{{ label_cls }}">Compte rendu échographique</label>
+                    <textarea id="ultrasound-notes" name="ultrasound_notes" rows="12" x-ref="ultrasound"
+                              placeholder="Ex. Grossesse monofœtale évolutive, BIP 48 mm, LF 32 mm…"
+                              class="{{ field_cls }} min-h-[280px]">{{ consultation.ultrasound_notes }}</textarea>
+                </div>
+
+                <!-- 3. Complémentaires -->
+                <div role="tabpanel" id="panel-complementaires" aria-labelledby="tab-complementaires" x-show="tab === 'complementaires'" x-cloak tabindex="0">
+                    <h2 class="text-[15px] font-semibold text-text-main">Examens complémentaires</h2>
+                    <p class="mt-1 mb-4 text-[13px] text-text-muted">Actes rapides du cabinet, ajoutés automatiquement à la facturation.</p>
+                    <div class="flex flex-wrap gap-2">
+                        {% for act in all_acts %}{% if act.is_quick_exam %}
+                        <button type="button" @click="toggle({{ act.id }})" :aria-pressed="selected.includes({{ act.id }}).toString()"
+                                class="{{ chip_cls }}"
+                                :class="selected.includes({{ act.id }}) ? 'bg-sauge-600 text-white border-sauge-600 hover:bg-sauge-700' : 'bg-surface text-text-main border-border-subtle hover:border-sauge-200 hover:bg-sauge-25'">
+                            <span x-show="selected.includes({{ act.id }})" x-cloak>
+                                <svg viewBox="0 0 24 24" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                            </span>
+                            {{ act.name }}
+                        </button>
+                        {% endif %}{% endfor %}
+                        <template x-if="quickExamActs.length === 0">
+                            <p class="text-sm text-text-muted">Aucun examen rapide configuré dans le catalogue des actes.</p>
+                        </template>
+                    </div>
+
+                    <div class="mt-8 border-t border-border-subtle pt-6">
+                        <h3 class="text-[15px] font-semibold text-text-main">Documents joints (bilans, radios)</h3>
+                        {% if patient_documents %}
+                        <ul class="mt-3 divide-y divide-border-subtle">
+                            {% for doc in patient_documents %}
+                            <li class="flex items-center justify-between gap-3 py-2.5">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <span class="size-9 shrink-0 rounded-lg bg-sauge-50 text-sauge-600 grid place-items-center">
+                                        <i data-lucide="file-text" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-text-main truncate" title="{{ doc.title }}">{{ doc.title }}</p>
+                                        <p class="text-[12px] text-text-muted">{{ doc.get_document_type_display }} · {{ doc.created_at|date:"j F Y" }}</p>
+                                    </div>
+                                </div>
+                                <a href="{{ doc.file.url }}" target="_blank" rel="noopener noreferrer"
+                                   class="btn-tactile shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
+                                    <i data-lucide="external-link" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ouvrir
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="mt-2 text-[13px] text-text-muted">Aucun document joint pour cette patiente.</p>
+                        {% endif %}
+
+                        <!-- Champs rattachés à #doc-upload-form (déclaré hors du formulaire de consultation : pas de form imbriqué) -->
+                        <div class="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[minmax(0,1fr)_150px]" x-data="{ fileName: '' }">
+                            <div>
+                                <label for="doc-title" class="{{ label_cls }}">Titre</label>
+                                <input type="text" id="doc-title" name="title" form="doc-upload-form" placeholder="Ex. Bilan sanguin du 3 septembre"
+                                       class="{{ input_cls }}">
+                            </div>
+                            <div>
+                                <label for="doc-type" class="{{ label_cls }}">Type</label>
+                                <select id="doc-type" name="document_type" form="doc-upload-form" class="{{ input_cls }}">
+                                    {% for value, label in document_type_choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2 flex flex-wrap items-end gap-3">
+                                <div class="flex-1 min-w-[220px]">
+                                    <input type="file" id="doc-file" name="file" form="doc-upload-form" required class="sr-only peer"
+                                           @change="fileName = $event.target.files.length ? $event.target.files[0].name : ''">
+                                    <label for="doc-file"
+                                           class="btn-tactile flex items-center gap-2.5 w-full h-10 rounded-lg border border-dashed border-border-strong px-2 text-sm cursor-pointer hover:border-sauge-500/50 hover:bg-sauge-25 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/20 peer-focus-visible:border-sauge-500">
+                                        <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-sauge-50 text-sauge-600 px-2.5 py-1 text-xs font-medium">
+                                            <i data-lucide="paperclip" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Choisir un fichier
+                                        </span>
+                                        <span class="truncate" :class="fileName ? 'text-text-main' : 'text-text-faint'"
+                                              x-text="fileName || 'Aucun fichier sélectionné'">Aucun fichier sélectionné</span>
+                                    </label>
+                                </div>
+                                <button type="submit" form="doc-upload-form"
+                                        class="btn-tactile shrink-0 h-10 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-3.5 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                                    <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ajouter au dossier
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <a href="{{ doc.file.url }}" target="_blank" rel="noopener noreferrer"
-                       class="btn-tactile shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-sauge-600 border border-sauge-100 bg-sauge-50 rounded-lg px-2.5 py-1.5 hover:bg-sauge-600 hover:text-white">
-                        <i data-lucide="download" class="w-3.5 h-3.5" stroke-width="1.75"></i> Voir / Télécharger
-                    </a>
-                </li>
+                </div>
+
+                <!-- 4. Conclusion & ordonnance -->
+                <div role="tabpanel" id="panel-conclusion" aria-labelledby="tab-conclusion" x-show="tab === 'conclusion'" x-cloak tabindex="0">
+                    <h2 class="text-[15px] font-semibold text-text-main">Conclusion &amp; interprétation</h2>
+                    <div class="mt-4 space-y-5">
+                        <div>
+                            <label for="clinical-notes" class="{{ label_cls }}">Observations cliniques</label>
+                            <textarea id="clinical-notes" name="clinical_notes" rows="4" x-ref="notes" class="{{ field_cls }}">{{ consultation.clinical_notes }}</textarea>
+                        </div>
+                        <div>
+                            <label for="diagnostic" class="{{ label_cls }}">Diagnostic / synthèse</label>
+                            <textarea id="diagnostic" name="diagnostic" rows="3" x-ref="diagnostic" class="{{ field_cls }}">{{ consultation.diagnostic }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 border-t border-border-subtle pt-6">
+                        <h3 class="text-[15px] font-semibold text-text-main">Ordonnances &amp; courriers</h3>
+
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                            <label for="prescription-content" class="text-[13px] font-medium text-text-soft">Ordonnance</label>
+                            <span class="text-[12px] text-text-muted">Modèles en 1 clic</span>
+                        </div>
+                        <div class="mt-2 mb-3 flex flex-wrap gap-2">
+                            {% for tpl in prescription_templates_json %}
+                            <button type="button" @click="insertTemplate('{{ tpl.key|escapejs }}')"
+                                    class="{{ chip_cls }} border-sauge-100 bg-sauge-50 text-sauge-600 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
+                                <i data-lucide="plus" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>{{ tpl.label }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        <textarea id="prescription-content" name="prescription_content" rows="6" x-model="prescriptionContent"
+                                  placeholder="Choisissez un modèle ou rédigez la prescription…"
+                                  class="{{ field_cls }}"></textarea>
+
+                        <div class="mt-6 grid gap-3 sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)] sm:items-end">
+                            <div>
+                                <label for="letter-type" class="{{ label_cls }}">Type de courrier</label>
+                                <select id="letter-type" x-model="letterType" @change="onLetterTypeChange" class="{{ input_cls }}">
+                                    {% for tpl in letter_templates_json %}
+                                    <option value="{{ tpl.key }}">{{ tpl.label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" @click="insertLetterTemplate()"
+                                        class="{{ chip_cls }} border-sauge-100 bg-sauge-50 text-sauge-600 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>
+                                    Insérer le modèle
+                                </button>
+                            </div>
+                        </div>
+                        <label for="letter-content" class="sr-only">Contenu du courrier</label>
+                        <textarea id="letter-content" name="letter_content" rows="6" x-model="letterContent"
+                                  placeholder="Insérez le modèle du courrier choisi ou rédigez librement…"
+                                  class="{{ field_cls }} mt-3"></textarea>
+                        <input type="hidden" name="letter_type" :value="letterType">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══ Colonne droite : actes, total, validation ═══ -->
+        <aside aria-label="Facturation et validation"
+               class="lg:self-start lg:sticky lg:top-[88px] lg:max-h-[calc(100dvh-112px)] flex flex-col bg-surface rounded-2xl border border-border-subtle shadow-card">
+            <div class="flex items-center justify-between gap-2 px-5 pt-5">
+                <h2 class="text-[15px] font-semibold text-text-main">Facturation et actes</h2>
+                {% if consultation.status == "validated" %}
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700"><span class="size-1.5 rounded-full bg-emerald-400"></span>Validée</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs font-medium text-slate-600"><span class="size-1.5 rounded-full bg-slate-400"></span>Brouillon</span>
+                {% endif %}
+            </div>
+
+            <div role="group" aria-label="Actes réalisés" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3">
+                {% for act in all_acts %}
+                <label class="btn-tactile flex items-center gap-3 rounded-lg px-2 min-h-[44px] cursor-pointer hover:bg-sauge-25"
+                       :class="selected.includes({{ act.id }}) && 'bg-sauge-50 hover:bg-sauge-50'">
+                    <input type="checkbox" name="acts" value="{{ act.id }}" {% if act.id in selected_act_ids %}checked{% endif %}
+                           :checked="selected.includes({{ act.id }})" @change="toggle({{ act.id }})"
+                           class="size-4 shrink-0 rounded border-border-strong accent-sauge-600 cursor-pointer">
+                    <span class="min-w-0 flex-1 py-1.5 text-sm leading-snug text-text-main line-clamp-2 break-words" title="{{ act.name }}">{{ act.name }}</span>
+                    <span class="shrink-0 text-[13px] font-medium text-text-muted tabular-nums">{{ act.price|floatformat:2 }} DH</span>
+                </label>
+                {% empty %}
+                <div class="flex flex-col items-center py-8 text-center">
+                    <span class="size-10 rounded-lg bg-slate-100 text-text-muted grid place-items-center">
+                        <i data-lucide="clipboard-list" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+                    </span>
+                    <p class="mt-2 text-[13px] text-text-muted">Aucun acte actif dans le catalogue.</p>
+                </div>
                 {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-sm text-text-faint italic mb-4">Aucun document joint pour cette patiente.</p>
-            {% endif %}
+            </div>
 
-            <!-- Champs rattachés à #doc-upload-form (déclaré hors du formulaire de consultation : pas de form imbriqué) -->
-            <div class="flex flex-wrap items-end gap-2.5 border-t border-border-subtle pt-4" x-data="{ fileName: '' }">
-                <div class="flex-1 min-w-[160px]">
-                    <label for="doc-title" class="block text-[13px] font-medium text-text-soft mb-1.5">Titre</label>
-                    <input type="text" id="doc-title" name="title" form="doc-upload-form" placeholder="Ex. Bilan sanguin 03/09"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+            <div class="mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
+                <div class="flex items-baseline justify-between gap-2">
+                    <span class="text-[13px] text-text-muted"><span x-text="selected.length">{{ selected_act_ids|length }}</span> acte<span x-show="selected.length > 1">s</span></span>
+                    <span class="text-2xl font-bold text-text-main tabular-nums" aria-live="polite" x-text="formatDh(total)">0,00 DH</span>
                 </div>
-                <div>
-                    <label for="doc-type" class="block text-[13px] font-medium text-text-soft mb-1.5">Type</label>
-                    <select id="doc-type" name="document_type" form="doc-upload-form"
-                            class="rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
-                        {% for value, label in document_type_choices %}
-                        <option value="{{ value }}">{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="flex-1 min-w-[220px]">
-                    <span class="block text-[13px] font-medium text-text-soft mb-1.5">Fichier</span>
-                    <input type="file" id="doc-file" name="file" form="doc-upload-form" required class="sr-only peer"
-                           @change="fileName = $event.target.files.length ? $event.target.files[0].name : ''">
-                    <label for="doc-file"
-                           class="btn-tactile flex items-center gap-2.5 w-full h-[42px] rounded-lg border border-dashed border-border-strong px-3 text-sm cursor-pointer transition-colors duration-150 hover:border-sauge-500/50 hover:bg-sauge-50/40 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/20 peer-focus-visible:border-sauge-500">
-                        <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-sauge-50 text-sauge-600 px-2.5 py-1 text-xs font-medium">
-                            <i data-lucide="paperclip" class="w-3.5 h-3.5" stroke-width="1.75"></i> Choisir un fichier
-                        </span>
-                        <span class="truncate" :class="fileName ? 'text-text-main' : 'text-text-faint'"
-                              x-text="fileName || 'Aucun fichier sélectionné'">Aucun fichier sélectionné</span>
-                    </label>
-                </div>
-                <button type="submit" form="doc-upload-form"
-                        class="btn-tactile shrink-0 h-[42px] inline-flex items-center gap-1.5 text-sm font-medium bg-sauge-600 text-white rounded-lg px-3.5 hover:bg-sauge-900">
-                    <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75"></i> Ajouter
+
+                <button type="submit" form="consultation-form" @click="action = 'validate'"
+                        class="btn-tactile mt-4 w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+                    <span x-show="!(submitting && action === 'validate')" class="inline-flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Valider la consultation
+                    </span>
+                    <span x-show="submitting && action === 'validate'" x-cloak class="inline-flex items-center gap-2">
+                        <svg class="w-4 h-4 animate-spin motion-reduce:animate-none" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".3" stroke-width="2.5"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                        Validation…
+                    </span>
                 </button>
-            </div>
-        </div>
 
-        <!-- 4. Conclusion & interprétation -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="file-check-2" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Conclusion &amp; interprétation
-            </h2>
-            <div class="mb-4">
-                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Observations cliniques</label>
-                <textarea name="clinical_notes" rows="3"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">{{ consultation.clinical_notes }}</textarea>
-            </div>
-            <div>
-                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Diagnostic / synthèse</label>
-                <textarea name="diagnostic" rows="3"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">{{ consultation.diagnostic }}</textarea>
-            </div>
-        </div>
-
-        <!-- 5. Ordonnances & courriers -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="pill" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Ordonnances &amp; courriers
-            </h2>
-
-            <p class="text-[13px] font-semibold text-text-main mb-2">Ordonnance</p>
-            <div class="flex flex-wrap gap-2 mb-3">
-                <template x-for="tpl in prescriptionTemplates" :key="tpl.key">
-                    <button type="button" @click="insertTemplate(tpl)"
-                            class="btn-tactile text-xs font-medium text-sauge-600 bg-sauge-50 border border-sauge-100 rounded-full px-3 py-1.5 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
-                        <span x-text="tpl.label"></span>
+                <div class="mt-2 grid grid-cols-2 gap-2">
+                    <div class="relative" x-data="{ menu: false, close(refocus) { if (!this.menu) return; this.menu = false; if (refocus) this.$refs.menuButton.focus(); } }"
+                         @keydown.escape.window="close(true)" @click.outside="close(false)" @focusin.window="$el.contains($event.target) || close(false)">
+                        <button type="button" x-ref="menuButton" @click="menu = !menu" :aria-expanded="menu.toString()" aria-haspopup="menu" aria-controls="documents-menu"
+                                class="btn-tactile w-full h-10 inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-3 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                            <i data-lucide="file-text" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Documents
+                            <i data-lucide="chevron-down" class="w-3.5 h-3.5 shrink-0 text-text-muted transition-transform duration-150 motion-reduce:transition-none" :class="menu && 'rotate-180'" stroke-width="1.75" aria-hidden="true"></i>
+                        </button>
+                        <div id="documents-menu" role="menu" x-show="menu" x-cloak
+                             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                             class="absolute bottom-full left-0 z-30 mb-2 w-64 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
+                            <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">PDF de la consultation</p>
+                            <a role="menuitem" href="{% url 'clinical:prescription_pdf' appointment.pk %}" target="_blank" rel="noopener" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                <i data-lucide="pill" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Ordonnance
+                            </a>
+                            <a role="menuitem" href="{% url 'clinical:report_pdf' appointment.pk %}" target="_blank" rel="noopener" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                <i data-lucide="file-text" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Compte rendu
+                            </a>
+                            <a role="menuitem" href="{% url 'clinical:letter_pdf' appointment.pk 'letter' %}" target="_blank" rel="noopener" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                <i data-lucide="mail" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Lettre à un confrère
+                            </a>
+                            <a role="menuitem" href="{% url 'clinical:letter_pdf' appointment.pk 'certificate' %}" target="_blank" rel="noopener" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                <i data-lucide="badge-check" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Certificat de prise en charge
+                            </a>
+                            <a role="menuitem" href="{% url 'clinical:letter_pdf' appointment.pk 'preanesthesia' %}" target="_blank" rel="noopener" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                <i data-lucide="syringe" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Pré-anesthésie
+                            </a>
+                            <div class="my-1.5 h-px bg-border-subtle" role="separator"></div>
+                            <a role="menuitem" href="{% url 'clinical:patient_record_pdf' appointment.pk %}" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-soft hover:bg-sauge-25">
+                                <i data-lucide="folder-down" class="w-4 h-4 text-text-faint" stroke-width="1.75" aria-hidden="true"></i> Dossier patient (PDF)
+                            </a>
+                            <a role="menuitem" href="{% url 'patients:patient_full_archive' patient.pk %}" @click="menu = false"
+                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-soft hover:bg-sauge-25">
+                                <i data-lucide="folder-archive" class="w-4 h-4 text-text-faint" stroke-width="1.75" aria-hidden="true"></i> Dossier complet (ZIP)
+                            </a>
+                        </div>
+                    </div>
+                    <button type="submit" form="consultation-form" @click="action = 'draft'"
+                            class="btn-tactile h-10 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                        <i data-lucide="save" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Brouillon
                     </button>
-                </template>
-            </div>
-            <textarea name="prescription_content" rows="5" x-model="prescriptionContent"
-                      placeholder="Sélectionnez un modèle ou saisissez la prescription…"
-                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-muted/60 mb-5"></textarea>
+                </div>
 
-            <p class="text-[13px] font-semibold text-text-main mb-2">Courriers &amp; documents types</p>
-            <div class="mb-3">
-                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Type de document</label>
-                <select x-model="letterType" @change="onLetterTypeChange"
-                        class="w-full sm:w-72 rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
-                    <template x-for="tpl in letterTemplates" :key="tpl.key">
-                        <option :value="tpl.key" x-text="tpl.label"></option>
-                    </template>
-                </select>
+                <!-- Indicateur d'autosave -->
+                <p class="mt-3 flex min-h-[20px] items-center justify-center gap-1.5 text-[12px]" role="status" aria-live="polite"
+                   :class="saveError ? 'text-rose-600' : 'text-text-muted'">
+                    <span class="size-1.5 rounded-full" aria-hidden="true"
+                          :class="saveError ? 'bg-rose-500' : (saving || dirty ? 'bg-amber-400' : 'bg-emerald-400')"></span>
+                    <span x-text="saveLabel">Brouillon enregistré</span>
+                    <button type="button" x-show="saveError" x-cloak @click="saveNow()"
+                            class="btn-tactile ml-1 rounded font-semibold underline underline-offset-2 hover:text-rose-700">Réessayer</button>
+                </p>
             </div>
-            <div class="flex flex-wrap gap-2 mb-3">
-                <template x-for="tpl in letterTemplates" :key="tpl.key">
-                    <button type="button" @click="insertLetterTemplate(tpl)"
-                            class="btn-tactile text-xs font-medium text-sauge-600 bg-sauge-50 border border-sauge-100 rounded-full px-3 py-1.5 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
-                        <span x-text="tpl.label"></span>
-                    </button>
-                </template>
-            </div>
-            <textarea name="letter_content" rows="6" x-model="letterContent"
-                      placeholder="Sélectionnez un type de document et un modèle, ou rédigez librement…"
-                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-muted/60"></textarea>
-            <input type="hidden" name="letter_type" :value="letterType">
-        </div>
-
-        <!-- 6. Facturation et actes -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="clipboard-list" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Facturation et actes
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <template x-for="act in acts" :key="act.id">
-                    <label class="btn-tactile flex items-center justify-between gap-2 border rounded-xl px-3.5 py-3 text-sm cursor-pointer"
-                           :class="selected.includes(act.id) ? 'border-sauge-600 bg-sauge-50 ring-1 ring-sauge-600' : 'border-border-subtle hover:border-sauge-200 hover:bg-sauge-50/40'">
-                        <span class="flex items-center gap-2.5 min-w-0">
-                            <span class="shrink-0 h-5 w-5 rounded-md border flex items-center justify-center transition-colors duration-150"
-                                  :class="selected.includes(act.id) ? 'bg-sauge-600 border-sauge-600' : 'border-border-subtle'">
-                                <i data-lucide="check" class="w-3.5 h-3.5 text-white" stroke-width="2.5" x-show="selected.includes(act.id)"></i>
-                            </span>
-                            <input type="checkbox" name="acts" :value="act.id" @change="toggle(act.id)" :checked="selected.includes(act.id)" class="hidden">
-                            <span class="truncate font-medium text-text-main" x-text="act.name"></span>
-                        </span>
-                        <span class="shrink-0 font-semibold text-text-muted tabular-nums" x-text="act.price + ' DH'"></span>
-                    </label>
-                </template>
-            </div>
-        </div>
-    </form>
-    <form id="doc-upload-form" method="post" enctype="multipart/form-data" class="hidden"
-          action="{% url 'clinical:upload_patient_document' appointment.pk %}">
-        {% csrf_token %}
+        </aside>
     </form>
 </div>
 
-<!-- Barre d'action inférieure -->
-<div class="fixed bottom-0 inset-x-0 z-40 bg-white/90 backdrop-blur-md border-t border-slate-200/80 shadow-popover">
-    <div class="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-sm">
-            <span class="text-text-muted">Total actes</span>
-            <span class="text-lg font-bold text-sauge-600 tabular-nums" x-text="total + ' DH'"></span>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap justify-end">
-            <button type="submit" form="consultation-form" @click="action = 'draft'"
-                    class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300">
-                Sauvegarder brouillon
-            </button>
-            <a href="{% url 'patients:patient_full_archive' patient.pk %}"
-               class="btn-tactile text-sm font-semibold text-white bg-sauge-600 rounded-lg px-3.5 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-1.5">
-                <i data-lucide="folder-archive" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline">Dossier complet</span> ZIP
-            </a>
-            <a href="{% url 'clinical:patient_record_pdf' appointment.pk %}"
-               class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-1.5">
-                <i data-lucide="folder-down" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline">Dossier patient</span> PDF
-            </a>
-            <a href="{% url 'clinical:report_pdf' appointment.pk %}" target="_blank"
-               class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-1.5">
-                <i data-lucide="file-text" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline">Compte rendu</span> PDF
-            </a>
-            <a href="{% url 'clinical:prescription_pdf' appointment.pk %}" target="_blank"
-               class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-1.5">
-                <i data-lucide="pill" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline">Ordonnance</span> PDF
-            </a>
-            <a :href="letterPdfUrl" target="_blank"
-               class="btn-tactile text-sm font-medium text-text-muted border border-border-subtle rounded-lg px-3.5 py-2.5 hover:bg-slate-50 hover:border-slate-300 flex items-center gap-1.5">
-                <i data-lucide="mail" class="w-4 h-4" stroke-width="1.75"></i> <span class="hidden md:inline" x-text="letterTypeLabel"></span> PDF
-            </a>
-            <button type="submit" form="consultation-form" @click="action = 'validate'"
-                    class="btn-tactile text-sm font-semibold bg-sauge-600 text-white rounded-lg px-4 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-2">
-                <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75"></i> Valider et transmettre la facture
-            </button>
-        </div>
-    </div>
-</div>
+<form id="doc-upload-form" method="post" enctype="multipart/form-data" class="hidden"
+      action="{% url 'clinical:upload_patient_document' appointment.pk %}">
+    {% csrf_token %}
+</form>
 
 </div>
+{% endwith %}
 
 <script>
-    function consultationForm() {
-        const letters = JSON.parse(document.getElementById("letters-data").textContent);
+    function consultationForm(savedAtEpoch, documentCount) {
+        const read = (id) => JSON.parse(document.getElementById(id).textContent);
+        const letters = read("letters-data");
+        const storageKey = "medigest:consultation-tab:{{ appointment.pk }}";
         return {
+            tabs: [
+                { key: "clinique", label: "Clinique" },
+                { key: "echo", label: "Écho" },
+                { key: "complementaires", label: "Examens" },
+                { key: "conclusion", label: "Conclusion" },
+            ],
+            tab: "clinique",
+            filled: { clinique: false, echo: false, complementaires: false, conclusion: false },
             action: "draft",
-            acts: JSON.parse(document.getElementById("acts-data").textContent),
-            selected: JSON.parse(document.getElementById("selected-acts-data").textContent),
-            prescriptionTemplates: JSON.parse(document.getElementById("prescription-templates-data").textContent),
-            prescriptionContent: JSON.parse(document.getElementById("prescription-content-data").textContent),
-            letterTemplates: JSON.parse(document.getElementById("letter-templates-data").textContent),
+            acts: read("acts-data"),
+            selected: read("selected-acts-data"),
+            prescriptionTemplates: read("prescription-templates-data"),
+            prescriptionContent: read("prescription-content-data"),
+            letterTemplates: read("letter-templates-data"),
             letters: letters,
             letterType: "letter",
             letterContent: letters.letter || "",
-            insertTemplate(tpl) {
-                this.prescriptionContent = this.prescriptionContent
-                    ? this.prescriptionContent + "\n" + tpl.text
-                    : tpl.text;
+            // Autosave
+            savedAt: savedAtEpoch ? savedAtEpoch * 1000 : null,
+            now: Date.now(),
+            dirty: false,
+            saving: false,
+            saveError: false,
+            submitting: false,
+
+            init() {
+                try {
+                    const stored = sessionStorage.getItem(storageKey);
+                    if (stored && this.tabs.some((t) => t.key === stored)) this.tab = stored;
+                } catch (e) { /* stockage indisponible : onglet par défaut */ }
+                this.refreshFilled();
+                setInterval(() => { this.now = Date.now(); }, 1000);
+                // Saisie pas encore autosauvée (fenêtre de 2 s) : on prévient avant de quitter la page.
+                window.addEventListener("beforeunload", (event) => {
+                    if ((this.dirty || this.saving) && !this.submitting) event.preventDefault();
+                });
             },
-            insertLetterTemplate(tpl) {
-                this.letterType = tpl.key;
-                this.letterContent = this.letterContent
-                    ? this.letterContent + "\n" + tpl.text
-                    : tpl.text;
+            setTab(key) {
+                this.tab = key;
+                try { sessionStorage.setItem(storageKey, key); } catch (e) { /* sans importance */ }
+            },
+            moveTab(step) {
+                const index = this.tabs.findIndex((t) => t.key === this.tab);
+                const next = this.tabs[(index + step + this.tabs.length) % this.tabs.length];
+                this.setTab(next.key);
+                this.$nextTick(() => document.getElementById("tab-" + next.key).focus());
+            },
+            refreshFilled() {
+                const has = (ref) => !!(this.$refs[ref] && this.$refs[ref].value.trim());
+                this.filled = {
+                    clinique: has("clinicalExam"),
+                    echo: has("ultrasound"),
+                    complementaires: this.quickExamActs.some((a) => this.selected.includes(a.id)) || documentCount > 0,
+                    conclusion: has("notes") || has("diagnostic") || !!this.prescriptionContent.trim(),
+                };
+            },
+            markDirty() {
+                this.$nextTick(() => {
+                    this.refreshFilled();
+                    if (this.submitting) return;
+                    this.dirty = true;
+                    htmx.trigger("#consultation-form", "autosave");
+                });
+            },
+            saveNow() {
+                htmx.trigger("#consultation-form", "autosave-now");
+            },
+            onBeforeSave(event) {
+                // Le formulaire part en soumission classique (Valider / Brouillon) : on n'autosauve plus.
+                if (this.submitting) { event.preventDefault(); return; }
+                this.saving = true;
+            },
+            onSaved(successful) {
+                this.saving = false;
+                this.saveError = !successful;
+                if (successful) {
+                    this.dirty = false;
+                    this.savedAt = Date.now();
+                }
+            },
+            get saveLabel() {
+                if (this.saveError) return "Échec de l'enregistrement automatique.";
+                if (this.saving) return "Enregistrement…";
+                if (this.dirty) return "Modifications en cours…";
+                if (!this.savedAt) return "Pas encore enregistré";
+                const seconds = Math.max(0, Math.round((this.now - this.savedAt) / 1000));
+                if (seconds < 5) return "Enregistré à l'instant";
+                if (seconds < 60) return `Enregistré il y a ${seconds} s`;
+                const minutes = Math.floor(seconds / 60);
+                if (minutes < 60) return `Enregistré il y a ${minutes} min`;
+                const saved = new Date(this.savedAt);
+                return `Enregistré à ${saved.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+            },
+            insertTemplate(key) {
+                const tpl = this.prescriptionTemplates.find((t) => t.key === key);
+                if (!tpl) return;
+                this.prescriptionContent = this.prescriptionContent ? this.prescriptionContent + "\n" + tpl.text : tpl.text;
+                this.markDirty();
+            },
+            insertLetterTemplate() {
+                const tpl = this.letterTemplates.find((t) => t.key === this.letterType);
+                if (!tpl) return;
+                this.letterContent = this.letterContent ? this.letterContent + "\n" + tpl.text : tpl.text;
+                this.markDirty();
             },
             onLetterTypeChange() {
                 this.letterContent = this.letters[this.letterType] || "";
             },
             toggle(id) {
-                if (this.selected.includes(id)) {
-                    this.selected = this.selected.filter((x) => x !== id);
-                } else {
-                    this.selected.push(id);
-                }
+                this.selected = this.selected.includes(id)
+                    ? this.selected.filter((x) => x !== id)
+                    : [...this.selected, id];
+                this.markDirty();
             },
             get quickExamActs() {
                 return this.acts.filter((a) => a.is_quick_exam);
-            },
-            get letterTypeLabel() {
-                const tpl = this.letterTemplates.find((t) => t.key === this.letterType);
-                return tpl ? tpl.label : "Document";
-            },
-            get letterPdfUrl() {
-                return "{% url 'clinical:letter_pdf' appointment.pk 'TYPE_PLACEHOLDER' %}".replace(
-                    "TYPE_PLACEHOLDER",
-                    this.letterType
-                );
             },
             get total() {
                 return this.acts
                     .filter((a) => this.selected.includes(a.id))
                     .reduce((sum, a) => sum + a.price, 0);
             },
-            beforeSubmit() {
-                if (window.lucide) lucide.createIcons();
+            formatDh(amount) {
+                return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + " DH";
             },
         };
     }

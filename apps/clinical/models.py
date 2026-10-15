@@ -69,6 +69,9 @@ class Consultation(models.Model):
 
     def _bill(self):
         """Sum ConsultationAct prices into the linked Invoice (pending), creating it if needed."""
+        if self.invoice_id and self.invoice.status == Invoice.Status.PAID:
+            # Already cashed in: the invoice is an accounting record, never rewrite it.
+            return
         if self.invoice_id:
             invoice = self.invoice
         else:

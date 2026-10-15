@@ -69,6 +69,50 @@
                 {% endfor %}
             </select>
         </div>
+        
+        <div class="border-t border-border-subtle pt-5 mt-2">
+            <h2 class="text-sm font-bold text-text-main mb-4 flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-sauge-600" stroke-width="1.75"></i>
+                Dossier Médical Initial
+            </h2>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Date dern. règles</label>
+                    <input type="date" name="last_menstrual_period" 
+                           class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Poids (kg)</label>
+                    <input type="number" step="0.1" name="weight_kg" 
+                           class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Taille (cm)</label>
+                    <input type="number" step="0.1" name="height_cm" 
+                           class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Tension</label>
+                    <input type="text" name="blood_pressure" placeholder="12/8"
+                           class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux / chirurgicaux</label>
+                    <textarea name="medical_history" rows="3" placeholder="Ex: Diabète, césarienne en 2020..."
+                              class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ patient.medical_history }}</textarea>
+                </div>
+                <div>
+                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Allergies connues</label>
+                    <textarea name="allergies" rows="3" placeholder="Ex: Pénicilline, iode..."
+                              class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ patient.allergies }}</textarea>
+                </div>
+            </div>
+        </div>
+
         <button type="submit" class="btn-tactile w-full h-10 bg-sauge-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2">
             <i data-lucide="check" class="w-4 h-4" stroke-width="1.75"></i> Enregistrer les modifications
         </button>

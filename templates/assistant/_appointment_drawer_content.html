@@ -67,6 +67,9 @@
         {% endif %}
 
         {% if appointment.status != 'completed' and appointment.status != 'cancelled' %}
+                {% if appointment.status != 'scheduled' and appointment.status != 'cancelled' %}
+            {% include "assistant/_intake_vitals_form.html" %}
+        {% endif %}
         <div class="border-t border-border-subtle pt-4 mb-4">
             <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Reprogrammer</p>
             <form hx-post="{% url 'appointments:update_appointment_ajax' appointment.pk %}"

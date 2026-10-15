@@ -64,6 +64,10 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
 }
+if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    # SQLite ignores select_for_update(): IMMEDIATE makes every atomic() block take
+    # the write lock up front, which is what serializes patient/invoice numbering.
+    DATABASES["default"].setdefault("OPTIONS", {})["transaction_mode"] = "IMMEDIATE"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

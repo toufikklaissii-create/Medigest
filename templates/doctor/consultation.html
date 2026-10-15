@@ -75,18 +75,18 @@
                 </div>
                 <div>
                     <label class="block text-[13px] font-medium text-text-soft mb-1.5">Tension</label>
-                    <input type="text" name="blood_pressure" value="{{ consultation.blood_pressure }}" placeholder="12/8"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                    <input type="text" value="{{ consultation.blood_pressure|default:'--' }}" disabled
+                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
                 </div>
                 <div>
                     <label class="block text-[13px] font-medium text-text-soft mb-1.5">Poids (kg)</label>
-                    <input type="number" step="0.1" name="weight_kg" value="{{ consultation.weight_kg|default:'' }}"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                    <input type="text" value="{{ consultation.weight_kg|default:'--' }}" disabled
+                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
                 </div>
                 <div>
                     <label class="block text-[13px] font-medium text-text-soft mb-1.5">Taille (cm)</label>
-                    <input type="number" step="0.1" name="height_cm" value="{{ consultation.height_cm|default:'' }}"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                    <input type="text" value="{{ consultation.height_cm|default:'--' }}" disabled
+                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
                 </div>
             </div>
             <div>
@@ -169,8 +169,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-[13px] font-medium text-text-soft mb-1.5">Date des dernières règles (DDR)</label>
-                    <input type="date" name="last_menstrual_period" x-model="lmp"
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
+                    <input type="date" x-model="lmp" disabled
+                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
                 </div>
                 <div>
                     <label class="block text-[13px] font-medium text-text-soft mb-1.5">Terme (calcul auto)</label>

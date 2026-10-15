@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
@@ -110,14 +110,8 @@ def consultation_detail(request, appointment_id):
     if request.method == "POST":
         action = request.POST.get("action")
 
-        consultation.blood_pressure = request.POST.get("blood_pressure", "")
-        weight = request.POST.get("weight_kg") or None
-        consultation.weight_kg = weight
-        height = request.POST.get("height_cm") or None
-        consultation.height_cm = height
         consultation.clinical_notes = request.POST.get("clinical_notes", "")
         consultation.diagnostic = request.POST.get("diagnostic", "")
-        consultation.last_menstrual_period = request.POST.get("last_menstrual_period") or None
         ga_weeks = request.POST.get("gestational_age_weeks") or None
         consultation.gestational_age_weeks = int(ga_weeks) if ga_weeks else None
         consultation.ultrasound_notes = request.POST.get("ultrasound_notes", "")
@@ -125,7 +119,7 @@ def consultation_detail(request, appointment_id):
             consultation.doctor = request.user
 
         act_ids = [int(v) for v in request.POST.getlist("acts") if v]
-        selected_acts = MedicalAct.objects.filter(id__in=act_ids)
+        selected_acts = MedicalAct.objects.filter(cabinet=cabinet, id__in=act_ids)
 
         consultation.consultation_acts.exclude(act_id__in=act_ids).delete()
         existing_act_ids = set(consultation.consultation_acts.values_list("act_id", flat=True))
@@ -167,7 +161,7 @@ def consultation_detail(request, appointment_id):
         messages.success(request, "Brouillon enregistré.")
         return redirect("clinical:consultation_detail", appointment_id=appointment.pk)
 
-    all_acts = MedicalAct.objects.filter(is_active=True)
+    all_acts = MedicalAct.objects.filter(cabinet=cabinet, is_active=True)
     selected_act_ids = list(
         consultation.consultation_acts.values_list("act_id", flat=True)
     )
@@ -264,6 +258,7 @@ def download_patient_record_pdf(request, appointment_id):
 
 
 @login_required
+@role_required("doctor")
 def download_full_patient_archive(request, patient_id):
     """ZIP contenant le PDF récapitulatif du dossier + tous les documents joints (radios/bilans)."""
     cabinet = request.user.profile.cabinet

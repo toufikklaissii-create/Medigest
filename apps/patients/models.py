@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Max
 from django.utils import timezone
 
@@ -19,7 +19,7 @@ class Patient(models.Model):
     cabinet = models.ForeignKey(
         Cabinet, on_delete=models.CASCADE, related_name="patients", null=True, blank=True
     )
-    patient_number = models.CharField(max_length=20, unique=True, editable=False)
+    patient_number = models.CharField(max_length=20, editable=False)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     cin = models.CharField("CIN", max_length=20, blank=True)
@@ -43,6 +43,11 @@ class Patient(models.Model):
         verbose_name = "Patiente"
         verbose_name_plural = "Patientes"
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cabinet", "patient_number"], name="unique_patient_number_per_cabinet"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.patient_number} — {self.first_name} {self.last_name}"
@@ -58,16 +63,24 @@ class Patient(models.Model):
         return years
 
     def save(self, *args, **kwargs):
-        if not self.patient_number:
-            self.patient_number = self._generate_patient_number()
-        super().save(*args, **kwargs)
+        if self.patient_number:
+            super().save(*args, **kwargs)
+            return
+        # Number generation and INSERT share one transaction holding the cabinet
+        # row lock, so two concurrent creations can't read the same Max().
+        with transaction.atomic():
+            self.patient_number = self._generate_patient_number(self.cabinet_id)
+            super().save(*args, **kwargs)
 
     @classmethod
-    def _generate_patient_number(cls):
+    def _generate_patient_number(cls, cabinet_id):
+        """Next PAT-<year>-NNNN for this cabinet. Must run inside transaction.atomic()."""
+        if cabinet_id is not None:
+            Cabinet.objects.select_for_update().filter(pk=cabinet_id).first()
         year = timezone.now().year
         prefix = f"PAT-{year}-"
         last = (
-            cls.objects.filter(patient_number__startswith=prefix)
+            cls.objects.filter(cabinet_id=cabinet_id, patient_number__startswith=prefix)
             .aggregate(max_number=Max("patient_number"))
             .get("max_number")
         )

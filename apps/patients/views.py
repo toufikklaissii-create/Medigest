@@ -68,6 +68,8 @@ def create_patient(request):
                 phone=request.POST.get("phone", "").strip(),
                 emergency_contact=request.POST.get("emergency_contact", "").strip(),
                 blood_group=request.POST.get("blood_group", "").strip(),
+                allergies=request.POST.get("allergies", "").strip(),
+                medical_history=request.POST.get("medical_history", "").strip(),
             )
             messages.success(request, f"Patiente {patient} créée ({patient.patient_number}).")
             return redirect("appointments:create_appointment_for", patient_id=patient.pk)
@@ -92,6 +94,8 @@ def edit_patient(request, pk):
             patient.phone = request.POST.get("phone", "").strip()
             patient.emergency_contact = request.POST.get("emergency_contact", "").strip()
             patient.blood_group = request.POST.get("blood_group", "").strip()
+            patient.allergies = request.POST.get("allergies", "").strip()
+            patient.medical_history = request.POST.get("medical_history", "").strip()
             patient.save()
             messages.success(request, f"Dossier de {patient} mis à jour.")
             return redirect("patients:index")

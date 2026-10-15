@@ -78,6 +78,7 @@ def generate_prescription_pdf(consultation, content, save_copy=True):
             "doc_date": consultation.updated_at,
             "prescription_lines": prescription_lines(content),
         },
+        background="pdf/ordonnance_modele.pdf",
     )
     if save_copy:
         save_pdf_copy(patient, "ordonnance", pdf_bytes, reference=consultation.pk)

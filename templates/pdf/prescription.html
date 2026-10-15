@@ -1,17 +1,63 @@
-{% extends "pdf/_base_pdf.html" %}
-{% block page_size %}{{ page_size|default:"A4" }}{% endblock %}
-{% block doc_type %}Ordonnance médicale{% endblock %}
-{% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
-{% block body %}
-<div style="font-size: 10.5pt;">
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    /* Ordonnance imprimée sur le modèle du cabinet (static/pdf/ordonnance_modele.pdf),
+       posé en fond de chaque page par apps/common/pdf.py. Ce gabarit ne place que le
+       texte variable, aux coordonnées du modèle (A4, 595 x 842 pt).
+       Pas de "margin" sur @page : xhtml2pdf en ferait un cadre pleine page. */
+    @page {
+        size: A4;
+        /* Page 1 : la date sur les pointillés de « Khemisset, le … », puis le corps. */
+        @frame date_frame {
+            left: 284pt; width: 110pt; top: 180pt; height: 22pt;
+        }
+        @frame body_frame {
+            left: 62pt; width: 471pt; top: 214pt; height: 528pt;
+        }
+    }
+    @page suite {
+        size: A4;
+        /* Pages suivantes : le modèle porte encore « Khemisset, le … », on démarre dessous. */
+        @frame body_frame {
+            left: 62pt; width: 471pt; top: 214pt; height: 528pt;
+        }
+    }
+
+    body {
+        font-family: Times-Roman, serif;
+        color: #111827;
+        font-size: 12pt;
+        line-height: 1.35;
+    }
+    p { margin: 0; }
+    .date { font-size: 12pt; }
+    .patient { font-size: 12pt; margin-top: 6pt; margin-bottom: 18pt; }
+    ul.meds { margin: 0; padding-left: 16pt; }
+    ul.meds li { margin-bottom: 11pt; }
+    .empty { color: #6B7280; font-style: italic; }
+    .signature { text-align: right; font-size: 11pt; margin-top: 30pt; }
+</style>
+</head>
+<body>
+    <p class="date">{{ doc_date|date:"j F Y" }}</p>
+    {# Après la date (page 1 déjà commencée) : sinon xhtml2pdf l'applique dès la page 1. #}
+    <pdf:nexttemplate name="suite"/>
+    <pdf:nextframe/>
+
+    <p class="patient"><b>Patiente :</b> Mme {{ patient.first_name }} {{ patient.last_name }}{% if patient.age %} — {{ patient.age }} ans{% endif %}</p>
+
     {% if prescription_lines %}
-    <ul style="margin: 0; padding-left: 18px;">
+    <ul class="meds">
         {% for line in prescription_lines %}
-        <li style="margin-bottom: 14px;">{{ line }}</li>
+        <li>{{ line }}</li>
         {% endfor %}
     </ul>
     {% else %}
-    <p style="color: #64748B; font-style: italic;">Aucune prescription renseignée.</p>
+    <p class="empty">Aucune prescription renseignée.</p>
     {% endif %}
-</div>
-{% endblock %}
+
+    <p class="signature">Signature et cachet du médecin</p>
+</body>
+</html>

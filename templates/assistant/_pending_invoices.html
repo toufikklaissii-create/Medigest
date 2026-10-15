@@ -8,12 +8,20 @@
         </div>
         <div class="flex items-center gap-3 shrink-0">
             <p class="text-lg font-bold text-text-main whitespace-nowrap tabular-nums">{{ invoice.total_amount }} <span class="text-xs font-medium text-text-muted">DH</span></p>
+            {% if invoice.total_amount %}
             <button @click="open = true"
                 class="btn-tactile inline-flex items-center gap-1.5 text-xs font-semibold bg-sauge-600 text-white rounded-lg px-3 py-2 shadow-sm hover:bg-sauge-900">
                 <i data-lucide="banknote" class="w-3.5 h-3.5" stroke-width="1.75"></i> Encaisser
             </button>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200 rounded-full px-2.5 py-1"
+                  title="Aucun acte saisi sur cette facture">
+                <span class="size-1.5 rounded-full bg-slate-400"></span> Aucun acte
+            </span>
+            {% endif %}
         </div>
 
+        {% if invoice.total_amount %}
         <!-- Pay modal for this invoice -->
         <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
              @keydown.escape.window="open = false">
@@ -74,6 +82,7 @@
                 </form>
             </div>
         </div>
+        {% endif %}
     </div>
     {% empty %}
     <div class="flex flex-col items-center justify-center gap-1.5 py-8 text-center">

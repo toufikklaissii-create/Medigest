@@ -110,10 +110,11 @@ def consultation_detail(request, appointment_id):
     if request.method == "POST":
         action = request.POST.get("action")
 
+        consultation.clinical_exam = request.POST.get("clinical_exam", "")
         consultation.clinical_notes = request.POST.get("clinical_notes", "")
         consultation.diagnostic = request.POST.get("diagnostic", "")
-        ga_weeks = request.POST.get("gestational_age_weeks") or None
-        consultation.gestational_age_weeks = int(ga_weeks) if ga_weeks else None
+        pregnancy = consultation.pregnancy
+        consultation.gestational_age_weeks = pregnancy["weeks"] if pregnancy else None
         consultation.ultrasound_notes = request.POST.get("ultrasound_notes", "")
         if not consultation.doctor_id:
             consultation.doctor = request.user
@@ -206,6 +207,8 @@ def consultation_detail(request, appointment_id):
             "appointment": appointment,
             "patient": appointment.patient,
             "consultation": consultation,
+            "bmi": consultation.bmi,
+            "pregnancy": consultation.pregnancy,
             "all_acts": all_acts,
             "selected_act_ids": selected_act_ids,
             "acts_json": acts_json,

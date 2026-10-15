@@ -1,30 +1,51 @@
+{% load l10n %}
+{% with base="w-full rounded-lg border px-2.5 py-2 text-sm transition-colors duration-150 focus:outline-none focus:ring-2" ok="border-border-subtle hover:border-sauge-500/50 focus:ring-sauge-500/40 focus:border-sauge-500" ko="border-rose-300 bg-rose-50/40 focus:ring-rose-200 focus:border-rose-400" %}
 <div data-intake-vitals-root class="border-t border-border-subtle pt-4 mb-4">
     <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2 flex items-center gap-1.5">
         <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i> Constantes d'accueil
     </p>
     <form hx-post="{% url 'appointments:save_intake_vitals' appointment.pk %}"
           hx-target="closest [data-intake-vitals-root]" hx-swap="outerHTML"
-          class="grid grid-cols-2 gap-2.5">
+          novalidate class="grid grid-cols-2 gap-2.5">
         {% csrf_token %}
         <div>
-            <label class="block text-[11px] font-medium text-text-muted mb-1">Tension (mmHg)</label>
-            <input type="text" name="blood_pressure" value="{{ consultation.blood_pressure|default:'' }}" placeholder="12/8"
-                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+            <label for="iv-bp-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Tension</label>
+            <input type="text" id="iv-bp-{{ appointment.pk }}" name="blood_pressure" placeholder="12/8" autocomplete="off"
+                   value="{% if values %}{{ values.blood_pressure }}{% else %}{{ consultation.blood_pressure|default:'' }}{% endif %}"
+                   {% if errors.blood_pressure %}aria-invalid="true" aria-describedby="iv-bp-err-{{ appointment.pk }}"{% endif %}
+                   class="{{ base }} {% if errors.blood_pressure %}{{ ko }}{% else %}{{ ok }}{% endif %}">
+            {% if errors.blood_pressure %}<p id="iv-bp-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.blood_pressure }}</p>{% endif %}
         </div>
         <div>
-            <label class="block text-[11px] font-medium text-text-muted mb-1">Poids (kg)</label>
-            <input type="number" step="0.1" name="weight_kg" value="{{ consultation.weight_kg|default:'' }}"
-                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+            <label for="iv-w-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Poids (kg)</label>
+            <input type="text" inputmode="decimal" id="iv-w-{{ appointment.pk }}" name="weight_kg" placeholder="68,5" autocomplete="off"
+                   value="{% if values %}{{ values.weight_kg }}{% elif consultation.weight_kg %}{{ consultation.weight_kg|unlocalize }}{% endif %}"
+                   {% if errors.weight_kg %}aria-invalid="true" aria-describedby="iv-w-err-{{ appointment.pk }}"{% endif %}
+                   class="{{ base }} {% if errors.weight_kg %}{{ ko }}{% else %}{{ ok }}{% endif %}">
+            {% if errors.weight_kg %}<p id="iv-w-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.weight_kg }}</p>{% endif %}
         </div>
         <div>
-            <label class="block text-[11px] font-medium text-text-muted mb-1">Taille (cm)</label>
-            <input type="number" step="0.1" name="height_cm" value="{{ consultation.height_cm|default:'' }}"
-                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+            <label for="iv-h-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Taille (cm)</label>
+            <input type="text" inputmode="decimal" id="iv-h-{{ appointment.pk }}" name="height_cm" placeholder="165" autocomplete="off"
+                   value="{% if values %}{{ values.height_cm }}{% elif consultation.height_cm %}{{ consultation.height_cm|unlocalize }}{% endif %}"
+                   {% if errors.height_cm %}aria-invalid="true" aria-describedby="iv-h-err-{{ appointment.pk }}"{% endif %}
+                   class="{{ base }} {% if errors.height_cm %}{{ ko }}{% else %}{{ ok }}{% endif %}">
+            {% if errors.height_cm %}<p id="iv-h-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.height_cm }}</p>{% endif %}
         </div>
         <div>
-            <label class="block text-[11px] font-medium text-text-muted mb-1">DDR</label>
-            <input type="date" name="last_menstrual_period" value="{{ consultation.last_menstrual_period|date:'Y-m-d'|default:'' }}"
-                   class="w-full rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
+            <label for="iv-lmp-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">DDR</label>
+            <input type="date" id="iv-lmp-{{ appointment.pk }}" name="last_menstrual_period"
+                   value="{% if values %}{{ values.last_menstrual_period }}{% else %}{{ consultation.last_menstrual_period|date:'Y-m-d'|default:'' }}{% endif %}"
+                   {% if errors.last_menstrual_period %}aria-invalid="true" aria-describedby="iv-lmp-err-{{ appointment.pk }}"{% endif %}
+                   class="{{ base }} {% if errors.last_menstrual_period %}{{ ko }}{% else %}{{ ok }}{% endif %}">
+            {% if errors.last_menstrual_period %}<p id="iv-lmp-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.last_menstrual_period }}</p>{% endif %}
+        </div>
+        <div class="col-span-2">
+            <label for="iv-atcd-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Antécédents</label>
+            <textarea id="iv-atcd-{{ appointment.pk }}" name="medical_history" rows="2" placeholder="Ex. G2P1, césarienne 2022, HTA…"
+                      {% if errors.medical_history %}aria-invalid="true" aria-describedby="iv-atcd-err-{{ appointment.pk }}"{% endif %}
+                      class="{{ base }} resize-y {% if errors.medical_history %}{{ ko }}{% else %}{{ ok }}{% endif %}">{% if values %}{{ values.medical_history }}{% else %}{{ appointment.patient.medical_history }}{% endif %}</textarea>
+            {% if errors.medical_history %}<p id="iv-atcd-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.medical_history }}</p>{% endif %}
         </div>
         <button type="submit"
                 class="btn-tactile col-span-2 inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-sauge-600 text-white rounded-lg py-2.5 shadow-sm hover:bg-sauge-900">
@@ -32,3 +53,4 @@
         </button>
     </form>
 </div>
+{% endwith %}

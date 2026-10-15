@@ -1,3 +1,4 @@
+{% load l10n %}
 <div class="bg-surface rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
     <div class="flex">
         <!-- Time labels -->
@@ -23,7 +24,7 @@
             {% endfor %}
 
             {% if now_pct is not None %}
-            <div class="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style="top: {{ now_pct }}%;">
+            <div class="absolute left-0 right-0 z-20 pointer-events-none flex items-center" style="top: {{ now_pct|unlocalize }}%;">
                 <span class="relative flex h-2.5 w-2.5 -ml-1 shrink-0">
                     <span class="animate-pulse absolute inline-flex h-full w-full rounded-full bg-sauge-500 opacity-60"></span>
                     <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sauge-500"></span>
@@ -42,7 +43,7 @@
                     {% elif appt.status == 'completed' %}border-l-slate-300
                     {% elif appt.status == 'cancelled' %}border-l-rose-300 opacity-60
                     {% else %}border-l-sauge-500{% endif %}"
-                 style="top: {{ appt.top_pct }}%; height: {{ appt.height_pct }}%;"
+                 style="top: {{ appt.top_pct|unlocalize }}%; height: {{ appt.height_pct|unlocalize }}%;"
                  hx-get="{% url 'appointments:appointment_drawer' appt.pk %}"
                  hx-target="#drawer-container" hx-swap="innerHTML">
                 <div class="flex items-center justify-between gap-1.5">
@@ -51,9 +52,8 @@
                     <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wide bg-rose-50 text-rose-600 border border-rose-200 rounded-full px-1.5 py-0.5">Annulé</span>
                     {% endif %}
                 </div>
-                <p class="text-xs text-slate-500 truncate leading-tight {% if appt.status == 'cancelled' %}line-through{% endif %}">{{ appt.reason|default:"—" }}</p>
-                <p class="text-[11px] text-slate-400 truncate leading-tight flex items-center gap-1 mt-0.5">
-                    <i data-lucide="clock" class="w-2.5 h-2.5" stroke-width="1.75"></i>{{ appt.time_display }}{% if appt.patient.phone %} · {{ appt.patient.phone }}{% endif %}
+                <p class="text-xs text-slate-500 truncate leading-tight flex items-center gap-1 mt-0.5 {% if appt.status == 'cancelled' %}line-through{% endif %}">
+                    <i data-lucide="clock" class="w-3 h-3 shrink-0 text-slate-400" stroke-width="1.75"></i><span class="tabular-nums shrink-0">{{ appt.time_display }}</span><span class="truncate"> · {{ appt.reason|default:"Consultation" }}</span>
                 </p>
             </div>
             {% endfor %}

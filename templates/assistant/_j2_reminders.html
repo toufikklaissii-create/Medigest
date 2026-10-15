@@ -21,7 +21,7 @@
             hx-post="{% url 'appointments:whatsapp_action' appt.pk 'send' %}"
             hx-target="#j2-reminders" hx-swap="outerHTML"
             class="btn-tactile w-full text-xs font-medium text-sauge-600 border border-sauge-100 rounded-lg px-2.5 py-1.5 hover:bg-sauge-50 hover:border-sauge-200 flex items-center justify-center gap-1">
-            <i data-lucide="send" class="w-3.5 h-3.5" stroke-width="1.75"></i> Simuler envoi rappel
+            <i data-lucide="send" class="w-3.5 h-3.5" stroke-width="1.75"></i> Envoyer le rappel
         </button>
         {% elif appt.whatsapp_status == "sent" %}
         <div class="grid grid-cols-3 gap-1.5">

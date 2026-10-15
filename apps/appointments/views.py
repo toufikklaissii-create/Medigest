@@ -16,6 +16,7 @@ from apps.clinical.models import Consultation
 from apps.communications.views import _active_tasks_for
 from apps.patients.models import Patient
 
+from .intake import clean_intake_vitals
 from .models import Appointment
 
 NEXT_STATUS = {
@@ -72,6 +73,15 @@ def _cabinet_doctor(cabinet):
     return User.objects.filter(
         profile__role=Profile.Role.DOCTOR, profile__cabinet=cabinet
     ).first()
+
+
+# Patientes effectivement reçues : arrivées au cabinet (les RDV seulement planifiés ne comptent pas).
+RECEIVED_STATUSES = (
+    Appointment.Status.ARRIVED,
+    Appointment.Status.WAITING,
+    Appointment.Status.IN_CONSULTATION,
+    Appointment.Status.COMPLETED,
+)
 
 
 def _today_appointments(cabinet):
@@ -332,19 +342,26 @@ def intake_vitals_modal(request, pk):
 
 @login_required
 def save_intake_vitals(request, pk):
-    """POST: saves Tension/Poids/Taille/DDR onto the appointment's Consultation.
+    """POST: saves Tension/Poids/Taille/DDR onto the appointment's Consultation,
+    plus the patient's antécédents (Patient.medical_history).
 
-    Only ever touches these four intake fields — never clinical_notes,
+    Only ever touches these intake fields — never clinical_exam, clinical_notes,
     diagnostic, or ultrasound_notes — so this endpoint stays safe to expose
-    to the assistant role regardless of caller.
+    to the assistant role regardless of caller. Invalid input re-renders the
+    form with a message under each field (never a 500).
     """
     cabinet = request.user.profile.cabinet
-    appointment = get_object_or_404(Appointment, pk=pk, cabinet=cabinet)
+    appointment = get_object_or_404(Appointment.objects.select_related("patient"), pk=pk, cabinet=cabinet)
     consultation = Consultation.objects.filter(appointment=appointment).first()
     error_message = None
+    errors = {}
+    values = None
 
     if request.method == "POST":
-        if consultation is None:
+        cleaned, errors, values = clean_intake_vitals(request.POST, timezone.localdate())
+        if errors:
+            error_message = "Certaines constantes sont invalides : corrigez les champs signalés."
+        elif consultation is None:
             doctor = _cabinet_doctor(cabinet)
             if doctor is None:
                 error_message = (
@@ -359,13 +376,11 @@ def save_intake_vitals(request, pk):
                     doctor=doctor,
                 )
 
-        if consultation is not None:
-            consultation.blood_pressure = request.POST.get("blood_pressure", "")
-            consultation.weight_kg = request.POST.get("weight_kg") or None
-            consultation.height_cm = request.POST.get("height_cm") or None
-            consultation.last_menstrual_period = (
-                request.POST.get("last_menstrual_period") or None
-            )
+        if not errors and consultation is not None:
+            consultation.blood_pressure = cleaned["blood_pressure"]
+            consultation.weight_kg = cleaned["weight_kg"]
+            consultation.height_cm = cleaned["height_cm"]
+            consultation.last_menstrual_period = cleaned["last_menstrual_period"]
             consultation.save(
                 update_fields=[
                     "blood_pressure",
@@ -374,15 +389,19 @@ def save_intake_vitals(request, pk):
                     "last_menstrual_period",
                 ]
             )
+            if "medical_history" in request.POST:
+                appointment.patient.medical_history = cleaned["medical_history"]
+                appointment.patient.save(update_fields=["medical_history"])
+            values = None
 
     response = render(
         request,
         "assistant/_intake_vitals_form.html",
-        {"appointment": appointment, "consultation": consultation},
+        {"appointment": appointment, "consultation": consultation, "errors": errors, "values": values},
     )
     if error_message:
         response.headers["HX-Trigger"] = _toast_header(error_message, "error")
-    elif consultation is not None:
+    elif consultation is not None and request.method == "POST":
         response.headers["HX-Trigger"] = _toast_header(
             f"{appointment.patient} — constantes enregistrées."
         )
@@ -538,7 +557,7 @@ def assistant_dashboard(request):
         "pending_invoices_total": pending_invoices.aggregate(total=Sum("total_amount"))["total"] or 0,
         "my_tasks": my_tasks,
         "urgent_tasks_count": sum(1 for t in my_tasks if t.priority == "urgent"),
-        "today_total": _today_appointments(cabinet).count(),
+        "today_total": _today_appointments(cabinet).filter(status__in=RECEIVED_STATUSES).count(),
     }
     return render(request, "assistant/dashboard.html", context)
 

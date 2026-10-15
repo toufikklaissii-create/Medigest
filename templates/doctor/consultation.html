@@ -54,50 +54,113 @@
         {% csrf_token %}
         <input type="hidden" name="action" x-model="action">
 
-        <!-- 1. Informations patiente & constantes -->
+        <!-- 0. Patiente & constantes d'accueil (lecture seule, saisies par l'assistante) -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
             <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
                     <i data-lucide="activity" class="w-3.5 h-3.5" stroke-width="1.75"></i>
                 </span>
-                Informations patiente &amp; constantes
+                Patiente &amp; constantes
             </h2>
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-4">
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Motif</label>
-                    <input type="text" value="{{ appointment.reason }}" disabled
-                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
+            <dl class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Motif</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums"><span class="block truncate">{{ appointment.reason|default:"Consultation" }}</span></dd>
                 </div>
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Âge</label>
-                    <input type="text" value="{% if patient.age %}{{ patient.age }} ans{% else %}—{% endif %}" disabled
-                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Âge</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if patient.age %}{{ patient.age }} ans{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
                 </div>
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Tension</label>
-                    <input type="text" value="{{ consultation.blood_pressure|default:'--' }}" disabled
-                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Tension</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.blood_pressure %}{{ consultation.blood_pressure }}{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
                 </div>
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Poids (kg)</label>
-                    <input type="text" value="{{ consultation.weight_kg|default:'--' }}" disabled
-                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Poids</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.weight_kg %}{{ consultation.weight_kg|floatformat:"-1" }} kg{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
                 </div>
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Taille (cm)</label>
-                    <input type="text" value="{{ consultation.height_cm|default:'--' }}" disabled
-                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Taille</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.height_cm %}{{ consultation.height_cm|floatformat:"-1" }} cm{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
                 </div>
-            </div>
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">IMC</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if bmi %}{{ bmi|floatformat:1 }} <span class="font-normal text-text-muted">kg/m²</span>{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
+                </div>
+            </dl>
+            <dl class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">DDR</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if consultation.last_menstrual_period %}{{ consultation.last_menstrual_period|date:"j F Y" }}{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
+                </div>
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Terme</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if pregnancy %}<span class="text-sauge-600">{{ pregnancy.weeks }} SA + {{ pregnancy.days }} j</span>{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
+                </div>
+                <div class="rounded-lg bg-sauge-25 border border-border-subtle px-3 py-2.5">
+                    <dt class="text-[11.5px] font-medium text-text-muted">Date prévue d'accouchement</dt>
+                    <dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if pregnancy %}{{ pregnancy.due_date|date:"l j F Y" }}{% else %}<span class="font-normal text-text-faint">—</span>{% endif %}</dd>
+                </div>
+            </dl>
             <div>
-                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Rappel — Antécédents médicaux</label>
-                <div class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted min-h-[42px]">
-                    {{ patient.medical_history|default:"Aucun antécédent renseigné." }}
-                </div>
+                <p class="text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux</p>
+                <div class="w-full rounded-lg border border-border-subtle bg-sauge-25 px-3 py-2.5 text-sm min-h-[42px] whitespace-pre-line {% if patient.medical_history %}text-text-main{% else %}text-text-faint italic{% endif %}">{{ patient.medical_history|default:"Aucun antécédent renseigné." }}</div>
             </div>
         </div>
 
-        <!-- 1bis. Documents joints (bilans / radios) -->
+        <!-- 1. Examen clinique -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="stethoscope" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Examen clinique
+            </h2>
+            <label for="clinical-exam" class="sr-only">Examen clinique</label>
+            <textarea id="clinical-exam" name="clinical_exam" rows="5" placeholder="État général, examen des seins, examen abdominal, spéculum, toucher vaginal…"
+                      class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ consultation.clinical_exam }}</textarea>
+        </div>
+
+        <!-- 2. Échographie -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="scan-line" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Échographie
+            </h2>
+            <div>
+                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Compte rendu échographique</label>
+                <textarea name="ultrasound_notes" rows="6" placeholder="Biométries, présentation, placenta, liquide amniotique, doppler…"
+                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ consultation.ultrasound_notes }}</textarea>
+            </div>
+        </div>
+
+        <!-- 3. Examens complémentaires -->
+        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
+            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
+                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="flask-conical" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+                </span>
+                Examens complémentaires
+            </h2>
+            <p class="text-[13px] text-text-muted mb-3">Sélection rapide des actes de cabinet courants — répercutée automatiquement sur la facturation ci-dessous.</p>
+            <div class="flex flex-wrap gap-2">
+                <template x-for="act in quickExamActs" :key="act.id">
+                    <button type="button" @click="toggle(act.id)"
+                            class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium rounded-full px-3.5 py-2 border transition-colors duration-150"
+                            :class="selected.includes(act.id) ? 'bg-sauge-600 text-white border-sauge-600' : 'bg-surface text-text-main border-border-subtle hover:border-sauge-200 hover:bg-sauge-50/40'">
+                        <i data-lucide="check" class="w-3.5 h-3.5" stroke-width="2.5" x-show="selected.includes(act.id)"></i>
+                        <span x-text="act.name"></span>
+                    </button>
+                </template>
+                <template x-if="quickExamActs.length === 0">
+                    <p class="text-sm text-text-faint italic">Aucun examen rapide configuré dans le catalogue.</p>
+                </template>
+            </div>
+        </div>
+
+        <!-- 3bis. Documents joints (bilans / radios) -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
             <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
@@ -128,107 +191,43 @@
             <p class="text-sm text-text-faint italic mb-4">Aucun document joint pour cette patiente.</p>
             {% endif %}
 
-            <form method="post" enctype="multipart/form-data"
-                  action="{% url 'clinical:upload_patient_document' appointment.pk %}"
-                  class="flex flex-wrap items-end gap-2.5 border-t border-border-subtle pt-4">
-                {% csrf_token %}
+            <!-- Champs rattachés à #doc-upload-form (déclaré hors du formulaire de consultation : pas de form imbriqué) -->
+            <div class="flex flex-wrap items-end gap-2.5 border-t border-border-subtle pt-4" x-data="{ fileName: '' }">
                 <div class="flex-1 min-w-[160px]">
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Titre</label>
-                    <input type="text" name="title" placeholder="Ex. Bilan sanguin 03/09"
+                    <label for="doc-title" class="block text-[13px] font-medium text-text-soft mb-1.5">Titre</label>
+                    <input type="text" id="doc-title" name="title" form="doc-upload-form" placeholder="Ex. Bilan sanguin 03/09"
                            class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                 </div>
                 <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Type</label>
-                    <select name="document_type"
+                    <label for="doc-type" class="block text-[13px] font-medium text-text-soft mb-1.5">Type</label>
+                    <select id="doc-type" name="document_type" form="doc-upload-form"
                             class="rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
                         {% for value, label in document_type_choices %}
                         <option value="{{ value }}">{{ label }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="flex-1 min-w-[180px]">
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Fichier</label>
-                    <input type="file" name="file" required
-                           class="w-full rounded-lg border border-border-subtle px-3 py-2 text-sm file:mr-2 file:rounded-md file:border-0 file:bg-sauge-50 file:text-sauge-600 file:px-2.5 file:py-1.5 file:text-xs file:font-medium">
+                <div class="flex-1 min-w-[220px]">
+                    <span class="block text-[13px] font-medium text-text-soft mb-1.5">Fichier</span>
+                    <input type="file" id="doc-file" name="file" form="doc-upload-form" required class="sr-only peer"
+                           @change="fileName = $event.target.files.length ? $event.target.files[0].name : ''">
+                    <label for="doc-file"
+                           class="btn-tactile flex items-center gap-2.5 w-full h-[42px] rounded-lg border border-dashed border-border-strong px-3 text-sm cursor-pointer transition-colors duration-150 hover:border-sauge-500/50 hover:bg-sauge-50/40 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/20 peer-focus-visible:border-sauge-500">
+                        <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-sauge-50 text-sauge-600 px-2.5 py-1 text-xs font-medium">
+                            <i data-lucide="paperclip" class="w-3.5 h-3.5" stroke-width="1.75"></i> Choisir un fichier
+                        </span>
+                        <span class="truncate" :class="fileName ? 'text-text-main' : 'text-text-faint'"
+                              x-text="fileName || 'Aucun fichier sélectionné'">Aucun fichier sélectionné</span>
+                    </label>
                 </div>
-                <button type="submit"
+                <button type="submit" form="doc-upload-form"
                         class="btn-tactile shrink-0 h-[42px] inline-flex items-center gap-1.5 text-sm font-medium bg-sauge-600 text-white rounded-lg px-3.5 hover:bg-sauge-900">
                     <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75"></i> Ajouter
                 </button>
-            </form>
-        </div>
-
-        <!-- 2. Gynéco & suivi de grossesse -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="baby" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Gynéco &amp; suivi de grossesse
-            </h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Date des dernières règles (DDR)</label>
-                    <input type="date" x-model="lmp" disabled
-                           class="w-full rounded-lg border border-border-subtle bg-sauge-50/40 px-3 py-2.5 text-sm text-text-muted">
-                </div>
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Terme (calcul auto)</label>
-                    <div class="w-full rounded-lg border px-3 py-2.5 text-sm font-semibold flex items-center gap-2 transition-colors duration-150"
-                         :class="ga ? 'bg-sauge-50 border-sauge-200 text-sauge-600' : 'bg-canvas border-border-subtle text-text-muted font-normal'">
-                        <i data-lucide="calendar-heart" class="w-4 h-4" stroke-width="1.75" x-show="ga"></i>
-                        <template x-if="ga">
-                            <span x-text="ga.weeks + ' SA + ' + ga.days + ' j'" class="tabular-nums"></span>
-                        </template>
-                        <template x-if="!ga">
-                            <span>Renseignez la DDR</span>
-                        </template>
-                    </div>
-                    <input type="hidden" name="gestational_age_weeks" :value="ga ? ga.weeks : ''">
-                </div>
             </div>
         </div>
 
-        <!-- 3. Échographie -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="scan-line" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Échographie
-            </h2>
-            <div>
-                <label class="block text-[13px] font-medium text-text-soft mb-1.5">Compte rendu échographique</label>
-                <textarea name="ultrasound_notes" rows="6" placeholder="Biométries, présentation, placenta, liquide amniotique, doppler…"
-                          class="w-full rounded-lg border border-border-subtle px-3 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ consultation.ultrasound_notes }}</textarea>
-            </div>
-        </div>
-
-        <!-- 4. Examens complémentaires -->
-        <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
-            <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
-                <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
-                    <i data-lucide="flask-conical" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                </span>
-                Examens complémentaires
-            </h2>
-            <p class="text-[13px] text-text-muted mb-3">Sélection rapide des actes de cabinet courants — répercutée automatiquement sur la facturation ci-dessous.</p>
-            <div class="flex flex-wrap gap-2">
-                <template x-for="act in quickExamActs" :key="act.id">
-                    <button type="button" @click="toggle(act.id)"
-                            class="btn-tactile inline-flex items-center gap-1.5 text-sm font-medium rounded-full px-3.5 py-2 border transition-colors duration-150"
-                            :class="selected.includes(act.id) ? 'bg-sauge-600 text-white border-sauge-600' : 'bg-surface text-text-main border-border-subtle hover:border-sauge-200 hover:bg-sauge-50/40'">
-                        <i data-lucide="check" class="w-3.5 h-3.5" stroke-width="2.5" x-show="selected.includes(act.id)"></i>
-                        <span x-text="act.name"></span>
-                    </button>
-                </template>
-                <template x-if="quickExamActs.length === 0">
-                    <p class="text-sm text-text-faint italic">Aucun examen rapide configuré dans le catalogue.</p>
-                </template>
-            </div>
-        </div>
-
-        <!-- 5. Conclusion & interprétation -->
+        <!-- 4. Conclusion & interprétation -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
             <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
@@ -248,7 +247,7 @@
             </div>
         </div>
 
-        <!-- 6. Ordonnances & courriers -->
+        <!-- 5. Ordonnances & courriers -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
             <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
@@ -294,7 +293,7 @@
             <input type="hidden" name="letter_type" :value="letterType">
         </div>
 
-        <!-- 7. Facturation et actes -->
+        <!-- 6. Facturation et actes -->
         <div class="bg-surface rounded-xl border border-border-subtle shadow-sm p-6 mb-5 hover:shadow-card transition-shadow duration-150">
             <h2 class="text-[11.5px] font-bold uppercase tracking-[0.09em] text-text-faint mb-4 flex items-center gap-2">
                 <span class="h-7 w-7 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
@@ -319,6 +318,10 @@
                 </template>
             </div>
         </div>
+    </form>
+    <form id="doc-upload-form" method="post" enctype="multipart/form-data" class="hidden"
+          action="{% url 'clinical:upload_patient_document' appointment.pk %}">
+        {% csrf_token %}
     </form>
 </div>
 
@@ -369,7 +372,6 @@
         const letters = JSON.parse(document.getElementById("letters-data").textContent);
         return {
             action: "draft",
-            lmp: "{{ consultation.last_menstrual_period|date:'Y-m-d' }}",
             acts: JSON.parse(document.getElementById("acts-data").textContent),
             selected: JSON.parse(document.getElementById("selected-acts-data").textContent),
             prescriptionTemplates: JSON.parse(document.getElementById("prescription-templates-data").textContent),
@@ -416,13 +418,6 @@
                 return this.acts
                     .filter((a) => this.selected.includes(a.id))
                     .reduce((sum, a) => sum + a.price, 0);
-            },
-            get ga() {
-                if (!this.lmp) return null;
-                const diffMs = new Date() - new Date(this.lmp + "T00:00:00");
-                const diffDays = Math.floor(diffMs / 86400000);
-                if (diffDays < 0) return null;
-                return { weeks: Math.floor(diffDays / 7), days: diffDays % 7 };
             },
             beforeSubmit() {
                 if (window.lucide) lucide.createIcons();

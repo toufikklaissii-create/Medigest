@@ -1,3 +1,6 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Sum
@@ -6,6 +9,23 @@ from apps.accounts.models import Cabinet
 from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, InvoiceItem, MedicalAct
 from apps.patients.models import Patient
+
+
+GESTATION_DAYS = 280
+
+
+def pregnancy_dates(lmp, on_date):
+    """Depuis la DDR : {"weeks", "days", "due_date"} au `on_date`, ou None hors grossesse plausible."""
+    if not lmp or not on_date:
+        return None
+    elapsed = (on_date - lmp).days
+    if elapsed < 0 or elapsed > GESTATION_DAYS + 21:
+        return None
+    return {
+        "weeks": elapsed // 7,
+        "days": elapsed % 7,
+        "due_date": lmp + timedelta(days=GESTATION_DAYS),
+    }
 
 
 class Consultation(models.Model):
@@ -33,6 +53,7 @@ class Consultation(models.Model):
     height_cm = models.DecimalField(
         "Taille (cm)", max_digits=5, decimal_places=1, null=True, blank=True
     )
+    clinical_exam = models.TextField("Examen clinique", blank=True)
     clinical_notes = models.TextField(blank=True)
     diagnostic = models.TextField(blank=True)
     last_menstrual_period = models.DateField(null=True, blank=True)
@@ -54,6 +75,22 @@ class Consultation(models.Model):
 
     def __str__(self):
         return f"Consultation {self.patient} — {self.created_at:%d/%m/%Y}"
+
+    @property
+    def bmi(self):
+        """IMC = poids (kg) / taille (m)², arrondi à 0,1 — None si une mesure manque."""
+        if not self.weight_kg or not self.height_cm:
+            return None
+        height_m = Decimal(self.height_cm) / 100
+        return round(Decimal(self.weight_kg) / (height_m * height_m), 1)
+
+    @property
+    def pregnancy(self):
+        """Terme (SA + jours) au jour du RDV et date prévue d'accouchement (DDR + 280 j)."""
+        from django.utils import timezone
+
+        reference = timezone.localtime(self.appointment.date).date() if self.appointment_id else None
+        return pregnancy_dates(self.last_menstrual_period, reference)
 
     def save(self, *args, **kwargs):
         old_status = None

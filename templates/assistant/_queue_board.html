@@ -1,3 +1,4 @@
+{% load medigest_format %}
 <div id="queue-board" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
     {% for status, label, items in columns %}
     <div class="bg-slate-50/30 rounded-2xl p-3 flex flex-col min-h-[130px]">
@@ -34,7 +35,7 @@
                 <p class="text-xs text-text-muted mt-1 pl-[42px] truncate">{{ appt.reason|default:"—" }}</p>
                 <p class="flex items-center gap-1 text-xs text-text-muted mt-1 pl-[42px]">
                     <i data-lucide="clock" class="w-3 h-3" stroke-width="1.75"></i>
-                    {% if status == 'in_consultation' or status == 'waiting' %}Depuis {{ appt.date|timesince }}{% else %}{{ appt.date|date:"H:i" }}{% endif %}
+                    {% if status == 'in_consultation' or status == 'waiting' %}Depuis {{ appt.date|duree_courte }}{% else %}{{ appt.date|date:"H:i" }}{% endif %}
                 </p>
 
                 {% if appt.next_label %}

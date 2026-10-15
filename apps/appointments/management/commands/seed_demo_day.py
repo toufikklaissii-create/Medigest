@@ -1,3 +1,4 @@
+import argparse
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
@@ -8,7 +9,8 @@ from django.utils import timezone
 
 from apps.accounts.models import Cabinet, Profile
 from apps.appointments.models import Appointment
-from apps.clinical.models import Consultation
+from apps.billing.models import Invoice, MedicalAct
+from apps.clinical.models import Consultation, ConsultationAct
 from apps.patients.models import Patient
 
 # Patientes fictives — le CIN (préfixe « DM ») sert de clé d'idempotence.
@@ -82,17 +84,28 @@ PATIENTS = [
     },
 ]
 
-# (heure, minute, CIN, motif, statut) — journée de 9 h à 17 h.
+# (décalage en minutes depuis --start, CIN, motif, statut) — 9 h → 16 h 30 par défaut.
+# (patiente, jour, motif) identifie un RDV : relancer avec un autre --start le déplace.
 APPOINTMENTS = [
-    (9, 0, "DM100201", "Suivi grossesse", Appointment.Status.COMPLETED),
-    (9, 45, "DM100202", "Consultation de suivi", Appointment.Status.IN_CONSULTATION),
-    (10, 30, "DM100203", "Première consultation", Appointment.Status.WAITING),
-    (11, 15, "DM100204", "Contrôle", Appointment.Status.ARRIVED),
-    (12, 0, "DM100206", "Consultation de routine", Appointment.Status.CANCELLED),
-    (14, 0, "DM100205", "Échographie", Appointment.Status.SCHEDULED),
-    (15, 15, "DM100201", "Échographie morphologique", Appointment.Status.SCHEDULED),
-    (16, 30, "DM100206", "Consultation de routine", Appointment.Status.SCHEDULED),
+    (0, "DM100201", "Suivi grossesse", Appointment.Status.COMPLETED),
+    (25, "DM100205", "Frottis de dépistage", Appointment.Status.COMPLETED),
+    (45, "DM100202", "Consultation de suivi", Appointment.Status.IN_CONSULTATION),
+    (90, "DM100203", "Première consultation", Appointment.Status.WAITING),
+    (135, "DM100204", "Contrôle", Appointment.Status.ARRIVED),
+    (180, "DM100206", "Consultation de routine", Appointment.Status.CANCELLED),
+    (300, "DM100205", "Échographie", Appointment.Status.SCHEDULED),
+    (375, "DM100201", "Échographie morphologique", Appointment.Status.SCHEDULED),
+    (450, "DM100206", "Contrôle", Appointment.Status.SCHEDULED),
 ]
+
+IN_CONSULTATION_SINCE = timedelta(minutes=15)
+
+# Consultations terminées : validées par le médecin (facture générée par Consultation._bill).
+# paid=True → facture déjà encaissée en espèces le jour même (compteur « encaissés aujourd'hui »).
+VALIDATED = {
+    ("DM100201", "Suivi grossesse"): {"acts": ["CONS_GYN", "ECHO_OBST"], "paid": False},
+    ("DM100205", "Frottis de dépistage"): {"acts": ["CONS_GYN", "FROTTIS"], "paid": True},
+}
 
 # Statuts pour lesquels l'assistante a déjà saisi les constantes d'accueil.
 WITH_VITALS = {
@@ -105,11 +118,29 @@ WITH_VITALS = {
 PREGNANCY_DAYS = 20 * 7  # ~20 SA le jour du RDV
 
 
+def _start_time(value):
+    try:
+        return datetime.strptime(value, "%H:%M").time()
+    except ValueError:
+        raise argparse.ArgumentTypeError("format attendu : HH:MM (ex. 09:00)")
+
+
 class Command(BaseCommand):
     help = (
-        "Prépare une journée de démo pour demain : 6 patientes fictives, 8 RDV (9 h–17 h), "
-        "constantes et antécédents. Idempotente, ne supprime rien."
+        "Prépare une journée de démo pour demain : 6 patientes fictives, 9 RDV (9 h–17 h), "
+        "constantes, antécédents, une facture à encaisser et une déjà payée. Idempotente, ne supprime rien."
     )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--start", type=_start_time, default=time(9, 0),
+            help="Heure du premier RDV, HH:MM (défaut : 09:00).",
+        )
+        parser.add_argument(
+            "--today", action="store_true",
+            help="Cale la journée sur aujourd'hui (défaut : demain) ; le RDV « en consultation » "
+            "est alors placé il y a ~15 min.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -121,8 +152,12 @@ class Command(BaseCommand):
             profile__role=Profile.Role.DOCTOR, profile__cabinet=cabinet
         ).first()
 
-        tomorrow = timezone.localdate() + timedelta(days=1)
-        lmp = tomorrow - timedelta(days=PREGNANCY_DAYS)
+        day = timezone.localdate() + timedelta(days=0 if options["today"] else 1)
+        start = timezone.make_aware(datetime.combine(day, options["start"]))
+        lmp = day - timedelta(days=PREGNANCY_DAYS)
+        # Le RDV en cours a commencé il y a ~15 min (arrondi à 5 min) si la journée est aujourd'hui.
+        consult_dt = (timezone.localtime() - IN_CONSULTATION_SINCE).replace(second=0, microsecond=0)
+        consult_dt -= timedelta(minutes=consult_dt.minute % 5)
 
         patients, new_patients = {}, 0
         for spec in PATIENTS:
@@ -142,17 +177,25 @@ class Command(BaseCommand):
             new_patients += created
             patients[spec["cin"]] = (patient, spec)
 
-        new_appointments = new_consultations = 0
-        for hour, minute, cin, reason, status in APPOINTMENTS:
+        new_appointments = new_consultations = validated = paid = 0
+        moved = 0
+        for offset, cin, reason, status in APPOINTMENTS:
             patient, spec = patients[cin]
-            appt_dt = timezone.make_aware(datetime.combine(tomorrow, time(hour, minute)))
-            appointment, created = Appointment.objects.get_or_create(
-                cabinet=cabinet,
-                patient=patient,
-                date=appt_dt,
-                defaults={"status": status, "reason": reason},
-            )
-            new_appointments += created
+            appt_dt = start + timedelta(minutes=offset)
+            if status == Appointment.Status.IN_CONSULTATION and consult_dt.date() == day:
+                appt_dt = consult_dt
+            appointment = Appointment.objects.filter(
+                cabinet=cabinet, patient=patient, date__date=day, reason=reason
+            ).first()
+            if appointment is None:
+                appointment = Appointment.objects.create(
+                    cabinet=cabinet, patient=patient, date=appt_dt, status=status, reason=reason
+                )
+                new_appointments += 1
+            elif appointment.date != appt_dt or appointment.status != status:
+                appointment.date, appointment.status = appt_dt, status
+                appointment.save(update_fields=["date", "status"])
+                moved += 1
 
             if status not in WITH_VITALS or doctor is None:
                 continue
@@ -171,12 +214,50 @@ class Command(BaseCommand):
             )
             new_consultations += created
 
+            billing = VALIDATED.get((cin, reason))
+            if billing:
+                v, p = self._validate(appointment, cabinet, billing)
+                validated += v
+                paid += p
+
         if doctor is None:
             self.stdout.write(self.style.WARNING("Aucun médecin rattaché : constantes non créées."))
         self.stdout.write(
             self.style.SUCCESS(
-                f"Journée du {tomorrow:%d/%m/%Y} : {new_patients} patiente(s), "
-                f"{new_appointments} RDV, {new_consultations} fiche(s) de constantes créés "
+                f"Journée du {day:%d/%m/%Y} dès {options['start']:%H:%M} : {new_patients} patiente(s), "
+                f"{new_appointments} RDV créés, {moved} recalé(s), {new_consultations} fiche(s) de constantes, "
+                f"{validated} consultation(s) validée(s), {paid} facture(s) encaissée(s) "
                 f"(DDR enceinte : {lmp:%d/%m/%Y})."
             )
         )
+
+    def _validate(self, appointment, cabinet, billing):
+        """Valide la consultation avec ses actes (→ facture en attente), puis l'encaisse si demandé."""
+        consultation = Consultation.objects.filter(appointment=appointment).first()
+        if consultation is None:
+            return 0, 0
+        validated = 0
+        if consultation.status != Consultation.Status.VALIDATED:
+            acts = MedicalAct.objects.filter(cabinet=cabinet, code__in=billing["acts"])
+            missing = set(billing["acts"]) - set(acts.values_list("code", flat=True))
+            if missing:
+                self.stdout.write(self.style.WARNING(f"Actes absents du catalogue : {', '.join(sorted(missing))}."))
+            for act in acts:
+                ConsultationAct.objects.get_or_create(
+                    consultation=consultation, act=act, defaults={"price": act.price}
+                )
+            consultation.diagnostic = consultation.diagnostic or "Examen sans particularité."
+            consultation.status = Consultation.Status.VALIDATED
+            consultation.save()  # transition → Consultation._bill() crée la facture en attente
+            validated = 1
+            consultation.refresh_from_db()
+
+        invoice = consultation.invoice
+        if billing["paid"] and invoice and invoice.status == Invoice.Status.PENDING:
+            invoice.status = Invoice.Status.PAID
+            invoice.payment_method = Invoice.PaymentMethod.CASH
+            # Encaissée à la sortie de la patiente, le jour du RDV.
+            invoice.paid_at = appointment.date + timedelta(minutes=appointment.duration_minutes + 5)
+            invoice.save(update_fields=["status", "payment_method", "paid_at"])
+            return validated, 1
+        return validated, 0

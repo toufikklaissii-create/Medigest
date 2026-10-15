@@ -1,0 +1,45 @@
+<div id="doctor-kpis" {% if oob %}hx-swap-oob="true"{% endif %} class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+        <div class="card-soft bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-sky-50 text-sky-700 flex items-center justify-center">
+                    <i data-lucide="users" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">jour</span>
+            </div>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ queue|length }}</p>
+            <p class="text-xs text-text-muted mt-0.5">{% if is_today %}Patientes en attente{% else %}Rendez-vous programmés{% endif %}</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                    <i data-lucide="stethoscope" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">en cours</span>
+            </div>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ in_consultation_count }}</p>
+            <p class="text-xs text-text-muted mt-0.5">En consultation</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-sauge-50 text-sauge-600 flex items-center justify-center">
+                    <i data-lucide="calendar-check" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-sauge-50 text-sauge-600 border border-sauge-100">total</span>
+            </div>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ today_total }}</p>
+            <p class="text-xs text-text-muted mt-0.5">{% if is_today %}Consultations aujourd'hui{% else %}Consultations ce jour-là{% endif %}</p>
+        </div>
+
+        <div class="card-soft bg-surface rounded-2xl border border-border-subtle shadow-card p-[22px] hover:-translate-y-0.5 hover:shadow-popover">
+            <div class="flex items-center justify-between mb-3">
+                <span class="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center">
+                    <i data-lucide="check-check" class="w-4 h-4" stroke-width="1.75"></i>
+                </span>
+                <span class="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-slate-50 text-slate-600 border border-slate-200">terminé</span>
+            </div>
+            <p class="text-4xl font-bold text-text-main tabular-nums leading-none">{{ completed_today }}</p>
+            <p class="text-xs text-text-muted mt-0.5">{% if is_today %}Terminées aujourd'hui{% else %}Terminées ce jour-là{% endif %}</p>
+        </div>
+    </div>

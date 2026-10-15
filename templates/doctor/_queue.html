@@ -1,0 +1,32 @@
+{% comment %}
+File d'attente du médecin, rafraîchie toutes les 15 s (jour J uniquement). Les compteurs et la
+prochaine patiente suivent en hx-swap-oob ; `doctor-waiting-data` alimente le toast « en salle d'attente ».
+{% endcomment %}
+<div id="doctor-queue"
+     {% if is_today %}hx-get="{% url 'clinical:doctor_queue' %}" hx-trigger="every 15s" hx-swap="outerHTML"{% endif %}
+     class="lg:col-span-2 bg-surface rounded-2xl border border-border-subtle shadow-card divide-y divide-border-subtle overflow-hidden">
+            {% for appt in queue %}
+            <div class="px-4 py-3.5 flex items-center justify-between gap-3 hover:bg-canvas transition-colors duration-150">
+                <div class="min-w-0">
+                    <p class="font-medium text-text-main truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                    <p class="text-xs text-text-muted mt-0.5">{{ appt.date|date:"H:i" }} · {{ appt.get_status_display }} · {{ appt.reason|default:"—" }}</p>
+                </div>
+                <a href="{% url 'clinical:consultation_detail' appt.pk %}"
+                   class="btn-tactile shrink-0 text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3 py-1.5 hover:bg-sauge-50">
+                    Ouvrir le dossier
+                </a>
+            </div>
+            {% empty %}
+            <div class="flex flex-col items-center justify-center gap-1.5 px-4 py-10 text-center">
+                <i data-lucide="check-circle-2" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
+                <p class="text-sm text-text-muted italic">
+                    {% if is_today %}Aucune patiente en attente aujourd'hui.{% else %}Aucun rendez-vous programmé pour le {{ selected_date|date:"d F Y" }}.{% endif %}
+                </p>
+            </div>
+            {% endfor %}
+    {{ waiting_json|json_script:"doctor-waiting-data" }}
+</div>
+{% if not initial %}
+{% include "doctor/_kpis.html" with oob=True %}
+{% include "doctor/_next_patient.html" with oob=True %}
+{% endif %}

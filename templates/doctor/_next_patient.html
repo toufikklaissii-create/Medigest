@@ -1,0 +1,25 @@
+{% load medigest_format %}
+<div id="next-patient" {% if oob %}hx-swap-oob="true"{% endif %}>
+    {% if next_patient %}
+    <div class="bg-gradient-to-r from-sauge-50 to-sauge-50/40 border border-sauge-100 rounded-xl p-5 mb-7 flex items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-4 min-w-0">
+            <span class="hidden sm:flex h-11 w-11 shrink-0 rounded-xl bg-sauge-600 text-white items-center justify-center shadow-sm">
+                <i data-lucide="stethoscope" class="w-5 h-5" stroke-width="1.75"></i>
+            </span>
+            <div class="min-w-0">
+                <p class="text-xs uppercase tracking-wide text-sauge-600 font-semibold mb-0.5">Prochaine patiente</p>
+                <p class="text-lg font-semibold text-text-main truncate">{{ next_patient.patient.first_name }} {{ next_patient.patient.last_name }}</p>
+                <p class="text-sm text-text-muted">{% if next_patient.status == "in_consultation" %}En consultation depuis{% else %}Arrivée depuis{% endif %} {{ next_patient.date|duree_courte:now }} · {{ next_patient.get_status_display }}</p>
+            </div>
+        </div>
+        <a href="{% url 'clinical:consultation_detail' next_patient.pk %}"
+           class="btn-tactile shrink-0 bg-sauge-600 text-white text-sm font-semibold rounded-lg px-4 py-2.5 shadow-sm hover:bg-sauge-900 flex items-center gap-2">
+            {% if next_patient.status == "in_consultation" %}
+            <i data-lucide="play-circle" class="w-4 h-4" stroke-width="1.75"></i> Reprendre la consultation
+            {% else %}
+            <i data-lucide="arrow-right-circle" class="w-4 h-4" stroke-width="1.75"></i> Démarrer la consultation
+            {% endif %}
+        </a>
+    </div>
+    {% endif %}
+</div>

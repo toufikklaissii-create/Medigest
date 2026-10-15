@@ -80,3 +80,18 @@ class DoctorUiTest(TestCase):
         client.login(username="assist_ui", password="testpass123")
         url = reverse("clinical:autosave_consultation", args=[self.appt.pk])
         self.assertEqual(client.post(url, {"clinical_exam": "x"}).status_code, 403)
+
+    def test_dashboard_queue_polls_and_exposes_waiting_patients(self):
+        Appointment.objects.create(
+            cabinet=self.cabinet, patient=Patient.objects.create(cabinet=self.cabinet, first_name="Sara", last_name="Idrissi"),
+            date=timezone.now(), status=Appointment.Status.WAITING,
+        )
+        html = self.client.get(reverse("clinical:doctor_dashboard")).content.decode()
+        self.assertIn('hx-trigger="every 15s"', html)
+        self.assertNotIn("Live", html)
+
+        partial = self.client.get(reverse("clinical:doctor_queue")).content.decode()
+        self.assertIn('id="doctor-queue"', partial)
+        self.assertIn('"name": "Sara Idrissi"', partial)
+        self.assertIn('id="doctor-kpis" hx-swap-oob="true"', partial)
+        self.assertIn('id="next-patient" hx-swap-oob="true"', partial)

@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Accueil · Assistante{% endblock %}
 
-{% block topbar_status %}{% endblock %}
-
 {% block topbar_search %}
 <div class="relative ml-auto w-full max-w-[380px]" x-data
      @keydown.escape="$refs.results.innerHTML = ''; $refs.search.blur()"

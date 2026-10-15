@@ -6,6 +6,7 @@ app_name = "clinical"
 
 urlpatterns = [
     path("", views.doctor_dashboard, name="doctor_dashboard"),
+    path("queue/", views.doctor_queue, name="doctor_queue"),
     path("consultation/<int:appointment_id>/", views.consultation_detail, name="consultation_detail"),
     path(
         "consultation/<int:appointment_id>/autosave/",

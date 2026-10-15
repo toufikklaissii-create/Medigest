@@ -252,15 +252,6 @@
             <i data-lucide="calendar" class="w-4 h-4" stroke-width="1.75"></i>
             {% now "l d F Y" %}
         </span>
-        {% block topbar_status %}
-        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-            <span class="relative flex h-1.5 w-1.5">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-            </span>
-            Live
-        </span>
-        {% endblock %}
         {% block topbar_search %}
         <div class="hidden lg:flex items-center gap-2.5 ml-auto w-[300px] rounded-lg border border-border-subtle bg-surface px-3 py-2 text-text-faint text-[13px]">
             <i data-lucide="search" class="w-[15px] h-[15px] shrink-0" stroke-width="1.75"></i>

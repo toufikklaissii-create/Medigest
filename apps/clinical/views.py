@@ -47,9 +47,7 @@ def _parse_date(value):
         return None
 
 
-@login_required
-@role_required("doctor")
-def doctor_dashboard(request):
+def _doctor_dashboard_context(request):
     cabinet = request.user.profile.cabinet
     today = timezone.localdate()
     selected_date = _parse_date(request.GET.get("date")) or today
@@ -71,27 +69,42 @@ def doctor_dashboard(request):
 
     next_patient = queue.first() if is_today else None
 
-    return render(
-        request,
-        "doctor/dashboard.html",
-        {
-            "queue": queue,
-            "next_patient": next_patient,
-            "now": timezone.now(),
-            "selected_date": selected_date,
-            "is_today": is_today,
-            "prev_date": selected_date - timedelta(days=1),
-            "next_date": selected_date + timedelta(days=1),
-            "today": today,
-            "today_total": day_appointments.count(),
-            "in_consultation_count": day_appointments.filter(
-                status=Appointment.Status.IN_CONSULTATION
-            ).count(),
-            "completed_today": day_appointments.filter(
-                status=Appointment.Status.COMPLETED
-            ).count(),
-        },
-    )
+    return {
+        "queue": queue,
+        "next_patient": next_patient,
+        # Patientes en salle d'attente : le client compare deux rafraîchissements pour le toast.
+        "waiting_json": [
+            {"id": a.pk, "name": f"{a.patient.first_name} {a.patient.last_name}"}
+            for a in queue
+            if a.status == Appointment.Status.WAITING
+        ] if is_today else [],
+        "now": timezone.now(),
+        "selected_date": selected_date,
+        "is_today": is_today,
+        "prev_date": selected_date - timedelta(days=1),
+        "next_date": selected_date + timedelta(days=1),
+        "today": today,
+        "today_total": day_appointments.count(),
+        "in_consultation_count": day_appointments.filter(
+            status=Appointment.Status.IN_CONSULTATION
+        ).count(),
+        "completed_today": day_appointments.filter(
+            status=Appointment.Status.COMPLETED
+        ).count(),
+    }
+
+
+@login_required
+@role_required("doctor")
+def doctor_dashboard(request):
+    return render(request, "doctor/dashboard.html", _doctor_dashboard_context(request))
+
+
+@login_required
+@role_required("doctor")
+def doctor_queue(request):
+    """GET (HTMX, toutes les 15 s) : file d'attente + compteurs et prochaine patiente en hx-swap-oob."""
+    return render(request, "doctor/_queue.html", _doctor_dashboard_context(request))
 
 
 def _apply_consultation_post(request, consultation, cabinet):

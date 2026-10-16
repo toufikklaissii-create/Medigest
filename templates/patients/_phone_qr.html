@@ -1,0 +1,48 @@
+{% comment %}
+Modal « Envoyer depuis le téléphone » : QR code d'un lien signé (une patiente, upload uniquement, 15 min).
+Tant qu'il est ouvert, la liste des documents se rafraîchit toutes les 5 s pour montrer les envois du téléphone.
+{% endcomment %}
+<div x-data="{ open: true, remaining: {{ max_age_minutes }} * 60,
+              get label() { const m = Math.floor(this.remaining / 60), s = this.remaining % 60; return m + ' min ' + String(s).padStart(2, '0') + ' s'; } }"
+     x-init="const timer = setInterval(() => { remaining = Math.max(0, remaining - 1); if (!open) clearInterval(timer); }, 1000)"
+     x-show="open" x-cloak @keydown.escape.window="open = false"
+     class="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="phone-qr-title">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="open = false"></div>
+    <div x-trap.noscroll="open" x-transition
+         class="relative w-full max-w-sm rounded-2xl bg-surface p-6 text-center shadow-popover">
+        <button type="button" @click="open = false" aria-label="Fermer"
+                class="btn-tactile absolute right-4 top-4 inline-flex size-8 items-center justify-center rounded-full text-text-muted hover:bg-rose-50 hover:text-rose-600">
+            <i data-lucide="x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+        </button>
+        <span class="mx-auto size-10 rounded-xl bg-sauge-50 text-sauge-600 grid place-items-center">
+            <i data-lucide="smartphone" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+        </span>
+        <h2 id="phone-qr-title" class="mt-3 text-[15px] font-semibold text-text-main">Envoyer depuis le téléphone</h2>
+        <p class="mt-1 text-[13px] text-text-muted">Scannez avec l'appareil photo pour ajouter des documents au dossier de {{ patient.full_name }}.</p>
+
+        <div class="mx-auto mt-5 w-56 rounded-xl border border-border-subtle bg-white p-3" :class="remaining === 0 && 'opacity-30'">
+            <div class="[&>svg]:h-auto [&>svg]:w-full" role="img" aria-label="QR code du lien d'envoi">{{ qr_svg }}</div>
+        </div>
+
+        <p class="mt-4 text-[13px] tabular-nums" :class="remaining === 0 ? 'text-rose-700' : 'text-text-muted'"
+           x-text="remaining === 0 ? 'Lien expiré : générez-en un nouveau.' : 'Valable encore ' + label">Valable {{ max_age_minutes }} minutes</p>
+        <p class="mt-1 break-all text-[11px] text-text-faint">{{ link }}</p>
+
+        <div class="mt-5 grid gap-2">
+            <button type="button" x-show="remaining === 0"
+                    hx-get="{% url 'patients:phone_upload_qr' patient.pk %}" hx-target="#phone-qr-slot" hx-swap="innerHTML"
+                    class="btn-tactile inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white hover:bg-sauge-700">
+                <i data-lucide="refresh-cw" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Nouveau QR code
+            </button>
+            <button type="button" @click="open = false"
+                    class="btn-tactile inline-flex h-10 items-center justify-center rounded-lg border border-border-subtle px-4 text-sm font-medium text-text-soft hover:bg-sauge-50">
+                Terminé
+            </button>
+        </div>
+    </div>
+    <!-- Rafraîchit la liste pendant que le QR est affiché (envois depuis le téléphone). -->
+    <template x-if="open && remaining > 0">
+        <div hx-get="{% url 'patients:patient_documents' patient.pk %}" hx-trigger="every 5s" hx-target="#documents-panel" hx-swap="outerHTML"
+             x-init="htmx.process($el)"></div>
+    </template>
+</div>

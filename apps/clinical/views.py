@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.text import slugify
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
@@ -15,6 +16,7 @@ from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, MedicalAct
 from apps.patients.models import Patient
 
+from .documents import documents_context, parse_exam_date, save_documents
 from .models import Consultation, ConsultationAct, Document, PatientDocument, pregnancy_dates
 from .services import (
     LETTER_TEMPLATES,
@@ -320,8 +322,7 @@ def patient_file(request, patient_id):
             "patient": patient,
             "consultations": consultations,
             "pregnancy": pregnancy,
-            "documents": PatientDocument.objects.filter(cabinet=cabinet, patient=patient),
-            "document_type_choices": PatientDocument.DocumentType.choices,
+            **documents_context(request, patient),
             "invoices": Invoice.objects.filter(cabinet=cabinet, patient=patient).order_by("-created_at"),
         },
     )
@@ -352,22 +353,46 @@ def unlock_consultation(request, appointment_id):
 def upload_patient_document(request, appointment_id):
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(Appointment, pk=appointment_id, cabinet=cabinet)
-    if request.method == "POST" and request.FILES.get("file"):
-        title = request.POST.get("title", "").strip() or request.FILES["file"].name
-        document_type = request.POST.get("document_type", PatientDocument.DocumentType.AUTRE)
-        if document_type not in PatientDocument.DocumentType.values:
-            document_type = PatientDocument.DocumentType.AUTRE
-        PatientDocument.objects.create(
+    if request.method == "POST":
+        consultation = Consultation.objects.filter(appointment=appointment, cabinet=cabinet).first()
+        created, errors = save_documents(
+            request.FILES.getlist("files") + request.FILES.getlist("file"),
             cabinet=cabinet,
             patient=appointment.patient,
-            title=title,
-            document_type=document_type,
-            file=request.FILES["file"],
+            document_type=request.POST.get("document_type", ""),
+            exam_date=parse_exam_date(request.POST.get("exam_date")) or timezone.localdate(),
+            consultation=consultation,
+            uploaded_by=request.user,
+            title=request.POST.get("title", "").strip(),
         )
-        messages.success(request, "Document ajouté au dossier de la patiente.")
-    else:
-        messages.error(request, "Veuillez sélectionner un fichier à téléverser.")
+        for error in errors:
+            messages.error(request, error)
+        if created:
+            messages.success(request, "Document ajouté au dossier de la patiente." if len(created) == 1
+                             else f"{len(created)} documents ajoutés au dossier de la patiente.")
     return redirect("clinical:consultation_detail", appointment_id=appointment.pk)
+
+
+@login_required
+@role_required("doctor")
+@xframe_options_sameorigin
+def serve_patient_document(request, pk):
+    """Ouvre un document joint (médecin uniquement, cabinet de l'utilisateur) — jamais via /media/ public."""
+    document = get_object_or_404(PatientDocument, pk=pk, cabinet=request.user.profile.cabinet)
+    try:
+        handle = document.file.open("rb")
+    except (FileNotFoundError, ValueError):
+        raise Http404("Fichier introuvable.")
+    # HEIC : aucun navigateur ne l'affiche, on le propose au téléchargement.
+    as_attachment = request.GET.get("download") == "1" or document.content_type == "image/heic"
+    response = FileResponse(
+        handle,
+        as_attachment=as_attachment,
+        filename=document.original_name or document.file.name.rsplit("/", 1)[-1],
+        content_type=document.content_type or "application/octet-stream",
+    )
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 @login_required
@@ -402,7 +427,7 @@ def download_full_patient_archive(request, patient_id):
         for doc in documents:
             if not doc.file:
                 continue
-            base_name = doc.file.name.rsplit("/", 1)[-1]
+            base_name = doc.original_name or doc.file.name.rsplit("/", 1)[-1]
             arcname = f"documents/{base_name}"
             suffix = 1
             while arcname in used_names:

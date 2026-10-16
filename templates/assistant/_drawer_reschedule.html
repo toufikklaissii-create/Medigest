@@ -48,4 +48,5 @@ Bloc « Reprogrammer » du tiroir RDV.
     </form>
     {% endif %}
 </div>
+{% if rescheduled %}{% include "assistant/_drawer_appt_time.html" with oob=True %}{% endif %}
 {% if oob_reminders %}{% include "assistant/_j2_reminders.html" with oob=True %}{% endif %}

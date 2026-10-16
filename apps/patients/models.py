@@ -53,6 +53,11 @@ class Patient(models.Model):
         return f"{self.patient_number} — {self.first_name} {self.last_name}"
 
     @property
+    def full_name(self):
+        """Prénom + nom, sans N° de dossier (toasts, micro-copie)."""
+        return f"{self.first_name} {self.last_name}".strip()
+
+    @property
     def age(self):
         if not self.birth_date:
             return None

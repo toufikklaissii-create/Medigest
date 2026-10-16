@@ -253,3 +253,29 @@ class WhatsappFlowTest(TestCase):
         self.assertTemplateUsed(response, "assistant/_calendar_body.html")
         appt.refresh_from_db()
         self.assertEqual(appt.whatsapp_status, Appointment.WhatsappStatus.PENDING)
+
+    def test_reschedule_panel_shows_new_time_and_toast_has_no_file_number(self):
+        appt = self._appt()
+        new_day = (timezone.localtime() + timedelta(days=4)).date()
+        response = self.client.post(
+            reverse("appointments:update_appointment_ajax", args=[appt.pk]),
+            {"date": new_day.isoformat(), "time": "16:45", "source": "whatsapp"},
+        )
+        html = response.content.decode()
+        # L'en-tête du tiroir (hors zone swappée) est remplacé en OOB avec la nouvelle heure.
+        self.assertIn('id="drawer-appt-time"', html)
+        oob = html.split('id="drawer-appt-time"', 1)[1].split("</span>", 1)[0]
+        self.assertIn('hx-swap-oob="true"', oob)
+        self.assertIn("16:45", oob)
+        self.assertNotIn("10:30", oob)
+        toast = json.loads(response.headers["HX-Trigger"])["toast"]["message"]
+        self.assertTrue(toast.startswith("Imane Tazi — RDV reprogrammé"), toast)
+        self.assertNotIn("PAT-", toast)
+
+    def test_whatsapp_toasts_show_only_first_and_last_name(self):
+        for action in ("send", "confirm", "reschedule"):
+            appt = self._appt()
+            response = self.client.post(reverse("appointments:whatsapp_action", args=[appt.pk, action]))
+            toast = json.loads(response.headers["HX-Trigger"])["toast"]["message"]
+            self.assertIn("Imane Tazi", toast)
+            self.assertNotIn("PAT-", toast)

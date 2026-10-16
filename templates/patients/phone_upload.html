@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Envoi de documents{% if cabinet %} · {{ cabinet.nom }}{% endif %}{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-canvas px-4 py-8">
+    <div class="mx-auto w-full max-w-md">
+        <div class="mb-6 flex items-center gap-3">
+            <span class="size-10 shrink-0 rounded-xl bg-sauge-50 text-sauge-600 grid place-items-center">
+                <i data-lucide="file-up" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0">
+                <h1 class="text-lg font-semibold leading-tight text-text-main">Envoi de documents</h1>
+                {% if cabinet %}<p class="truncate text-[13px] text-text-muted">{{ cabinet.nom }}</p>{% endif %}
+            </div>
+        </div>
+
+        {% if state == "expired" or state == "invalid" %}
+        <div class="rounded-2xl bg-surface p-6 text-center shadow-card">
+            <span class="mx-auto size-11 rounded-xl bg-amber-50 text-amber-700 grid place-items-center">
+                <i data-lucide="clock-alert" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <p class="mt-3 text-[15px] font-semibold text-text-main">{% if state == "expired" %}Ce lien a expiré{% else %}Lien non valide{% endif %}</p>
+            <p class="mt-1 text-sm text-text-muted">Demandez au cabinet d'afficher un nouveau QR code, puis scannez-le à nouveau.</p>
+        </div>
+
+        {% elif state == "sent" %}
+        <div class="rounded-2xl bg-surface p-6 text-center shadow-card">
+            <span class="mx-auto size-11 rounded-xl bg-emerald-50 text-emerald-700 grid place-items-center">
+                <i data-lucide="circle-check" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <p class="mt-3 text-[15px] font-semibold text-text-main">
+                {% if sent_count == 1 %}Document envoyé{% else %}{{ sent_count }} documents envoyés{% endif %}
+            </p>
+            <p class="mt-1 text-sm text-text-muted">Ils sont maintenant dans le dossier de {{ patient_label }}.</p>
+            {% for error in errors %}<p class="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-[13px] text-rose-700">{{ error }}</p>{% endfor %}
+            <a href="{{ request.path }}"
+               class="btn-tactile mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-border-subtle bg-surface text-sm font-semibold text-text-main hover:bg-sauge-50">
+                <i data-lucide="plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Envoyer un autre document
+            </a>
+        </div>
+
+        {% else %}
+        <form method="post" enctype="multipart/form-data" class="rounded-2xl bg-surface p-6 shadow-card"
+              x-data="{ count: 0, sending: false }" @submit="if (!count) { $event.preventDefault(); } else { sending = true; }">
+            {% csrf_token %}
+            <p class="text-sm text-text-soft">Dossier de <span class="font-semibold text-text-main">{{ patient_label }}</span></p>
+
+            {% for error in errors %}
+            <p class="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-[13px] text-rose-700" role="alert">{{ error }}</p>
+            {% endfor %}
+
+            <fieldset class="mt-5">
+                <legend class="mb-2 text-[13px] font-medium text-text-soft">Type de document</legend>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for value, label in document_type_choices %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="document_type" value="{{ value }}" class="peer sr-only"{% if value == "bilan" %} checked{% endif %}>
+                        <span class="flex h-12 items-center justify-center rounded-xl border border-border-subtle px-2 text-center text-sm font-medium text-text-soft transition-colors peer-checked:border-sauge-500 peer-checked:bg-sauge-50 peer-checked:text-sauge-600 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/30">{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <div class="mt-5">
+                <label for="exam-date" class="mb-1.5 block text-[13px] font-medium text-text-soft">Date de l'examen</label>
+                <input type="date" id="exam-date" name="exam_date" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}"
+                       class="h-12 w-full rounded-xl border border-border-subtle bg-surface px-3 text-base text-text-main focus:border-sauge-500 focus:outline-none focus:ring-2 focus:ring-sauge-600/20">
+            </div>
+
+            <div class="mt-5 grid gap-2">
+                <input type="file" id="camera" name="files" accept="image/*" capture="environment" class="peer/cam sr-only"
+                       @change="count = $refs.camera.files.length + $refs.gallery.files.length" x-ref="camera">
+                <label for="camera"
+                       class="btn-tactile flex h-14 cursor-pointer items-center justify-center gap-2 rounded-xl bg-sauge-600 text-base font-semibold text-white shadow-sm hover:bg-sauge-700">
+                    <i data-lucide="camera" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i> Prendre une photo
+                </label>
+                <input type="file" id="gallery" name="files" multiple accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/*" class="sr-only"
+                       @change="count = $refs.camera.files.length + $refs.gallery.files.length" x-ref="gallery">
+                <label for="gallery"
+                       class="btn-tactile flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-border-subtle text-sm font-medium text-text-soft hover:bg-sauge-50">
+                    <i data-lucide="images" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Choisir un fichier ou une photo
+                </label>
+                <p class="text-center text-[13px] text-text-muted" aria-live="polite"
+                   x-text="count ? (count === 1 ? '1 fichier prêt' : count + ' fichiers prêts') : 'PDF, JPG, PNG ou HEIC · 15 Mo maximum'">PDF, JPG, PNG ou HEIC · 15 Mo maximum</p>
+            </div>
+
+            <button type="submit" :disabled="!count || sending"
+                    class="btn-tactile mt-5 inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-sauge-900 text-base font-semibold text-white disabled:opacity-40">
+                <span x-show="sending" x-cloak class="size-4 rounded-full border-2 border-white/40 border-t-white animate-spin motion-reduce:animate-none" aria-hidden="true"></span>
+                <span x-text="sending ? 'Envoi en cours…' : 'Envoyer au cabinet'">Envoyer au cabinet</span>
+            </button>
+            <p class="mt-4 text-center text-[11px] text-text-faint">Ce lien permet uniquement d'envoyer des documents. Il expire après 15 minutes.</p>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

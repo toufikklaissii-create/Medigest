@@ -99,6 +99,9 @@ STORAGES = {
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Adresse joignable depuis un téléphone du cabinet (ex. http://192.168.1.20:8000) pour le QR code
+# « Envoyer depuis le téléphone ». Vide : adresse de la requête courante.
+PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

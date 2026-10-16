@@ -329,6 +329,28 @@
         };
     }
 
+    // Panneau « Documents » d'une patiente : glisser-déposer multi-fichiers + aperçu (médecin).
+    const DOCUMENT_MAX_BYTES = 15 * 1024 * 1024;
+    function documentsPanel() {
+        return {
+            files: [],
+            dragging: false,
+            uploading: false,
+            error: "",
+            preview: null,
+            take(fileList, assign = true) {
+                const picked = Array.from(fileList || []);
+                const tooBig = picked.filter((f) => f.size > DOCUMENT_MAX_BYTES).map((f) => f.name);
+                this.error = tooBig.length ? `${tooBig.join(", ")} : 15 Mo maximum par fichier.` : "";
+                if (assign && fileList && fileList.length) {
+                    try { this.$refs.input.files = fileList; } catch (e) { /* navigateur ancien : sélection manuelle */ }
+                }
+                this.files = picked;
+                this.$nextTick(() => window.lucide && lucide.createIcons());
+            },
+        };
+    }
+
     function toastHub() {
         return {
             toasts: [],

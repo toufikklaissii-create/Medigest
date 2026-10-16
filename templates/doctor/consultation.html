@@ -255,10 +255,10 @@
                                     </span>
                                     <div class="min-w-0">
                                         <p class="text-sm font-medium text-text-main truncate" title="{{ doc.title }}">{{ doc.title }}</p>
-                                        <p class="text-[12px] text-text-muted">{{ doc.get_document_type_display }} · {{ doc.created_at|date:"j F Y" }}</p>
+                                        <p class="text-[12px] text-text-muted">{{ doc.get_document_type_display }} · {% if doc.exam_date %}{{ doc.exam_date|date:"j F Y" }}{% else %}{{ doc.created_at|date:"j F Y" }}{% endif %}</p>
                                     </div>
                                 </div>
-                                <a href="{{ doc.file.url }}" target="_blank" rel="noopener noreferrer"
+                                <a href="{% url 'clinical:patient_document_file' doc.pk %}" target="_blank" rel="noopener noreferrer"
                                    class="btn-tactile shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
                                     <i data-lucide="external-link" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ouvrir
                                 </a>
@@ -286,8 +286,9 @@
                             </div>
                             <div class="sm:col-span-2 flex flex-wrap items-end gap-3">
                                 <div class="flex-1 min-w-[220px]">
-                                    <input type="file" id="doc-file" name="file" form="doc-upload-form" required class="sr-only peer"
-                                           @change="fileName = $event.target.files.length ? $event.target.files[0].name : ''">
+                                    <input type="file" id="doc-file" name="files" form="doc-upload-form" required multiple class="sr-only peer"
+                                           accept=".pdf,.jpg,.jpeg,.png,.heic,application/pdf,image/jpeg,image/png,image/heic"
+                                           @change="fileName = $event.target.files.length > 1 ? $event.target.files.length + ' fichiers sélectionnés' : ($event.target.files.length ? $event.target.files[0].name : '')">
                                     <label for="doc-file"
                                            class="btn-tactile flex items-center gap-2.5 w-full h-10 rounded-lg border border-dashed border-border-strong px-2 text-sm cursor-pointer hover:border-sauge-500/50 hover:bg-sauge-25 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/20 peer-focus-visible:border-sauge-500">
                                         <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-sauge-50 text-sauge-600 px-2.5 py-1 text-xs font-medium">

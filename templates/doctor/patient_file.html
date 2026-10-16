@@ -3,7 +3,7 @@
 {% block title %}Dossier · {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
 {% block content %}
 {% with label_cls="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint" %}
-<div class="px-4 sm:px-6 py-6 max-w-[1200px] mx-auto" x-data="patientFile()">
+<div class="px-4 sm:px-6 py-6 max-w-[1200px] mx-auto" x-data="patientFile()" @documents-changed.window="tabs.find((t) => t.key === 'documents').count = $event.detail.count">
 
     <!-- ═══ En-tête patiente ═══ -->
     <section class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5 sm:p-6" aria-labelledby="patient-name">
@@ -266,64 +266,8 @@
 
             <!-- 3. Documents joints -->
             <div role="tabpanel" id="panel-documents" aria-labelledby="tab-documents" x-show="tab === 'documents'" x-cloak tabindex="0">
-                {% if documents %}
-                <ul class="divide-y divide-border-subtle">
-                    {% for doc in documents %}
-                    <li class="flex items-center justify-between gap-3 py-2.5">
-                        <div class="flex items-center gap-2.5 min-w-0">
-                            <span class="size-9 shrink-0 rounded-lg bg-sauge-50 text-sauge-600 grid place-items-center">
-                                <i data-lucide="file-text" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
-                            </span>
-                            <div class="min-w-0">
-                                <p class="text-sm font-medium text-text-main truncate" title="{{ doc.title }}">{{ doc.title }}</p>
-                                <p class="text-[12px] text-text-muted">{{ doc.get_document_type_display }} · {{ doc.created_at|date:"j F Y" }}</p>
-                            </div>
-                        </div>
-                        <a href="{{ doc.file.url }}" target="_blank" rel="noopener noreferrer"
-                           class="btn-tactile shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
-                            <i data-lucide="external-link" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ouvrir
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-[13px] text-text-muted">Aucun document joint pour cette patiente.</p>
-                {% endif %}
-
-                <form method="post" enctype="multipart/form-data" action="{% url 'patients:patient_documents' patient.pk %}"
-                      class="mt-5 grid gap-3 border-t border-border-subtle pt-5 sm:grid-cols-[minmax(0,1fr)_180px]" x-data="{ fileName: '' }">
-                    {% csrf_token %}
-                    <input type="hidden" name="next" value="{% url 'clinical:patient_file' patient.pk %}#documents">
-                    <div>
-                        <label for="doc-title" class="block text-[13px] font-medium text-text-soft mb-1.5">Titre</label>
-                        <input type="text" id="doc-title" name="title" placeholder="Ex. Bilan sanguin du 3 septembre…"
-                               class="w-full h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">
-                    </div>
-                    <div>
-                        <label for="doc-type" class="block text-[13px] font-medium text-text-soft mb-1.5">Type</label>
-                        <select id="doc-type" name="document_type"
-                                class="w-full h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20">
-                            {% for value, label in document_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-                        </select>
-                    </div>
-                    <div class="sm:col-span-2 flex flex-wrap items-end gap-3">
-                        <div class="flex-1 min-w-[220px]">
-                            <input type="file" id="doc-file" name="file" required class="sr-only peer"
-                                   @change="fileName = $event.target.files.length ? $event.target.files[0].name : ''">
-                            <label for="doc-file"
-                                   class="btn-tactile flex items-center gap-2.5 w-full h-10 rounded-lg border border-dashed border-border-strong px-2 text-sm cursor-pointer hover:border-sauge-500/50 hover:bg-sauge-25 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/20">
-                                <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-sauge-50 text-sauge-600 px-2.5 py-1 text-xs font-medium">
-                                    <i data-lucide="paperclip" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Choisir un fichier
-                                </span>
-                                <span class="truncate" :class="fileName ? 'text-text-main' : 'text-text-faint'" x-text="fileName || 'Aucun fichier sélectionné'">Aucun fichier sélectionné</span>
-                            </label>
-                        </div>
-                        <button type="submit"
-                                class="btn-tactile shrink-0 h-10 inline-flex items-center gap-1.5 rounded-lg bg-sauge-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
-                            <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ajouter au dossier
-                        </button>
-                    </div>
-                </form>
+                {% include "patients/_documents_panel.html" %}
+                <div id="phone-qr-slot"></div>
             </div>
 
             <!-- 4. Factures -->
@@ -381,7 +325,7 @@
             tabs: [
                 { key: "historique", label: "Historique", count: {{ consultations|length }} },
                 { key: "evolution", label: "Évolution", count: {{ consultations|length }} },
-                { key: "documents", label: "Documents joints", count: {{ documents|length }} },
+                { key: "documents", label: "Documents", count: {{ documents|length }} },
                 { key: "factures", label: "Factures", count: {{ invoices|length }} },
             ],
             tab: "historique",

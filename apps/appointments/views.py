@@ -490,7 +490,7 @@ def save_intake_vitals(request, pk):
         response.headers["HX-Trigger"] = _toast_header(error_message, "error")
     elif consultation is not None and request.method == "POST":
         response.headers["HX-Trigger"] = _toast_header(
-            f"{appointment.patient} — constantes enregistrées."
+            f"{appointment.patient.full_name} — constantes enregistrées."
         )
     return response
 
@@ -522,7 +522,7 @@ def create_appointment_ajax(request):
             admin_notes=request.POST.get("admin_notes", "").strip(),
         )
         anchor_date = parsed_date.date()
-        toast_message = f"RDV créé pour {patient}."
+        toast_message = f"RDV créé pour {patient.full_name}."
 
     return _render_day_fragment(request, anchor_date, toast_message)
 
@@ -546,7 +546,7 @@ def update_appointment_ajax(request, pk):
             appointment.save(update_fields=["date"])
             anchor_date = parsed_date.date()
             toast_message = (
-                f"{appointment.patient} — RDV reprogrammé au {anchor_date:%d/%m/%Y} à {time_str}."
+                f"{appointment.patient.full_name} — RDV reprogrammé au {anchor_date:%d/%m/%Y} à {time_str}."
             )
 
     if request.POST.get("source") == "whatsapp":
@@ -582,7 +582,7 @@ def cancel_appointment_ajax(request, pk):
     if request.method == "POST":
         appointment.status = Appointment.Status.CANCELLED
         appointment.save(update_fields=["status"])
-        toast_message = f"{appointment.patient} — RDV annulé."
+        toast_message = f"{appointment.patient.full_name} — RDV annulé."
 
     return _render_day_fragment(request, anchor_date, toast_message)
 
@@ -600,7 +600,7 @@ def calendar_advance_status(request, pk):
         if next_status:
             appointment.status = next_status
             appointment.save(update_fields=["status"])
-            toast_message = f"{appointment.patient} — statut mis à jour."
+            toast_message = f"{appointment.patient.full_name} — statut mis à jour."
 
     return _render_day_fragment(request, anchor_date, toast_message)
 
@@ -687,7 +687,7 @@ def create_appointment(request, patient_id=None):
                 duration_minutes=request.POST.get("duration_minutes") or 30,
                 reason=request.POST.get("reason", "").strip(),
             )
-            messages.success(request, f"RDV créé pour {patient}.")
+            messages.success(request, f"RDV créé pour {patient.full_name}.")
             return redirect("appointments:assistant_dashboard")
         messages.error(request, "La date du RDV est obligatoire.")
 
@@ -723,7 +723,7 @@ def advance_status(request, pk):
         if next_status:
             appointment.status = next_status
             appointment.save(update_fields=["status"])
-            toast_message = f"{appointment.patient} — statut mis à jour."
+            toast_message = f"{appointment.patient.full_name} — statut mis à jour."
 
     if request.headers.get("HX-Target") == "timeline":
         response = render(request, "assistant/_timeline.html", _timeline_context(cabinet))
@@ -806,7 +806,7 @@ def whatsapp_action(request, pk, action):
                 "url": f"{reverse('appointments:appointment_drawer', args=[pk])}?from=whatsapp"
             }
         patient = appointment.patient
-        message = message_template.format(patient=patient, name=f"{patient.first_name} {patient.last_name}")
+        message = message_template.format(patient=patient.full_name, name=patient.full_name)
         events["toast"] = {"message": message, "type": "success"}
         events["panel-refresh"] = True
 

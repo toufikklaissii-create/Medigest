@@ -39,6 +39,7 @@ urlpatterns = [
         views.upload_patient_document,
         name="upload_patient_document",
     ),
+    path("documents/<int:pk>/fichier/", views.serve_patient_document, name="patient_document_file"),
     path(
         "consultation/<int:appointment_id>/pdf/dossier/",
         views.download_patient_record_pdf,

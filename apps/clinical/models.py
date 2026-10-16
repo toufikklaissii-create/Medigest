@@ -1,5 +1,7 @@
+import uuid
 from datetime import timedelta
 from decimal import Decimal
+from pathlib import Path
 
 from django.conf import settings
 from django.db import models
@@ -172,10 +174,18 @@ class Document(models.Model):
         return f"{self.get_document_type_display()} — {self.consultation}"
 
 
+def patient_document_path(instance, filename):
+    """Rangement par patiente, nom aléatoire : le nom d'origine ne vit qu'en base (`original_name`)."""
+    extension = Path(filename).suffix.lower()[:10]
+    return f"patient_documents/{instance.cabinet_id or 0}/{instance.patient_id}/{uuid.uuid4().hex}{extension}"
+
+
 class PatientDocument(models.Model):
     class DocumentType(models.TextChoices):
         RADIO = "radio", "Radio"
-        BILAN = "bilan", "Bilan"
+        ECHOGRAPHIE = "echographie", "Échographie"
+        BILAN = "bilan", "Bilan biologique"
+        COMPTE_RENDU = "compte_rendu", "Compte rendu externe"
         AUTRE = "autre", "Autre"
 
     cabinet = models.ForeignKey(
@@ -184,15 +194,32 @@ class PatientDocument(models.Model):
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="documents_joints"
     )
+    consultation = models.ForeignKey(
+        Consultation, on_delete=models.SET_NULL, related_name="patient_documents", null=True, blank=True
+    )
     title = models.CharField(max_length=150)
     document_type = models.CharField(max_length=20, choices=DocumentType.choices, default=DocumentType.AUTRE)
-    file = models.FileField(upload_to="patient_documents/")
+    exam_date = models.DateField("Date de l'examen", null=True, blank=True)
+    file = models.FileField(upload_to=patient_document_path, max_length=255)
+    original_name = models.CharField("Nom d'origine", max_length=255, blank=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="+", null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Document patiente"
         verbose_name_plural = "Documents patiente"
-        ordering = ["-created_at"]
+        ordering = [models.F("exam_date").desc(nulls_last=True), "-created_at"]
 
     def __str__(self):
         return f"{self.title} — {self.patient}"
+
+    @property
+    def is_image(self):
+        return self.content_type in ("image/jpeg", "image/png")
+
+    @property
+    def is_pdf(self):
+        return self.content_type == "application/pdf"

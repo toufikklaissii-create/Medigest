@@ -41,7 +41,7 @@
                 {% else %}bg-sauge-50 text-sauge-600 border-sauge-100{% endif %}">
                 {{ appointment.get_status_display }}
             </span>
-            <span class="text-xs text-text-muted">{{ appointment.date|date:"H:i" }}</span>
+            {% include "assistant/_drawer_appt_time.html" %}
         </div>
 
         <p class="text-sm text-text-main mb-5">{{ appointment.reason|default:"—" }}</p>

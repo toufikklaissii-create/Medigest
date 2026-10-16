@@ -66,12 +66,12 @@ def _apply_background(pdf_bytes, background):
 
 
 def save_pdf_copy(patient, document_kind, pdf_bytes, reference=""):
-    """Archive a generated PDF under media/documents/<patient_number>/<date>/.
+    """Archive a generated PDF under media/documents/<cabinet_id>/<patient_number>/<date>/.
 
     Returns the path written, relative to MEDIA_ROOT.
     """
     today = timezone.localdate().isoformat()
-    directory = Path(settings.MEDIA_ROOT) / "documents" / patient.patient_number / today
+    directory = Path(settings.MEDIA_ROOT) / "documents" / str(patient.cabinet_id or 0) / patient.patient_number / today
     directory.mkdir(parents=True, exist_ok=True)
 
     suffix = f"_{reference}" if reference else ""

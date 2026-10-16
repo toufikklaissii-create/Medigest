@@ -1,4 +1,4 @@
-{% extends "pdf/_letterhead_base.html" %}
+{% extends pdf_base|default:"pdf/_letterhead_base.html" %}
 {% block title %}COMPTE RENDU DE CONSULTATION{% endblock %}
 {% block body %}
 {% if reason %}<h2>Motif</h2><p class="text">{{ reason }}</p>{% endif %}

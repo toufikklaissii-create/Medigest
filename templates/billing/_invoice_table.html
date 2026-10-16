@@ -24,6 +24,9 @@
     </div>
 
     <div class="group-[.htmx-request]/table:hidden">
+    {% if assistant_view %}
+    <h2 class="px-5 pt-4 pb-3 text-[15px] font-semibold text-text-main">{% if query %}Résultats pour « {{ query }} »{% else %}À encaisser{% endif %}</h2>
+    {% endif %}
     {% if invoices %}
     <div class="overflow-x-auto">
         <table class="w-full text-sm">
@@ -74,17 +77,10 @@
                                 </button>
                                 <div role="menu" x-show="menu" x-cloak
                                      x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-                                     class="absolute right-0 top-full z-30 mt-1 w-60 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
-                                    <a role="menuitem" href="{% url 'billing:invoice_pdf' invoice.pk %}" target="_blank" rel="noopener"
-                                       class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                        <i data-lucide="file-text" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Facture (PDF)
-                                    </a>
+                                     class="absolute right-0 top-full z-30 mt-1 w-[min(400px,calc(100vw-2rem))] rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
+                                    {% url 'billing:invoice_pdf' invoice.pk as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Facture" icon="file-text" %}
                                     {% for payment in invoice.payments.all %}
-                                    <a role="menuitem" href="{% url 'billing:payment_receipt' payment.pk %}" target="_blank" rel="noopener"
-                                       class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                        <i data-lucide="receipt" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i>
-                                        <span class="truncate">Reçu {{ payment.amount|dh }} <span class="text-text-muted">· {{ payment.paid_at|date:"j/m" }}</span></span>
-                                    </a>
+                                    {% url 'billing:payment_receipt' payment.pk as doc_url %}{% with receipt_label="Reçu "|add:payment.receipt_number %}{% include "_print_actions.html" with variant="menu" url=doc_url label=receipt_label icon="receipt" %}{% endwith %}
                                     {% endfor %}
                                     {% if request.user.profile.is_doctor and not invoice.is_cancelled and not invoice.payments.all %}
                                     <div class="my-1.5 h-px bg-border-subtle" role="separator"></div>
@@ -103,7 +99,7 @@
         </table>
     </div>
 
-    {% if page_obj.paginator.num_pages > 1 %}
+    {% if page_obj and page_obj.paginator.num_pages > 1 %}
     <nav class="flex items-center justify-between gap-3 border-t border-border-subtle px-5 py-3 text-[13px] text-text-muted" aria-label="Pagination">
         <span class="tabular-nums">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
         <div class="flex gap-2">
@@ -130,6 +126,9 @@
         {% if query or status %}
         <p class="text-sm text-text-muted">Aucune facture ne correspond à cette recherche.</p>
         <a href="{% url 'billing:index' %}" class="text-[13px] font-medium text-sauge-600 hover:underline">Effacer les filtres</a>
+        {% elif assistant_view %}
+        <p class="text-sm text-text-muted">Aucune facture à encaisser.</p>
+        <p class="text-[13px] text-text-faint">Pour réimprimer une facture ou un reçu, utilisez la recherche.</p>
         {% else %}
         <p class="text-sm text-text-muted">Aucune facture pour le moment.</p>
         <p class="text-[13px] text-text-faint">Elles sont créées à la validation des consultations.</p>

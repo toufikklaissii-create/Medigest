@@ -5,7 +5,11 @@
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Facturation</h1>
+            {% if request.user.profile.is_doctor %}
             <p class="text-sm text-text-muted mt-1">Factures, encaissements et reste dû. Les recettes comptent au jour de l'encaissement.</p>
+            {% else %}
+            <p class="text-sm text-text-muted mt-1">Factures à encaisser. Pour réimprimer une facture ou un reçu, recherchez-la par nom ou par numéro.</p>
+            {% endif %}
         </div>
         {% if request.user.profile.is_doctor %}
         <a href="{% url 'billing:tariffs' %}"
@@ -21,6 +25,7 @@
           hx-push-url="true" hx-indicator="#invoice-table"
           x-data="{ statut: '{{ status }}' }" @submit.prevent>
         <input type="hidden" name="partial" value="table">
+        {% if status_filters %}
         <div role="radiogroup" aria-label="Statut" class="flex flex-wrap gap-1 rounded-xl bg-slate-100/70 p-1">
             {% for value, label, count in status_filters %}
             <label class="btn-tactile inline-flex items-center gap-2 h-9 rounded-lg px-3 text-[13px] font-medium cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sauge-600/30"
@@ -31,11 +36,12 @@
             </label>
             {% endfor %}
         </div>
-        <label class="relative md:w-[320px]">
+        {% endif %}
+        <label class="relative md:w-[320px] {% if not status_filters %}md:ml-auto{% endif %}">
             <span class="sr-only">Rechercher une patiente ou un numéro de facture</span>
             <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
             <input id="invoice-search" type="search" name="q" value="{{ query }}" autocomplete="off"
-                   placeholder="Patiente ou n° de facture"
+                   placeholder="{% if status_filters %}Patiente ou n° de facture{% else %}Retrouver une facture : nom ou n°{% endif %}"
                    class="w-full h-10 rounded-lg border border-border-subtle bg-surface pl-9 pr-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">
         </label>
     </form>

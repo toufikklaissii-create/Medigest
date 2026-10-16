@@ -23,10 +23,17 @@ l'assistante saisit seulement le montant encaissé, borné au reste dû côté s
             <p class="text-[13px] text-text-muted tabular-nums">
                 {{ payment.amount|dh }} en {{ payment.get_method_display|lower }}{% if invoice.balance_due %}, reste dû {{ invoice.balance_due|dh }}{% endif %}
             </p>
-            <a href="{{ receipt_url }}" target="_blank" rel="noopener"
-               class="btn-tactile mt-1 inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-4 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
-                <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Imprimer le reçu
-            </a>
+            <div class="mt-1 flex flex-wrap items-center justify-center gap-2">
+                <a href="{{ receipt_url }}" target="_blank" rel="noopener"
+                   class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-4 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                    <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Imprimer le reçu
+                </a>
+                <a href="{{ receipt_letterhead_url }}" target="_blank" rel="noopener"
+                   class="btn-tactile inline-flex items-center h-10 rounded-lg px-3 text-[13px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                    PDF avec en-tête
+                </a>
+            </div>
+            <p class="text-[11.5px] text-text-faint">Taille réelle (100 %)</p>
         </div>
         {% else %}
         <form hx-post="{% url 'billing:pay_invoice' invoice.pk %}" hx-target="#modal-host" hx-swap="innerHTML"

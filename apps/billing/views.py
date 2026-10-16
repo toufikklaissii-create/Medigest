@@ -10,6 +10,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
+from apps.clinical.services import mode_from_request
 from apps.common.templatetags.medigest_format import dh
 
 from .models import Invoice, MedicalAct, Payment, PaymentMethod
@@ -35,6 +36,7 @@ STATUS_FILTERS = [
     (Invoice.Status.CANCELLED, "Annulée"),
 ]
 PAGE_SIZE = 20
+ASSISTANT_SEARCH_LIMIT = 10
 
 
 def _hx_trigger(response, **events):
@@ -52,13 +54,7 @@ def _cabinet_invoices(request):
 
 # ── Page Facturation ─────────────────────────────────────────────────────────
 
-def _invoice_list_context(request):
-    status = request.GET.get("statut", "")
-    if status not in Invoice.Status.values:
-        status = ""
-    query = request.GET.get("q", "").strip()
-
-    invoices = _cabinet_invoices(request).select_related("patient")
+def _search_invoices(invoices, query):
     for term in query.split():
         invoices = invoices.filter(
             Q(invoice_number__icontains=term)
@@ -66,6 +62,18 @@ def _invoice_list_context(request):
             | Q(patient__last_name__icontains=term)
             | Q(patient__patient_number__icontains=term)
         )
+    return invoices
+
+
+def _invoice_list_context(request):
+    query = request.GET.get("q", "").strip()
+    invoices = _search_invoices(_cabinet_invoices(request).select_related("patient"), query)
+    if not request.user.profile.is_doctor:
+        return _assistant_invoice_context(request, invoices, query)
+
+    status = request.GET.get("statut", "")
+    if status not in Invoice.Status.values:
+        status = ""
     counts = dict(invoices.values_list("status").annotate(n=Count("pk")).values_list("status", "n"))
     if status:
         invoices = invoices.filter(status=status)
@@ -81,6 +89,30 @@ def _invoice_list_context(request):
             (value, label, sum(counts.values()) if not value else counts.get(value, 0))
             for value, label in STATUS_FILTERS
         ],
+    }
+
+
+def _assistant_invoice_context(request, invoices, query):
+    """Assistante : factures à encaisser, ou recherche d'une facture précise pour la réimprimer.
+
+    Jamais de liste des factures payées ni de compteurs : les recettes restent à la doctoresse.
+    """
+    invoices = invoices.prefetch_related("payments").order_by("-created_at", "-pk")
+    if query:
+        page_obj = None
+        invoices = list(invoices.exclude(status=Invoice.Status.CANCELLED)[:ASSISTANT_SEARCH_LIMIT])
+    else:
+        page_obj = Paginator(
+            invoices.filter(status__in=[Invoice.Status.PENDING, Invoice.Status.PARTIAL]), PAGE_SIZE
+        ).get_page(request.GET.get("page"))
+        invoices = page_obj.object_list
+    return {
+        "page_obj": page_obj,
+        "invoices": invoices,
+        "status": "",
+        "query": query,
+        "status_filters": [],
+        "assistant_view": True,
     }
 
 
@@ -146,7 +178,9 @@ def pay_invoice(request, pk):
         )
 
     invoice.refresh_from_db()
-    receipt_url = reverse("billing:payment_receipt", args=[payment.pk])
+    # Reçu ouvert automatiquement : version « Imprimer » (papier pré-imprimé de l'accueil).
+    receipt_letterhead_url = reverse("billing:payment_receipt", args=[payment.pk])
+    receipt_url = f"{receipt_letterhead_url}?mode=impression"
     if invoice.status == Invoice.Status.PAID:
         message = f"Facture {invoice.invoice_number} soldée ({payment.get_method_display()})."
     else:
@@ -157,7 +191,8 @@ def pay_invoice(request, pk):
         toast_type = "error"
     response = render(
         request, "billing/_pay_modal.html",
-        {"invoice": invoice, "payment": payment, "receipt_url": receipt_url, "done": True},
+        {"invoice": invoice, "payment": payment, "receipt_url": receipt_url,
+         "receipt_letterhead_url": receipt_letterhead_url, "done": True},
     )
     return _hx_trigger(
         response, toast=_toast(message, toast_type), **{"invoice-paid": True, "receipt-ready": {"url": receipt_url}}
@@ -206,7 +241,7 @@ def _pdf_response(pdf_bytes, filename):
 @login_required
 def invoice_pdf(request, pk):
     invoice = get_object_or_404(_cabinet_invoices(request).select_related("patient"), pk=pk)
-    return _pdf_response(generate_invoice_pdf(invoice), f"facture_{invoice.invoice_number}.pdf")
+    return _pdf_response(generate_invoice_pdf(invoice, mode=mode_from_request(request)), f"facture_{invoice.invoice_number}.pdf")
 
 
 @login_required
@@ -215,7 +250,7 @@ def payment_receipt(request, pk):
         Payment.objects.select_related("invoice__patient"),
         pk=pk, invoice__cabinet=request.user.profile.cabinet,
     )
-    return _pdf_response(generate_receipt_pdf(payment), f"recu_{payment.receipt_number}.pdf")
+    return _pdf_response(generate_receipt_pdf(payment, mode=mode_from_request(request)), f"recu_{payment.receipt_number}.pdf")
 
 
 @login_required

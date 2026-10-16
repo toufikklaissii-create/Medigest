@@ -469,28 +469,13 @@
                         <div id="documents-menu" role="menu" x-show="menu" x-cloak
                              x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
                              x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                             class="absolute bottom-full left-0 z-30 mb-2 w-64 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
-                            <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">PDF de la consultation</p>
-                            <a role="menuitem" href="{% url 'clinical:prescription_pdf' appointment.pk %}" target="_blank" rel="noopener" @click="menu = false"
-                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                <i data-lucide="pill" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Ordonnance
-                            </a>
-                            <a role="menuitem" href="{% url 'clinical:report_pdf' appointment.pk %}" target="_blank" rel="noopener" @click="menu = false"
-                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                <i data-lucide="file-text" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Compte rendu
-                            </a>
-                            <a role="menuitem" href="{% url 'clinical:letter_pdf' appointment.pk 'letter' %}" target="_blank" rel="noopener" @click="menu = false"
-                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                <i data-lucide="mail" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Lettre à un confrère
-                            </a>
-                            <a role="menuitem" href="{% url 'clinical:letter_pdf' appointment.pk 'certificate' %}" target="_blank" rel="noopener" @click="menu = false"
-                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                <i data-lucide="badge-check" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Certificat de prise en charge
-                            </a>
-                            <a role="menuitem" href="{% url 'clinical:letter_pdf' appointment.pk 'preanesthesia' %}" target="_blank" rel="noopener" @click="menu = false"
-                               class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
-                                <i data-lucide="syringe" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Pré-anesthésie
-                            </a>
+                             class="absolute bottom-full left-0 z-30 mb-2 w-[min(400px,calc(100vw-2rem))] rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
+                            <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Documents de la consultation</p>
+                            {% url 'clinical:prescription_pdf' appointment.pk as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Ordonnance" icon="pill" %}
+                            {% url 'clinical:report_pdf' appointment.pk as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Compte rendu" icon="file-text" %}
+                            {% url 'clinical:letter_pdf' appointment.pk 'letter' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Lettre à un confrère" icon="mail" %}
+                            {% url 'clinical:letter_pdf' appointment.pk 'certificate' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Certificat" icon="badge-check" %}
+                            {% url 'clinical:letter_pdf' appointment.pk 'preanesthesia' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Pré-anesthésie" icon="syringe" %}
                             <div class="my-1.5 h-px bg-border-subtle" role="separator"></div>
                             <a role="menuitem" href="{% url 'clinical:patient_record_pdf' appointment.pk %}" @click="menu = false"
                                class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-soft hover:bg-sauge-25">

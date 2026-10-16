@@ -189,20 +189,11 @@
                                 <!-- Documents PDF -->
                                 <div class="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-4">
                                     {% if c.prescription %}
-                                    <a href="{% url 'clinical:prescription_pdf' c.appointment_id %}" target="_blank" rel="noopener"
-                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
-                                        <i data-lucide="pill" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Ordonnance
-                                    </a>
+                                    {% url 'clinical:prescription_pdf' c.appointment_id as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label="Ordonnance" icon="pill" %}
                                     {% endif %}
-                                    <a href="{% url 'clinical:report_pdf' c.appointment_id %}" target="_blank" rel="noopener"
-                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
-                                        <i data-lucide="file-text" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Compte rendu
-                                    </a>
+                                    {% url 'clinical:report_pdf' c.appointment_id as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label="Compte rendu" icon="file-text" %}
                                     {% for key, label in c.letters %}
-                                    <a href="{% url 'clinical:letter_pdf' c.appointment_id key %}" target="_blank" rel="noopener"
-                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
-                                        <i data-lucide="mail" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> {{ label }}
-                                    </a>
+                                    {% url 'clinical:letter_pdf' c.appointment_id key as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label=label icon="mail" %}
                                     {% endfor %}
                                     <a href="{% url 'clinical:consultation_detail' c.appointment_id %}"
                                        class="btn-tactile ml-auto inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
@@ -296,10 +287,7 @@
                                 </td>
                                 <td class="px-4 text-right font-semibold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount|dh }}</td>
                                 <td class="px-4 text-right whitespace-nowrap">
-                                    <a href="{% url 'billing:invoice_pdf' invoice.pk %}" target="_blank" rel="noopener"
-                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
-                                        <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Facture
-                                    </a>
+                                    {% url 'billing:invoice_pdf' invoice.pk as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label="Facture" icon="receipt" %}
                                 </td>
                             </tr>
                             {% endfor %}

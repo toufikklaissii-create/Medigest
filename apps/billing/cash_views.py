@@ -1,9 +1,14 @@
-"""Caisse (journal + clôture, deux rôles) et Rapports / exports (doctoresse uniquement)."""
+"""Caisse : clôture à l'aveugle (assistante) ; Recettes du jour, rapports et exports (doctoresse).
+
+L'assistante ne voit jamais un total, un montant attendu ni un écart : tout ce qui agrège les
+recettes est réservé à la doctoresse, côté serveur.
+"""
 from datetime import timedelta
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
@@ -32,30 +37,63 @@ def _cabinet(request):
 # ── Caisse ───────────────────────────────────────────────────────────────────
 
 def _journal_context(request, day, **extra):
-    today = local_today()
+    """Journal complet (doctoresse) : encaissements, totaux, attendu, écart, historique."""
     context = cash_journal(_cabinet(request), day)
     context.update(
-        day_label=format_long_date(day),
-        is_today=day == today,
-        previous_day=day - timedelta(days=1),
-        next_day=day + timedelta(days=1) if day < today else None,
-        today=today,
-        can_close=day <= today and context["closing"] is None,
+        _day_navigation(day),
+        can_close=day <= local_today() and context["closing"] is None,
+        show_history=True,
+        closings=CashClosing.objects.filter(cabinet=_cabinet(request)).select_related("closed_by")[:30],
         **extra,
     )
-    if request.user.profile.is_doctor:
-        context["show_history"] = True
-        context["closings"] = (
-            CashClosing.objects.filter(cabinet=_cabinet(request)).select_related("closed_by")[:30]
-        )
     return context
+
+
+def _requested_day(value):
+    return min(parse_iso_date(value, local_today()), local_today())
+
+
+def _day_navigation(day):
+    today = local_today()
+    return {
+        "day": day,
+        "day_label": format_long_date(day),
+        "is_today": day == today,
+        "previous_day": day - timedelta(days=1),
+        "next_day": day + timedelta(days=1) if day < today else None,
+        "today": today,
+    }
+
+
+def _blind_context(request, day, **extra):
+    """Clôture à l'aveugle : ni attendu, ni total, ni écart — seulement l'état de la journée."""
+    closing = CashClosing.objects.filter(cabinet=_cabinet(request), date=day).select_related("closed_by").first()
+    return {
+        **_day_navigation(day),
+        "closing": closing,
+        "can_close": day <= local_today() and closing is None,
+        **extra,
+    }
 
 
 @login_required
 @role_required("doctor", "assistant")
 def cash_register(request):
-    day = min(parse_iso_date(request.GET.get("date"), local_today()), local_today())
-    context = _journal_context(request, day)
+    """Caisse de l'assistante (clôture à l'aveugle) ; la doctoresse est renvoyée vers ses recettes."""
+    if request.user.profile.is_doctor:
+        url = reverse("billing:daily_revenue")
+        return redirect(f"{url}?date={request.GET['date']}" if request.GET.get("date") else url)
+    context = _blind_context(request, _requested_day(request.GET.get("date")))
+    if request.headers.get("HX-Request"):
+        return render(request, "billing/_blind_closing.html", context)
+    return render(request, "billing/cash_close_blind.html", context)
+
+
+@login_required
+@role_required("doctor")
+def daily_revenue(request):
+    """Recettes du jour : journal des encaissements, totaux, clôture et écart."""
+    context = _journal_context(request, _requested_day(request.GET.get("date")))
     if request.headers.get("HX-Request"):
         return render(request, "billing/_cash_journal.html", context)
     return render(request, "billing/cash_register.html", context)
@@ -67,12 +105,20 @@ def cash_register(request):
 def cash_close(request):
     day = parse_iso_date(request.POST.get("date"), local_today())
     raw = request.POST.get("counted_cash", "")
+    note = request.POST.get("note", "")
     counted = parse_amount(raw)
+    blind = not request.user.profile.is_doctor
     try:
-        closing = close_cash_day(_cabinet(request), day, counted, request.POST.get("note", ""), request.user)
+        closing = close_cash_day(_cabinet(request), day, counted, note, request.user)
     except BillingError as error:
-        context = _journal_context(request, day, close_error=str(error), counted_input=raw, note_input=request.POST.get("note", ""))
+        if blind:
+            context = _blind_context(request, day, close_error=str(error), counted_input=raw, note_input=note)
+            return render(request, "billing/_blind_closing.html", context)
+        context = _journal_context(request, day, close_error=str(error), counted_input=raw, note_input=note)
         return render(request, "billing/_cash_journal.html", context)
+    if blind:
+        response = render(request, "billing/_blind_closing.html", _blind_context(request, day, just_closed=True))
+        return _hx_trigger(response, toast=_toast("Clôture enregistrée."))
     if closing.difference:
         message = f"Caisse clôturée · écart de {dh(closing.difference)}."
     else:

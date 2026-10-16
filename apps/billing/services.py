@@ -3,8 +3,9 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.utils import timezone
 
-from apps.clinical.services import LETTERHEAD, letterhead_context
-from apps.common.pdf import render_pdf, save_pdf_copy
+from apps.accounts.models import PrintProfile
+from apps.clinical.services import MODE_LETTERHEAD, letterhead_context, render_document
+from apps.common.pdf import save_pdf_copy
 from apps.common.templatetags.medigest_format import dh
 
 from .amount_words import montant_en_lettres
@@ -131,10 +132,10 @@ def report_discrepancy(invoice, message, author):
     )
 
 
-def generate_invoice_pdf(invoice, save_copy=True):
+def generate_invoice_pdf(invoice, save_copy=True, mode=MODE_LETTERHEAD):
     patient = invoice.patient
     payments = list(invoice.payments.all())
-    pdf_bytes = render_pdf(
+    pdf_bytes = render_document(
         "pdf/invoice.html",
         {
             **letterhead_context(patient, invoice.created_at),
@@ -144,18 +145,18 @@ def generate_invoice_pdf(invoice, save_copy=True):
             "amount_paid": sum((p.amount for p in payments), Decimal("0")),
             "amount_words": montant_en_lettres(invoice.total_amount),
         },
-        background=LETTERHEAD,
+        cabinet=invoice.cabinet, document_type=PrintProfile.DocumentType.FACTURE, mode=mode,
     )
     if save_copy:
         save_pdf_copy(patient, "facture", pdf_bytes, reference=invoice.invoice_number)
     return pdf_bytes
 
 
-def generate_receipt_pdf(payment, save_copy=True):
+def generate_receipt_pdf(payment, save_copy=True, mode=MODE_LETTERHEAD):
     """Reçu d'UN paiement (un reçu par encaissement, partiel ou non)."""
     invoice = payment.invoice
     patient = invoice.patient
-    pdf_bytes = render_pdf(
+    pdf_bytes = render_document(
         "pdf/receipt.html",
         {
             **letterhead_context(patient, payment.paid_at),
@@ -163,7 +164,7 @@ def generate_receipt_pdf(payment, save_copy=True):
             "payment": payment,
             "amount_words": montant_en_lettres(payment.amount),
         },
-        background=LETTERHEAD,
+        cabinet=invoice.cabinet, document_type=PrintProfile.DocumentType.RECU, mode=mode,
     )
     if save_copy:
         save_pdf_copy(patient, "recu", pdf_bytes, reference=payment.receipt_number)

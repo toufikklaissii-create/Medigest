@@ -1,4 +1,4 @@
-{% extends "pdf/_letterhead_base.html" %}
+{% extends pdf_base|default:"pdf/_letterhead_base.html" %}
 {% block title %}{{ doc_title|upper }}{% endblock %}
 {% block body %}
 {% if content %}<p class="text">{{ content }}</p>{% else %}<p class="muted">Document vide.</p>{% endif %}

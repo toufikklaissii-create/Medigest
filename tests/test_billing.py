@@ -228,8 +228,10 @@ class PaymentsTest(BillingTestBase):
         invoice = self._invoice("500")
         record_payment(invoice, Decimal("200"), "cash", self.assistant, paid_at=timezone.now() - timedelta(days=1))
         record_payment(invoice, Decimal("120"), "cash", self.assistant)
+        response = self.doctor_client.get(reverse("billing:daily_revenue"))
+        self.assertEqual(response.context["total"], Decimal("120"))
         response = self.assistant_client.get(reverse("appointments:assistant_dashboard"))
-        self.assertEqual(response.context["cashed_today"], Decimal("120"))
+        self.assertNotIn("cashed_today", response.context)
 
     def test_receipt_per_payment(self):
         invoice = self._invoice("500")
@@ -313,13 +315,13 @@ class BillingPagesTest(BillingTestBase):
         Invoice.objects.create(cabinet=self.cabinet, patient=other, total_amount=Decimal("100"))
 
         url = reverse("billing:index")
-        response = self.assistant_client.get(url, {"statut": "paid"})
+        response = self.doctor_client.get(url, {"statut": "paid"})
         self.assertEqual(list(response.context["invoices"]), [paid])
-        response = self.assistant_client.get(url, {"q": "fassi"})
+        response = self.doctor_client.get(url, {"q": "fassi"})
         self.assertEqual([i.patient for i in response.context["invoices"]], [other])
-        response = self.assistant_client.get(url, {"q": pending.invoice_number})
+        response = self.doctor_client.get(url, {"q": pending.invoice_number})
         self.assertEqual(list(response.context["invoices"]), [pending])
-        partial = self.assistant_client.get(url, {"partial": "table", "statut": "pending"}, HTTP_HX_REQUEST="true")
+        partial = self.doctor_client.get(url, {"partial": "table", "statut": "pending"}, HTTP_HX_REQUEST="true")
         self.assertTemplateUsed(partial, "billing/_invoice_table.html")
         self.assertContains(partial, "Reste dû")
 

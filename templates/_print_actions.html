@@ -1,0 +1,38 @@
+{% comment %}
+Paire d'actions d'un document : « Imprimer » (papier pré-imprimé, ?mode=impression) et
+« PDF avec en-tête ». Paramètres : url (PDF), label (« Ordonnance »…), icon (Lucide),
+variant : "menu" (ligne d'un menu déroulant, x-data « menu ») ou "inline" (groupe de boutons).
+{% endcomment %}
+{% if variant == "menu" %}
+<div class="flex items-center gap-2 rounded-lg px-2.5 py-1.5 hover:bg-sauge-25/60">
+    <i data-lucide="{{ icon|default:'file-text' }}" class="w-4 h-4 shrink-0 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i>
+    <span class="min-w-0 flex-1">
+        <span class="block truncate text-sm text-text-main">{{ label }}</span>
+        <span class="block text-[11px] leading-tight text-text-faint">Taille réelle (100 %)</span>
+    </span>
+    <a role="menuitem" href="{{ url }}?mode=impression" target="_blank" rel="noopener" @click="menu = false"
+       aria-label="Imprimer — {{ label }}"
+       class="btn-tactile shrink-0 inline-flex items-center gap-1 h-8 rounded-lg bg-sauge-600 px-2.5 text-[12.5px] font-semibold text-white hover:bg-sauge-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+        <i data-lucide="printer" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Imprimer
+    </a>
+    <a role="menuitem" href="{{ url }}" target="_blank" rel="noopener" @click="menu = false"
+       aria-label="PDF avec en-tête — {{ label }}" title="PDF avec en-tête"
+       class="btn-tactile shrink-0 inline-flex items-center h-8 rounded-lg border border-border-subtle bg-surface px-2 text-[12px] font-medium text-text-soft hover:border-sauge-200 hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+        PDF avec en-tête
+    </a>
+</div>
+{% else %}
+<span class="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-border-subtle bg-surface py-1 pl-3 pr-1">
+    <i data-lucide="{{ icon|default:'file-text' }}" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i>
+    <span class="text-[13px] font-medium text-text-main">{{ label }}</span>
+    <a href="{{ url }}?mode=impression" target="_blank" rel="noopener" aria-label="Imprimer — {{ label }}"
+       class="btn-tactile ml-1 inline-flex items-center gap-1 h-8 rounded-md bg-sauge-600 px-2.5 text-[12.5px] font-semibold text-white hover:bg-sauge-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+        <i data-lucide="printer" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Imprimer
+    </a>
+    <span class="text-[11px] text-text-faint whitespace-nowrap">Taille réelle (100 %)</span>
+    <a href="{{ url }}" target="_blank" rel="noopener" aria-label="PDF avec en-tête — {{ label }}"
+       class="btn-tactile inline-flex items-center h-8 rounded-md px-2 text-[12px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+        PDF avec en-tête
+    </a>
+</span>
+{% endif %}

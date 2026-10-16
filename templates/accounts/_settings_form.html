@@ -1,0 +1,99 @@
+{% with input_cls="w-full h-10 rounded-lg border bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" %}
+<form id="cabinet-settings" hx-post="{% url 'accounts:settings' %}" hx-target="this" hx-swap="outerHTML"
+      hx-disabled-elt="find button[type=submit]" class="space-y-6">
+    {% csrf_token %}
+
+    <section class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6" aria-labelledby="identity-title">
+        <h2 id="identity-title" class="text-[15px] font-semibold text-text-main">Mentions du cabinet</h2>
+        <p class="mt-1 text-[13px] text-text-muted">La ville s'imprime sur les PDF avec en-tête ; l'INPE et l'ICE en bas des factures quand ils sont renseignés.</p>
+        <div class="mt-5 grid gap-4 sm:grid-cols-3">
+            <label class="block">
+                <span class="text-[13px] font-medium text-text-soft">Ville</span>
+                <input name="ville" value="{{ cabinet.ville }}" maxlength="80" placeholder="Khemisset" class="mt-1.5 {{ input_cls }} border-border-subtle">
+            </label>
+            <label class="block">
+                <span class="text-[13px] font-medium text-text-soft">INPE</span>
+                <input name="inpe" value="{{ cabinet.inpe }}" maxlength="30" class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+            </label>
+            <label class="block">
+                <span class="text-[13px] font-medium text-text-soft">ICE</span>
+                <input name="ice" value="{{ cabinet.ice }}" maxlength="30" class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+            </label>
+        </div>
+    </section>
+
+    <section class="bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden" aria-labelledby="print-title">
+        <div class="px-6 pt-5 pb-4">
+            <h2 id="print-title" class="text-[15px] font-semibold text-text-main">Impression sur papier pré-imprimé</h2>
+            <p class="mt-1 text-[13px] text-text-muted">Imprimez la page de test sur une feuille du cabinet, en taille réelle (100 %). Si le texte tombe à côté des repères, corrigez le décalage : X positif vers la droite, Y positif vers le bas.</p>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50/50">
+                    <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                        <th scope="col" class="text-left font-semibold px-6 py-3">Document</th>
+                        <th scope="col" class="text-left font-semibold px-3 py-3 w-[120px]">Format</th>
+                        <th scope="col" class="text-left font-semibold px-3 py-3 w-[130px]">Décalage X</th>
+                        <th scope="col" class="text-left font-semibold px-3 py-3 w-[130px]">Décalage Y</th>
+                        <th scope="col" class="px-6 py-3 w-[170px]"><span class="sr-only">Page de test</span></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-border-subtle">
+                    {% for profile in profiles %}
+                    {% with key=profile.document_type label=profile.get_document_type_display %}
+                    <tr class="align-top">
+                        <th scope="row" class="px-6 py-3 text-left font-medium text-text-main">
+                            <span class="inline-flex min-h-10 items-center">{{ label }}</span>
+                            {% if key == "lettre" %}<span class="block text-[12px] font-normal text-text-muted">Lettre, certificat, pré-anesthésie</span>{% endif %}
+                        </th>
+                        <td class="px-3 py-3">
+                            <label class="sr-only" for="{{ key }}-format">Format — {{ label }}</label>
+                            <select id="{{ key }}-format" name="{{ key }}-format" class="{{ input_cls }} border-border-subtle">
+                                <option value="A4" {% if profile.format == "A4" %}selected{% endif %}>A4</option>
+                                <option value="A5" {% if profile.format == "A5" %}selected{% endif %}>A5</option>
+                            </select>
+                        </td>
+                        <td class="px-3 py-3">
+                            <label class="sr-only" for="{{ key }}-x">Décalage X en mm — {{ label }}</label>
+                            <div class="relative">
+                                <input id="{{ key }}-x" name="{{ key }}-x" value="{{ profile.decalage_x_mm|floatformat:1 }}" inputmode="decimal"
+                                       class="{{ input_cls }} pr-10 text-right tabular-nums {% if key in errors %}border-rose-300{% else %}border-border-subtle{% endif %}"
+                                       {% if key in errors %}aria-invalid="true" aria-describedby="{{ key }}-error"{% endif %}>
+                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-text-muted">mm</span>
+                            </div>
+                        </td>
+                        <td class="px-3 py-3">
+                            <label class="sr-only" for="{{ key }}-y">Décalage Y en mm — {{ label }}</label>
+                            <div class="relative">
+                                <input id="{{ key }}-y" name="{{ key }}-y" value="{{ profile.decalage_y_mm|floatformat:1 }}" inputmode="decimal"
+                                       class="{{ input_cls }} pr-10 text-right tabular-nums {% if key in errors %}border-rose-300{% else %}border-border-subtle{% endif %}"
+                                       {% if key in errors %}aria-invalid="true" aria-describedby="{{ key }}-error"{% endif %}>
+                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-text-muted">mm</span>
+                            </div>
+                            {% for error_key, message in errors.items %}{% if error_key == key %}<p id="{{ key }}-error" class="mt-1 text-[12.5px] text-rose-600">{{ message }}</p>{% endif %}{% endfor %}
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            {# Les valeurs en cours de saisie de la ligne sont envoyées : test possible avant d'enregistrer. #}
+                            <a href="{% url 'accounts:print_test_page' key %}" target="_blank" rel="noopener"
+                               @click.prevent="const data = new URLSearchParams(); $el.closest('tr').querySelectorAll('input, select').forEach(f => data.append(f.name, f.value)); window.open($el.href + '?' + data, '_blank')"
+                               class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+                                <i data-lucide="printer" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Page de test
+                            </a>
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="flex items-center justify-end gap-3">
+        {% if saved %}<p class="text-[13px] text-emerald-700" role="status">Réglages enregistrés.</p>{% endif %}
+        <button type="submit"
+                class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30 focus-visible:ring-offset-2">
+            <i data-lucide="check" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Enregistrer
+        </button>
+    </div>
+</form>
+{% endwith %}

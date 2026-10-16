@@ -1,20 +1,20 @@
 {% load medigest_format %}
 <div id="cash-journal" class="group/journal space-y-6"
-     hx-get="{% url 'billing:cash_register' %}?date={{ day|date:'Y-m-d' }}" hx-trigger="invoice-paid from:body"
+     hx-get="{% url 'billing:daily_revenue' %}?date={{ day|date:'Y-m-d' }}" hx-trigger="invoice-paid from:body"
      hx-target="this" hx-swap="outerHTML">
 
     <!-- Navigation entre les journées -->
     <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-1.5">
             <a href="?date={{ previous_day|date:'Y-m-d' }}"
-               hx-get="{% url 'billing:cash_register' %}?date={{ previous_day|date:'Y-m-d' }}" hx-target="#cash-journal" hx-swap="outerHTML" hx-push-url="true"
+               hx-get="{% url 'billing:daily_revenue' %}?date={{ previous_day|date:'Y-m-d' }}" hx-target="#cash-journal" hx-swap="outerHTML" hx-push-url="true"
                hx-indicator="#cash-journal" title="Jour précédent" aria-label="Jour précédent"
                class="btn-tactile size-10 inline-flex items-center justify-center rounded-lg border border-border-subtle bg-surface text-text-soft hover:bg-sauge-25 hover:border-sauge-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
                 <i data-lucide="chevron-left" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
             </a>
             {% if next_day %}
             <a href="?date={{ next_day|date:'Y-m-d' }}"
-               hx-get="{% url 'billing:cash_register' %}?date={{ next_day|date:'Y-m-d' }}" hx-target="#cash-journal" hx-swap="outerHTML" hx-push-url="true"
+               hx-get="{% url 'billing:daily_revenue' %}?date={{ next_day|date:'Y-m-d' }}" hx-target="#cash-journal" hx-swap="outerHTML" hx-push-url="true"
                hx-indicator="#cash-journal" title="Jour suivant" aria-label="Jour suivant"
                class="btn-tactile size-10 inline-flex items-center justify-center rounded-lg border border-border-subtle bg-surface text-text-soft hover:bg-sauge-25 hover:border-sauge-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
                 <i data-lucide="chevron-right" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
@@ -29,7 +29,7 @@
         </div>
         {% if not is_today %}
         <a href="?date={{ today|date:'Y-m-d' }}"
-           hx-get="{% url 'billing:cash_register' %}" hx-target="#cash-journal" hx-swap="outerHTML" hx-push-url="{% url 'billing:cash_register' %}"
+           hx-get="{% url 'billing:daily_revenue' %}" hx-target="#cash-journal" hx-swap="outerHTML" hx-push-url="{% url 'billing:daily_revenue' %}"
            class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
             <i data-lucide="calendar-check" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Aujourd'hui
         </a>

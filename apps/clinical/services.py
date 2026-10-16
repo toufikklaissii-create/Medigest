@@ -1,5 +1,6 @@
 from django.utils import timezone
 
+from apps.accounts.models import PrintProfile
 from apps.common.pdf import render_pdf, save_pdf_copy
 
 PRESCRIPTION_TEMPLATES = {
@@ -35,6 +36,15 @@ PRESCRIPTION_TEMPLATES = {
 # Papier à en-tête du cabinet (logo, coordonnées, pied de page), posé en fond de chaque page.
 LETTERHEAD = "pdf/entete_cabinet.pdf"
 PRESCRIPTION_LETTERHEAD = "pdf/ordonnance_modele.pdf"  # même en-tête, titre « ORDONNANCE » imprimé
+
+# Deux rendus par document : « Imprimer » sur papier pré-imprimé (texte seul, réglages du
+# profil) ou « PDF avec en-tête » (fond du cabinet, à envoyer ou archiver).
+MODE_PRINT = "impression"
+MODE_LETTERHEAD = "entete"
+PRINT_BASE = "pdf/_print_base.html"
+LETTERHEAD_BASE = "pdf/_letterhead_base.html"
+# Lettre, certificat et pré-anesthésie partagent le profil « lettre ».
+LETTER_PRINT_PROFILE = PrintProfile.DocumentType.LETTRE
 
 
 LETTER_TEMPLATES = {
@@ -91,15 +101,40 @@ def letterhead_context(patient, doc_date, doctor=None):
     }
 
 
-def generate_prescription_pdf(consultation, content, save_copy=True):
+def mode_from_request(request):
+    """« ?mode=impression » : papier pré-imprimé ; sinon PDF avec en-tête."""
+    return MODE_PRINT if request.GET.get("mode") == MODE_PRINT else MODE_LETTERHEAD
+
+
+def render_document(template_name, context, *, cabinet, document_type, mode=MODE_LETTERHEAD,
+                    background=LETTERHEAD):
+    """PDF d'un document selon le profil d'impression du cabinet pour ce type.
+
+    Impression : sans fond, sans titre, au format du profil et avec son décalage.
+    En-tête : rendu habituel avec fond, réduit en A5 si le profil est en A5.
+    """
+    profile = PrintProfile.for_document(cabinet, document_type)
+    if mode == MODE_PRINT:
+        return render_pdf(
+            template_name, {**context, "pdf_base": PRINT_BASE, "print_mode": True},
+            page_format=profile.format, offset_mm=(profile.decalage_x_mm, profile.decalage_y_mm),
+        )
+    return render_pdf(
+        template_name, {**context, "pdf_base": LETTERHEAD_BASE}, background=background,
+        page_format=profile.format,
+    )
+
+
+def generate_prescription_pdf(consultation, content, save_copy=True, mode=MODE_LETTERHEAD):
     patient = consultation.patient
-    pdf_bytes = render_pdf(
+    pdf_bytes = render_document(
         "pdf/prescription.html",
         {
             "patient": patient,
             "doc_date": consultation.updated_at,
             "prescription_lines": prescription_lines(content),
         },
+        cabinet=consultation.cabinet, document_type=PrintProfile.DocumentType.ORDONNANCE, mode=mode,
         background=PRESCRIPTION_LETTERHEAD,
     )
     if save_copy:
@@ -107,24 +142,24 @@ def generate_prescription_pdf(consultation, content, save_copy=True):
     return pdf_bytes
 
 
-def generate_letter_pdf(consultation, document_type, content, save_copy=True):
+def generate_letter_pdf(consultation, document_type, content, save_copy=True, mode=MODE_LETTERHEAD):
     patient = consultation.patient
     doc_title = LETTER_TEMPLATES.get(document_type, {}).get("label", "Document")
-    pdf_bytes = render_pdf(
+    pdf_bytes = render_document(
         "pdf/letter.html",
         {
             **letterhead_context(patient, consultation.updated_at, consultation.doctor),
             "doc_title": doc_title,
             "content": content,
         },
-        background=LETTERHEAD,
+        cabinet=consultation.cabinet, document_type=LETTER_PRINT_PROFILE, mode=mode,
     )
     if save_copy:
         save_pdf_copy(patient, document_type, pdf_bytes, reference=consultation.pk)
     return pdf_bytes
 
 
-def generate_report_pdf(consultation, save_copy=True):
+def generate_report_pdf(consultation, save_copy=True, mode=MODE_LETTERHEAD):
     patient = consultation.patient
     # Même calcul que le cockpit et le dossier (Consultation.pregnancy, au jour du RDV) :
     # le champ stocké gestational_age_weeks peut être périmé si la DDR a changé depuis.
@@ -136,7 +171,7 @@ def generate_report_pdf(consultation, save_copy=True):
         for line in consultation.consultation_acts.select_related("act")
         if line.act.is_quick_exam
     ]
-    pdf_bytes = render_pdf(
+    pdf_bytes = render_document(
         "pdf/consultation_report.html",
         {
             **letterhead_context(patient, consultation.appointment.date, consultation.doctor),
@@ -154,7 +189,7 @@ def generate_report_pdf(consultation, save_copy=True):
             "diagnostic": consultation.diagnostic,
             "clinical_notes": consultation.clinical_notes,
         },
-        background=LETTERHEAD,
+        cabinet=consultation.cabinet, document_type=PrintProfile.DocumentType.COMPTE_RENDU, mode=mode,
     )
     if save_copy:
         save_pdf_copy(patient, "compte_rendu", pdf_bytes, reference=consultation.pk)

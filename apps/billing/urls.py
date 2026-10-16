@@ -15,6 +15,7 @@ urlpatterns = [
     path("paiements/<int:pk>/recu/", views.payment_receipt, name="payment_receipt"),
     path("caisse/", cash_views.cash_register, name="cash_register"),
     path("caisse/cloturer/", cash_views.cash_close, name="cash_close"),
+    path("recettes/", cash_views.daily_revenue, name="daily_revenue"),
     path("rapports/", cash_views.reports, name="reports"),
     path("rapports/export.xlsx", cash_views.export_xlsx, name="export_xlsx"),
     path("rapports/recapitulatif.pdf", cash_views.export_pdf, name="export_pdf"),

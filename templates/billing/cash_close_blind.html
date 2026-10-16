@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Caisse · Medigest{% endblock %}
+{% block content %}
+<div class="max-w-[640px] mx-auto px-4 sm:px-8 py-8">
+    <div>
+        <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Caisse</h1>
+        <p class="text-sm text-text-muted mt-1">Clôture de la journée : comptez les espèces de la caisse et saisissez le montant.</p>
+    </div>
+    <div class="mt-7">
+        {% include "billing/_blind_closing.html" %}
+    </div>
+</div>
+{% endblock %}

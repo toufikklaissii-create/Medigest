@@ -212,14 +212,14 @@
             <i data-lucide="receipt" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Facturation</span>
         </a>
-        {% url 'billing:cash_register' as cash_url %}
-        <a href="{{ cash_url }}"
-           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
-               {% if request.path == cash_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
-            <i data-lucide="wallet" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
-            <span class="truncate inline md:hidden lg:inline">Caisse</span>
-        </a>
         {% if role == 'doctor' %}
+        {% url 'billing:daily_revenue' as revenue_url %}
+        <a href="{{ revenue_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == revenue_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="wallet" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Recettes du jour</span>
+        </a>
         {% url 'billing:reports' as reports_url %}
         <a href="{{ reports_url }}"
            class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
@@ -227,12 +227,29 @@
             <i data-lucide="chart-column" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Rapports</span>
         </a>
+        {% else %}
+        {% url 'billing:cash_register' as cash_url %}
+        <a href="{{ cash_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == cash_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="wallet" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Caisse</span>
+        </a>
+        {% endif %}
+        {% if role == 'doctor' %}
         {% url 'billing:tariffs' as tariffs_url %}
         <a href="{{ tariffs_url }}"
            class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
                {% if request.path == tariffs_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
             <i data-lucide="tags" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Tarifs</span>
+        </a>
+        {% url 'accounts:settings' as settings_url %}
+        <a href="{{ settings_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == settings_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="settings" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Réglages du cabinet</span>
         </a>
         {% endif %}
         <a href="{{ comms_url }}"

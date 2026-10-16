@@ -88,10 +88,19 @@ aucune donnée clinique (diagnostic, observations, ordonnances) n'est rendue ici
                 {% if invoice.paid_at %}<span class="block text-[12px] text-emerald-700">{{ invoice.get_payment_method_display }} à {{ invoice.paid_at|date:"H:i" }}</span>{% endif %}
             </p>
             {% if invoice.paid_at %}
-            <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank" rel="noopener"
-               class="btn-tactile shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100">
-                <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Reçu
-            </a>
+            <div class="shrink-0 flex flex-col items-end">
+                <div class="flex items-center gap-1">
+                    <a href="{% url 'billing:invoice_receipt' invoice.pk %}?mode=impression" target="_blank" rel="noopener"
+                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-emerald-800 hover:bg-emerald-100">
+                        <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Imprimer le reçu
+                    </a>
+                    <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank" rel="noopener"
+                       class="btn-tactile inline-flex items-center h-9 rounded-lg px-2 text-[12px] font-medium text-emerald-800/80 hover:bg-emerald-100">
+                        PDF avec en-tête
+                    </a>
+                </div>
+                <span class="pr-3 text-[11px] text-emerald-700/80">Taille réelle (100 %)</span>
+            </div>
             {% endif %}
         </div>
         {% elif invoice and invoice.status == "pending" %}

@@ -149,7 +149,7 @@
                 <tbody class="divide-y divide-border-subtle">
                     {% for row in by_day %}{% if row.count %}
                     <tr class="h-12 hover:bg-sauge-25 transition-colors">
-                        <td class="px-6"><a href="{% url 'billing:cash_register' %}?date={{ row.date|date:'Y-m-d' }}" class="text-text-main hover:text-sauge-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">{{ row.date|date:"l j F Y" }}</a></td>
+                        <td class="px-6"><a href="{% url 'billing:daily_revenue' %}?date={{ row.date|date:'Y-m-d' }}" class="text-text-main hover:text-sauge-600 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">{{ row.date|date:"l j F Y" }}</a></td>
                         <td class="px-3 text-right tabular-nums text-text-soft">{{ row.count }}</td>
                         <td class="px-6 text-right tabular-nums font-medium text-text-main">{{ row.amount|dh }}</td>
                     </tr>

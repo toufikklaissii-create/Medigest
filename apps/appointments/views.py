@@ -5,13 +5,12 @@ from datetime import date, datetime, time, timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Q, Sum
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Profile
-from apps.billing.models import Payment
 from apps.billing.services import PAYMENT_SHORTCUTS, pending_invoices_queryset
 from apps.clinical.models import Consultation
 from apps.communications.views import _active_tasks_for
@@ -134,19 +133,12 @@ def _timeline_context(cabinet):
 
 
 def _day_counters(cabinet, appointments):
+    # Aucun montant ici : les recettes du jour sont réservées à la doctoresse.
     S = Appointment.Status
-    today = timezone.localdate()
-    # Recettes du jour : comptées à la date d'encaissement, paiements partiels compris.
-    cashed = (
-        Payment.objects.filter(invoice__cabinet=cabinet, paid_at__date=today)
-        .aggregate(total=Sum("amount"))["total"]
-        or 0
-    )
     return {
         "count_total": len(appointments),
         "count_waiting": sum(1 for a in appointments if a.status in (S.ARRIVED, S.WAITING)),
         "count_in_consultation": sum(1 for a in appointments if a.status == S.IN_CONSULTATION),
-        "cashed_today": cashed,
     }
 
 

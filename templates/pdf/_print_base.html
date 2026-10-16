@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    /* Impression sur le papier pré-imprimé du cabinet : PDF SANS fond, texte seul.
+       Le titre, l'en-tête, « Khemisset, le … » et le pied sont déjà sur la feuille.
+       Zones de static/pdf/ordonnance_modele.pdf (A4, 595 x 842 pt) : la date sur les
+       pointillés, le corps dans la zone blanche. Le format A5 et le décalage du profil
+       sont appliqués après coup par apps/common/pdf.fit_pages. */
+    @page {
+        size: A4;
+        @frame date_frame { left: 284pt; width: 110pt; top: 180pt; height: 22pt; }
+        @frame body_frame { left: 62pt; width: 471pt; top: 214pt; height: 528pt; }
+    }
+    @page suite {
+        size: A4;
+        /* Pages suivantes : le texte démarre sous la bande d'en-tête. */
+        @frame body_frame { left: 62pt; width: 471pt; top: 146pt; height: 596pt; }
+    }
+
+    body { font-family: Times-Roman, serif; color: #111827; font-size: 11.5pt; line-height: 1.35; }
+    p { margin: 0; }
+    .date { font-size: 12pt; }
+
+    .patient { font-size: 12pt; padding-bottom: 6pt; margin-bottom: 12pt; }
+    .patient .meta { color: #4B5563; font-size: 10.5pt; }
+
+    h2 { font-family: Times-Bold; font-size: 12pt; color: #111827; margin: 12pt 0 3pt 0; padding: 0; }
+    .text { white-space: pre-line; }
+    .muted { color: #6B7280; font-style: italic; }
+
+    table.grid { width: 100%; border: 0.6pt solid #9CA3AF; }
+    table.grid td, table.grid th { padding: 4pt 7pt; font-size: 10.5pt; vertical-align: top; text-align: left; border: 0.6pt solid #9CA3AF; }
+    table.grid th { font-family: Times-Bold; }
+    .right { text-align: right; }
+
+    .stamp { font-family: Times-Bold; font-size: 15pt; color: #15803D; border: 1.6pt solid #15803D; padding: 4pt 10pt; letter-spacing: 2pt; }
+    .legal { margin-top: 14pt; font-size: 8.5pt; color: #4B5563; text-align: center; }
+
+    .signature { text-align: right; font-size: 11pt; padding-top: 24pt; }
+    .signature .name { font-family: Times-Bold; }
+</style>
+</head>
+<body>
+    <p class="date">{{ doc_date|date:"j F Y" }}</p>
+    {# Après la date (page 1 déjà commencée) : sinon xhtml2pdf l'applique dès la page 1. #}
+    <pdf:nexttemplate name="suite"/>
+    <pdf:nextframe/>
+
+    {% block patient %}
+    <div class="patient">
+        <b>Patiente :</b> Mme {{ patient.first_name }} {{ patient.last_name }}
+        <span class="meta">{% if patient.age %} — {{ patient.age }} ans{% endif %} — Dossier {{ patient.patient_number }}</span>
+    </div>
+    {% endblock %}
+
+    {% block body %}{% endblock %}
+
+    {% block signature %}
+    <div class="signature">
+        <p class="name">{{ doctor_name|default:"Le médecin" }}</p>
+        <p>Signature et cachet</p>
+    </div>
+    {% endblock %}
+</body>
+</html>

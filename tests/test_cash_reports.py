@@ -138,7 +138,7 @@ class CashClosingTest(CashReportsBase):
         today = timezone.localdate()
         invoice = self.invoice([self.consult, self.echo])
         self.pay(invoice, "200", timezone.now(), method=Payment.Method.CHECK, reference="CHQ-881")
-        response = self.assistant_client.get(reverse("billing:cash_register"))
+        response = self.doctor_client.get(reverse("billing:daily_revenue"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, invoice.invoice_number)
         self.assertContains(response, "CHQ-881")
@@ -162,8 +162,10 @@ class CashClosingTest(CashReportsBase):
         self.assertEqual(closing.counted_cash, Decimal("280"))
         self.assertEqual(closing.difference, Decimal("-20"))
         self.assertEqual(closing.closed_by, self.assistant)
-        self.assertIn("écart", json.loads(response.headers["HX-Trigger"])["toast"]["message"])
-        self.assertContains(response, "Journée clôturée")
+        # Clôture à l'aveugle : confirmation sans montant ni écart pour l'assistante.
+        self.assertEqual(json.loads(response.headers["HX-Trigger"])["toast"]["message"], "Clôture enregistrée.")
+        self.assertContains(response, "Clôture enregistrée")
+        self.assertNotContains(response, "DH")
 
         again = self.assistant_client.post(
             reverse("billing:cash_close"), {"date": timezone.localdate().isoformat(), "counted_cash": "300"}
@@ -203,7 +205,7 @@ class CashClosingTest(CashReportsBase):
             cabinet=self.cabinet, date=date(2026, 10, 1), expected_cash=Decimal("100"),
             counted_cash=Decimal("90"), difference=Decimal("-10"), note="Billet manquant",
         )
-        self.assertContains(self.doctor_client.get(reverse("billing:cash_register")), "Billet manquant")
+        self.assertContains(self.doctor_client.get(reverse("billing:daily_revenue")), "Billet manquant")
         self.assertNotContains(self.assistant_client.get(reverse("billing:cash_register")), "Historique des clôtures")
 
 

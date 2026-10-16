@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Réglages du cabinet · Medigest{% endblock %}
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 sm:px-8 py-8">
+    <div>
+        <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Réglages du cabinet</h1>
+        <p class="text-sm text-text-muted mt-1">Mentions imprimées sur les documents et réglage de l'impression sur le papier pré-imprimé.</p>
+    </div>
+    <div class="mt-7">
+        {% include "accounts/_settings_form.html" %}
+    </div>
+</div>
+{% endblock %}

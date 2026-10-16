@@ -1,4 +1,4 @@
-{% extends "pdf/_letterhead_base.html" %}
+{% extends pdf_base|default:"pdf/_letterhead_base.html" %}
 {% load medigest_format %}
 {% block title %}REÇU DE PAIEMENT{% endblock %}
 {% block body %}

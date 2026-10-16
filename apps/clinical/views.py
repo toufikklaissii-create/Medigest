@@ -26,6 +26,7 @@ from .services import (
     generate_patient_record_pdf,
     generate_prescription_pdf,
     generate_report_pdf,
+    mode_from_request,
 )
 
 LETTER_DOCUMENT_TYPES = {
@@ -475,7 +476,7 @@ def download_prescription_pdf(request, appointment_id):
         document_type=Document.DocumentType.PRESCRIPTION
     ).first()
     content = prescription_doc.content if prescription_doc else ""
-    pdf_bytes = generate_prescription_pdf(consultation, content)
+    pdf_bytes = generate_prescription_pdf(consultation, content, mode=mode_from_request(request))
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="ordonnance_{consultation.patient.patient_number}.pdf"'
     return response
@@ -493,7 +494,7 @@ def download_letter_pdf(request, appointment_id, letter_type):
         document_type=LETTER_DOCUMENT_TYPES[letter_type]
     ).first()
     content = letter_doc.content if letter_doc else ""
-    pdf_bytes = generate_letter_pdf(consultation, letter_type, content)
+    pdf_bytes = generate_letter_pdf(consultation, letter_type, content, mode=mode_from_request(request))
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = (
         f'inline; filename="{letter_type}_{consultation.patient.patient_number}.pdf"'
@@ -507,7 +508,7 @@ def download_report_pdf(request, appointment_id):
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(Appointment, pk=appointment_id, cabinet=cabinet)
     consultation = get_object_or_404(Consultation, appointment=appointment, cabinet=cabinet)
-    pdf_bytes = generate_report_pdf(consultation)
+    pdf_bytes = generate_report_pdf(consultation, mode=mode_from_request(request))
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="compte_rendu_{consultation.patient.patient_number}.pdf"'
     return response

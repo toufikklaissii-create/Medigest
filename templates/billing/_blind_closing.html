@@ -1,0 +1,83 @@
+{% comment %}
+Clôture à l'aveugle (assistante) : aucun montant attendu, total ni écart n'est affiché.
+L'écart n'est visible que de la doctoresse, dans « Recettes du jour ».
+{% endcomment %}
+<div id="cash-closing" class="group/closing space-y-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-1.5">
+            <a href="?date={{ previous_day|date:'Y-m-d' }}"
+               hx-get="{% url 'billing:cash_register' %}?date={{ previous_day|date:'Y-m-d' }}" hx-target="#cash-closing" hx-swap="outerHTML" hx-push-url="true"
+               hx-indicator="#cash-closing" title="Jour précédent" aria-label="Jour précédent"
+               class="btn-tactile size-10 inline-flex items-center justify-center rounded-lg border border-border-subtle bg-surface text-text-soft hover:bg-sauge-25 hover:border-sauge-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+                <i data-lucide="chevron-left" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+            </a>
+            {% if next_day %}
+            <a href="?date={{ next_day|date:'Y-m-d' }}"
+               hx-get="{% url 'billing:cash_register' %}?date={{ next_day|date:'Y-m-d' }}" hx-target="#cash-closing" hx-swap="outerHTML" hx-push-url="true"
+               hx-indicator="#cash-closing" title="Jour suivant" aria-label="Jour suivant"
+               class="btn-tactile size-10 inline-flex items-center justify-center rounded-lg border border-border-subtle bg-surface text-text-soft hover:bg-sauge-25 hover:border-sauge-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30">
+                <i data-lucide="chevron-right" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+            </a>
+            {% else %}
+            <span class="size-10 inline-flex items-center justify-center rounded-lg border border-border-subtle bg-slate-50 text-text-faint" aria-hidden="true">
+                <i data-lucide="chevron-right" class="w-4 h-4" stroke-width="1.75"></i>
+            </span>
+            {% endif %}
+            <h2 class="ml-2 text-[15px] font-semibold text-text-main first-letter:uppercase">{{ day_label }}</h2>
+        </div>
+        {% if closing %}{% include "_status_badge.html" with tone="slate" label="Journée clôturée" %}{% elif is_today %}{% include "_status_badge.html" with tone="emerald" label="Caisse ouverte" %}{% endif %}
+    </div>
+
+    <!-- Skeleton pendant la navigation -->
+    <div class="hidden group-[.htmx-request]/closing:block h-[260px] rounded-2xl border border-border-subtle bg-surface p-6" aria-hidden="true">
+        <div class="h-3.5 w-40 rounded bg-slate-100 animate-pulse"></div>
+        <div class="mt-6 h-10 w-full rounded-lg bg-slate-100 animate-pulse"></div>
+        <div class="mt-4 h-16 w-full rounded-lg bg-slate-100 animate-pulse"></div>
+    </div>
+
+    <section class="group-[.htmx-request]/closing:hidden bg-surface rounded-2xl border border-border-subtle shadow-card p-6" aria-labelledby="closing-title">
+        <div class="flex items-center gap-3">
+            <span class="size-9 rounded-lg bg-sauge-50 text-sauge-600 grid place-items-center">
+                <i data-lucide="{% if closing %}lock{% else %}lock-open{% endif %}" class="w-[18px] h-[18px]" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <h3 id="closing-title" class="text-[15px] font-semibold text-text-main">Clôture de caisse</h3>
+        </div>
+
+        {% if closing %}
+        {% if close_error %}<p class="mt-4 text-[13px] font-medium text-rose-700" role="alert">{{ close_error }}</p>{% endif %}
+        <div class="mt-5 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5" role="status">
+            <i data-lucide="check" class="mt-0.5 w-4 h-4 shrink-0 text-emerald-700" stroke-width="1.75" aria-hidden="true"></i>
+            <div>
+                <p class="text-sm font-semibold text-emerald-800">Clôture enregistrée</p>
+                <p class="mt-0.5 text-[13px] text-emerald-700">Le {{ closing.closed_at|date:"j F Y" }} à {{ closing.closed_at|time:"H:i" }}{% if closing.closed_by %} par {{ closing.closed_by.get_full_name|default:closing.closed_by.username }}{% endif %}.</p>
+            </div>
+        </div>
+        {% elif can_close %}
+        <form class="mt-5 space-y-4" hx-post="{% url 'billing:cash_close' %}" hx-target="#cash-closing" hx-swap="outerHTML"
+              hx-disabled-elt="find button[type=submit]">
+            {% csrf_token %}
+            <input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}">
+            <label class="block">
+                <span class="text-[13px] font-medium text-text-main">Espèces comptées</span>
+                <div class="relative mt-1.5">
+                    <input type="text" name="counted_cash" inputmode="decimal" autocomplete="off" required placeholder="0,00"
+                           value="{{ counted_input|default:'' }}" {% if close_error %}aria-invalid="true" aria-describedby="close-error"{% endif %}
+                           class="w-full h-10 rounded-lg border {% if close_error %}border-rose-300{% else %}border-border-subtle{% endif %} bg-surface pl-3 pr-12 text-sm tabular-nums text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20">
+                    <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-text-faint">DH</span>
+                </div>
+            </label>
+            <label class="block">
+                <span class="text-[13px] font-medium text-text-main">Commentaire <span class="font-normal text-text-faint">(facultatif)</span></span>
+                <textarea name="note" rows="2" placeholder="Ex. : fond de caisse, rendu de monnaie…"
+                          class="mt-1.5 w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">{{ note_input|default:'' }}</textarea>
+            </label>
+            {% if close_error %}<p id="close-error" class="text-[13px] font-medium text-rose-700" role="alert">{{ close_error }}</p>{% endif %}
+            <button type="submit"
+                    class="btn-tactile w-full inline-flex items-center justify-center gap-1.5 h-10 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30 focus-visible:ring-offset-2">
+                <i data-lucide="lock" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Clôturer la journée
+            </button>
+            <p class="text-[12px] text-text-faint">Comptez toutes les espèces de la caisse. Une fois enregistrée, la clôture ne se modifie plus.</p>
+        </form>
+        {% endif %}
+    </section>
+</div>

@@ -45,6 +45,10 @@
                     <i data-lucide="clock" class="w-3.5 h-3.5 shrink-0 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
                     <span class="truncate">{{ appointment.date|date:"H:i" }} · {{ appointment.reason|default:"Consultation" }}</span>
                 </p>
+                <a href="{% url 'clinical:patient_file' patient.pk %}"
+                   class="btn-tactile mt-2 -ml-1.5 inline-flex items-center gap-1.5 h-8 rounded-lg px-1.5 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50 hover:text-sauge-700">
+                    <i data-lucide="folder-open" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Voir le dossier complet
+                </a>
 
                 {% if pregnancy %}
                 <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-emerald-200 bg-emerald-200">
@@ -132,6 +136,10 @@
                             {% if past.clinical_notes %}<p><span class="font-medium text-text-main">Observations :</span> {{ past.clinical_notes|truncatechars:220 }}</p>{% endif %}
                             {% if past.blood_pressure or past.weight_kg %}<p class="tabular-nums text-text-muted">{% if past.blood_pressure %}TA {{ past.blood_pressure }}{% endif %}{% if past.blood_pressure and past.weight_kg %} · {% endif %}{% if past.weight_kg %}{{ past.weight_kg|floatformat:"-1" }} kg{% endif %}</p>{% endif %}
                             {% if not past.diagnostic and not past.clinical_notes %}<p class="text-text-faint">Aucune note saisie lors de cette visite.</p>{% endif %}
+                            <a href="{% url 'clinical:patient_file' patient.pk %}#visite-{{ past.pk }}"
+                               class="inline-flex items-center gap-1 font-medium text-sauge-600 hover:text-sauge-700 hover:underline">
+                                Voir la visite dans le dossier <i data-lucide="arrow-up-right" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>
+                            </a>
                         </div>
                     </li>
                     {% endfor %}

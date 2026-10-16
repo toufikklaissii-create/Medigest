@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% load medigest_format %}
+{% block title %}Dossier · {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
+{% block content %}
+{% with label_cls="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint" %}
+<div class="px-4 sm:px-6 py-6 max-w-[1200px] mx-auto" x-data="patientFile()">
+
+    <!-- ═══ En-tête patiente ═══ -->
+    <section class="bg-surface rounded-2xl border border-border-subtle shadow-card p-5 sm:p-6" aria-labelledby="patient-name">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <a href="{% url 'patients:index' %}"
+               class="btn-tactile inline-flex items-center gap-1.5 -ml-1.5 h-8 rounded-lg px-1.5 text-[13px] font-medium text-text-muted hover:text-sauge-600 hover:bg-sauge-50">
+                <i data-lucide="arrow-left" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Patientes
+            </a>
+            <div class="flex items-center gap-2">
+                <a href="{% url 'patients:edit_patient' patient.pk %}"
+                   class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                    <i data-lucide="pencil" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Modifier
+                </a>
+                <a href="{% url 'patients:patient_full_archive' patient.pk %}"
+                   class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                    <i data-lucide="folder-archive" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Dossier complet (ZIP)
+                </a>
+            </div>
+        </div>
+
+        <div class="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <!-- Identité -->
+            <div class="min-w-0">
+                <div class="flex items-center gap-3">
+                    <div class="size-12 shrink-0 rounded-full bg-sauge-100 text-sauge-700 grid place-items-center text-base font-bold" aria-hidden="true">
+                        {{ patient.first_name|slice:":1"|upper }}{{ patient.last_name|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0">
+                        <h1 id="patient-name" class="text-[22px] font-semibold leading-tight text-text-main break-words">{{ patient.first_name }} {{ patient.last_name }}</h1>
+                        <p class="mt-0.5 text-[13px] text-text-muted tabular-nums">
+                            {{ patient.patient_number }}{% if patient.age %} · {{ patient.age }} ans{% endif %}{% if patient.blood_group %} · Groupe {{ patient.blood_group }}{% endif %}
+                        </p>
+                    </div>
+                </div>
+                <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
+                    {% if patient.birth_date %}<div><dt class="text-text-muted">Naissance</dt><dd class="font-medium text-text-main">{{ patient.birth_date|date:"j F Y" }}</dd></div>{% endif %}
+                    {% if patient.phone %}<div><dt class="text-text-muted">Téléphone</dt><dd class="font-medium text-text-main tabular-nums">{{ patient.phone }}</dd></div>{% endif %}
+                    {% if patient.cin %}<div><dt class="text-text-muted">CIN</dt><dd class="font-medium text-text-main">{{ patient.cin }}</dd></div>{% endif %}
+                    {% if patient.organisme_social %}<div><dt class="text-text-muted">Organisme</dt><dd class="font-medium text-text-main">{{ patient.organisme_social }}</dd></div>{% endif %}
+                </dl>
+            </div>
+
+            <!-- Alertes + grossesse -->
+            <div class="min-w-0 space-y-3">
+                {% if patient.allergies %}
+                <div role="note" class="flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-rose-700">
+                    <i data-lucide="triangle-alert" class="w-4 h-4 mt-0.5 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <p class="text-[11px] font-semibold uppercase tracking-[0.08em]">Allergies</p>
+                        <p class="mt-0.5 text-sm font-semibold break-words">{{ patient.allergies }}</p>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-[13px] text-text-muted">Aucune allergie connue.</p>
+                {% endif %}
+
+                {% if pregnancy %}
+                <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-emerald-200 bg-emerald-200">
+                    <div class="min-w-0 bg-emerald-50 px-3 py-2.5">
+                        <dt class="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">Terme ce jour</dt>
+                        <dd class="mt-0.5 text-sm font-bold text-emerald-900 tabular-nums break-words">{{ pregnancy.weeks }} SA + {{ pregnancy.days }} j</dd>
+                    </div>
+                    <div class="min-w-0 bg-emerald-50 px-3 py-2.5">
+                        <dt class="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700"><abbr title="Date prévue d'accouchement" class="no-underline">DPA</abbr></dt>
+                        <dd class="mt-0.5 text-sm font-bold text-emerald-900 tabular-nums break-words">{{ pregnancy.due_date|date:"d/m/Y" }}</dd>
+                    </div>
+                </dl>
+                {% endif %}
+            </div>
+
+            <!-- Antécédents -->
+            <div class="min-w-0">
+                <h2 class="{{ label_cls }}">Antécédents</h2>
+                <p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line break-words {% if patient.medical_history %}text-text-main{% else %}text-text-faint{% endif %}">{{ patient.medical_history|default:"Aucun antécédent renseigné." }}</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══ Onglets ═══ -->
+    <section class="mt-5 bg-surface rounded-2xl border border-border-subtle shadow-card" aria-label="Dossier médical">
+        <div role="tablist" aria-label="Sections du dossier"
+             class="flex gap-0.5 overflow-x-auto no-scrollbar border-b border-border-subtle px-2 sm:px-3"
+             @keydown.right.prevent="moveTab(1)" @keydown.left.prevent="moveTab(-1)">
+            <template x-for="t in tabs" :key="t.key">
+                <button type="button" role="tab" :id="'tab-' + t.key" :aria-controls="'panel-' + t.key"
+                        :aria-selected="(tab === t.key).toString()" :tabindex="tab === t.key ? 0 : -1"
+                        @click="setTab(t.key)"
+                        class="relative inline-flex shrink-0 items-center gap-1.5 h-12 px-2.5 text-[13.5px] font-medium whitespace-nowrap transition-colors duration-150 motion-reduce:transition-none"
+                        :class="tab === t.key ? 'text-text-main' : 'text-text-muted hover:text-text-main'">
+                    <span x-text="t.label"></span>
+                    <span class="rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold text-text-soft tabular-nums" x-text="t.count"></span>
+                    <span class="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-sauge-600 transition-opacity duration-150 motion-reduce:transition-none"
+                          :class="tab === t.key ? 'opacity-100' : 'opacity-0'" aria-hidden="true"></span>
+                </button>
+            </template>
+        </div>
+
+        <div class="p-4 sm:p-6">
+            <!-- 1. Historique -->
+            <div role="tabpanel" id="panel-historique" aria-labelledby="tab-historique" x-show="tab === 'historique'" tabindex="0">
+                {% if consultations %}
+                <ol class="relative space-y-4 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-px before:bg-border-subtle" aria-label="Consultations, de la plus récente à la plus ancienne">
+                    {% for c in consultations %}
+                    <li id="visite-{{ c.pk }}" data-visit="{{ c.pk }}" class="relative pl-9 scroll-mt-24"
+                        x-data="{ open: {% if forloop.first %}true{% else %}false{% endif %} }"
+                        @open-visit.window="if ($event.detail === {{ c.pk }}) open = true">
+                        <span class="absolute left-[5px] top-[18px] size-[13px] rounded-full border-2 border-surface {% if c.status == 'validated' %}bg-sauge-500{% else %}bg-slate-300{% endif %}" aria-hidden="true"></span>
+                        <article class="rounded-xl border border-border-subtle bg-surface transition-shadow duration-150" :class="open && 'shadow-card'">
+                            <h3>
+                                <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-controls="visite-{{ c.pk }}-body"
+                                        class="btn-tactile w-full flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl px-4 py-3 text-left hover:bg-sauge-25">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block text-sm font-semibold text-text-main tabular-nums">{{ c.appointment.date|date:"l j F Y" }}</span>
+                                        <span class="block truncate text-[13px] text-text-muted">{{ c.appointment.date|date:"H:i" }} · {{ c.appointment.reason|default:"Consultation" }}</span>
+                                    </span>
+                                    {% if c.term %}<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 tabular-nums">{{ c.term.weeks }} SA + {{ c.term.days }} j</span>{% endif %}
+                                    {% if c.status == "validated" %}{% include "_status_badge.html" with tone="emerald" label="Validée" %}{% else %}{% include "_status_badge.html" with tone="slate" label="Brouillon" %}{% endif %}
+                                    {% if c.act_lines %}<span class="text-[13px] font-semibold text-text-main tabular-nums">{{ c.acts_total|dh }}</span>{% endif %}
+                                    <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 text-text-faint transition-transform duration-150 motion-reduce:transition-none" :class="open && 'rotate-180'" stroke-width="1.75" aria-hidden="true"></i>
+                                </button>
+                            </h3>
+
+                            <div id="visite-{{ c.pk }}-body" x-show="open" x-cloak class="border-t border-border-subtle px-4 py-4 space-y-5">
+                                <!-- Constantes -->
+                                <dl class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                    <div><dt class="{{ label_cls }}">Tension</dt><dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{{ c.blood_pressure|default:"NR" }}</dd></div>
+                                    <div><dt class="{{ label_cls }}">Poids</dt><dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if c.weight_kg %}{{ c.weight_kg|floatformat:"-1" }} kg{% else %}NR{% endif %}</dd></div>
+                                    <div><dt class="{{ label_cls }}">Taille</dt><dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if c.height_cm %}{{ c.height_cm|floatformat:"-1" }} cm{% else %}NR{% endif %}</dd></div>
+                                    <div><dt class="{{ label_cls }}">IMC</dt><dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if c.bmi %}{{ c.bmi|floatformat:1 }}{% else %}NR{% endif %}</dd></div>
+                                    <div><dt class="{{ label_cls }}">DDR</dt><dd class="mt-0.5 text-sm font-semibold text-text-main tabular-nums">{% if c.last_menstrual_period %}{{ c.last_menstrual_period|date:"d/m/Y" }}{% else %}NR{% endif %}</dd></div>
+                                </dl>
+
+                                <div class="grid gap-5 md:grid-cols-2">
+                                    <div class="min-w-0">
+                                        <h4 class="{{ label_cls }}">Examen clinique</h4>
+                                        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words {% if c.clinical_exam %}text-text-main{% else %}text-text-faint{% endif %}">{{ c.clinical_exam|default:"Non renseigné." }}</p>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="{{ label_cls }}">Échographie</h4>
+                                        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words {% if c.ultrasound_notes %}text-text-main{% else %}text-text-faint{% endif %}">{{ c.ultrasound_notes|default:"Non renseignée." }}</p>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="{{ label_cls }}">Examens complémentaires</h4>
+                                        <p class="mt-1 text-sm leading-relaxed text-text-main">
+                                            {% for ca in c.quick_exams %}<span class="mr-1.5 mb-1.5 inline-flex rounded-full border border-sauge-100 bg-sauge-50 px-2.5 py-0.5 text-xs font-medium text-sauge-700">{{ ca.act.name }}</span>{% empty %}<span class="text-text-faint">Aucun.</span>{% endfor %}
+                                        </p>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="{{ label_cls }}">Observations</h4>
+                                        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words {% if c.clinical_notes %}text-text-main{% else %}text-text-faint{% endif %}">{{ c.clinical_notes|default:"Non renseignées." }}</p>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="{{ label_cls }}">Diagnostic / synthèse</h4>
+                                        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words {% if c.diagnostic %}font-medium text-text-main{% else %}text-text-faint{% endif %}">{{ c.diagnostic|default:"Non renseigné." }}</p>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="{{ label_cls }}">Ordonnance</h4>
+                                        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words {% if c.prescription %}text-text-main{% else %}text-text-faint{% endif %}">{{ c.prescription|default:"Aucune ordonnance." }}</p>
+                                    </div>
+                                </div>
+
+                                <!-- Actes + total -->
+                                <div>
+                                    <h4 class="{{ label_cls }}">Actes</h4>
+                                    {% if c.act_lines %}
+                                    <ul class="mt-1.5 divide-y divide-border-subtle rounded-lg border border-border-subtle">
+                                        {% for ca in c.act_lines %}
+                                        <li class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                                            <span class="min-w-0 text-text-main">{{ ca.act.name }}</span>
+                                            <span class="shrink-0 tabular-nums text-text-soft">{{ ca.price|dh }}</span>
+                                        </li>
+                                        {% endfor %}
+                                        <li class="flex items-center justify-between gap-3 bg-sauge-25 px-3 py-2 text-sm font-semibold">
+                                            <span class="text-text-main">Total</span>
+                                            <span class="tabular-nums text-text-main">{{ c.acts_total|dh }}</span>
+                                        </li>
+                                    </ul>
+                                    {% else %}
+                                    <p class="mt-1 text-sm text-text-faint">Aucun acte saisi.</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Documents PDF -->
+                                <div class="flex flex-wrap items-center gap-2 border-t border-border-subtle pt-4">
+                                    {% if c.prescription %}
+                                    <a href="{% url 'clinical:prescription_pdf' c.appointment_id %}" target="_blank" rel="noopener"
+                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                                        <i data-lucide="pill" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Ordonnance
+                                    </a>
+                                    {% endif %}
+                                    <a href="{% url 'clinical:report_pdf' c.appointment_id %}" target="_blank" rel="noopener"
+                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                                        <i data-lucide="file-text" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Compte rendu
+                                    </a>
+                                    {% for key, label in c.letters %}
+                                    <a href="{% url 'clinical:letter_pdf' c.appointment_id key %}" target="_blank" rel="noopener"
+                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                                        <i data-lucide="mail" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> {{ label }}
+                                    </a>
+                                    {% endfor %}
+                                    <a href="{% url 'clinical:consultation_detail' c.appointment_id %}"
+                                       class="btn-tactile ml-auto inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                                        Ouvrir la fiche <i data-lucide="arrow-up-right" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </article>
+                    </li>
+                    {% endfor %}
+                </ol>
+                {% else %}
+                <div class="flex flex-col items-center justify-center gap-3 py-16 text-center">
+                    <span class="size-12 rounded-xl bg-slate-100 text-text-muted grid place-items-center">
+                        <i data-lucide="notebook-pen" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i>
+                    </span>
+                    <p class="text-sm font-medium text-text-main">Aucune consultation pour le moment</p>
+                    <p class="max-w-sm text-[13px] text-text-muted">L'historique se remplira automatiquement après la première visite de {{ patient.first_name }}.</p>
+                    <a href="{% url 'appointments:create_appointment_for' patient.pk %}"
+                       class="btn-tactile mt-1 inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                        <i data-lucide="calendar-plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Planifier un RDV
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 2. Évolution -->
+            <div role="tabpanel" id="panel-evolution" aria-labelledby="tab-evolution" x-show="tab === 'evolution'" x-cloak tabindex="0">
+                {% if consultations %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <caption class="sr-only">Évolution des constantes par visite, de la plus récente à la plus ancienne</caption>
+                        <thead class="bg-slate-50/50">
+                            <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                                <th scope="col" class="px-4 py-3 text-left font-semibold">Date</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Poids</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Tension</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">IMC</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Terme</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border-subtle">
+                            {% for c in consultations %}
+                            <tr class="h-12 hover:bg-sauge-25 transition-colors duration-150">
+                                <th scope="row" class="px-4 text-left font-medium text-text-main whitespace-nowrap tabular-nums">
+                                    <a href="#visite-{{ c.pk }}" @click.prevent="openVisit({{ c.pk }})" class="hover:text-sauge-600 hover:underline">{{ c.appointment.date|date:"j M Y" }}</a>
+                                </th>
+                                <td class="px-4 text-right tabular-nums whitespace-nowrap {% if not c.weight_kg %}text-text-faint{% endif %}">{% if c.weight_kg %}{{ c.weight_kg|floatformat:"-1" }} kg{% else %}<span title="Non renseigné">NR</span>{% endif %}</td>
+                                <td class="px-4 text-right tabular-nums whitespace-nowrap {% if not c.blood_pressure %}text-text-faint{% endif %}">{% if c.blood_pressure %}{{ c.blood_pressure }}{% else %}<span title="Non renseignée">NR</span>{% endif %}</td>
+                                <td class="px-4 text-right tabular-nums whitespace-nowrap {% if not c.bmi %}text-text-faint{% endif %}">{% if c.bmi %}{{ c.bmi|floatformat:1 }}{% else %}<span title="Non calculé">NR</span>{% endif %}</td>
+                                <td class="px-4 text-right tabular-nums whitespace-nowrap {% if not c.term %}text-text-faint{% endif %}">{% if c.term %}{{ c.term.weeks }} SA + {{ c.term.days }} j{% else %}<span title="Hors grossesse">NR</span>{% endif %}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="py-12 text-center text-sm text-text-muted">Les constantes apparaîtront ici après la première consultation.</p>
+                {% endif %}
+            </div>
+
+            <!-- 3. Documents joints -->
+            <div role="tabpanel" id="panel-documents" aria-labelledby="tab-documents" x-show="tab === 'documents'" x-cloak tabindex="0">
+                {% if documents %}
+                <ul class="divide-y divide-border-subtle">
+                    {% for doc in documents %}
+                    <li class="flex items-center justify-between gap-3 py-2.5">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="size-9 shrink-0 rounded-lg bg-sauge-50 text-sauge-600 grid place-items-center">
+                                <i data-lucide="file-text" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium text-text-main truncate" title="{{ doc.title }}">{{ doc.title }}</p>
+                                <p class="text-[12px] text-text-muted">{{ doc.get_document_type_display }} · {{ doc.created_at|date:"j F Y" }}</p>
+                            </div>
+                        </div>
+                        <a href="{{ doc.file.url }}" target="_blank" rel="noopener noreferrer"
+                           class="btn-tactile shrink-0 inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
+                            <i data-lucide="external-link" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ouvrir
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-[13px] text-text-muted">Aucun document joint pour cette patiente.</p>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" action="{% url 'patients:patient_documents' patient.pk %}"
+                      class="mt-5 grid gap-3 border-t border-border-subtle pt-5 sm:grid-cols-[minmax(0,1fr)_180px]" x-data="{ fileName: '' }">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'clinical:patient_file' patient.pk %}#documents">
+                    <div>
+                        <label for="doc-title" class="block text-[13px] font-medium text-text-soft mb-1.5">Titre</label>
+                        <input type="text" id="doc-title" name="title" placeholder="Ex. Bilan sanguin du 3 septembre…"
+                               class="w-full h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">
+                    </div>
+                    <div>
+                        <label for="doc-type" class="block text-[13px] font-medium text-text-soft mb-1.5">Type</label>
+                        <select id="doc-type" name="document_type"
+                                class="w-full h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20">
+                            {% for value, label in document_type_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2 flex flex-wrap items-end gap-3">
+                        <div class="flex-1 min-w-[220px]">
+                            <input type="file" id="doc-file" name="file" required class="sr-only peer"
+                                   @change="fileName = $event.target.files.length ? $event.target.files[0].name : ''">
+                            <label for="doc-file"
+                                   class="btn-tactile flex items-center gap-2.5 w-full h-10 rounded-lg border border-dashed border-border-strong px-2 text-sm cursor-pointer hover:border-sauge-500/50 hover:bg-sauge-25 peer-focus-visible:ring-2 peer-focus-visible:ring-sauge-600/20">
+                                <span class="shrink-0 inline-flex items-center gap-1.5 rounded-md bg-sauge-50 text-sauge-600 px-2.5 py-1 text-xs font-medium">
+                                    <i data-lucide="paperclip" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Choisir un fichier
+                                </span>
+                                <span class="truncate" :class="fileName ? 'text-text-main' : 'text-text-faint'" x-text="fileName || 'Aucun fichier sélectionné'">Aucun fichier sélectionné</span>
+                            </label>
+                        </div>
+                        <button type="submit"
+                                class="btn-tactile shrink-0 h-10 inline-flex items-center gap-1.5 rounded-lg bg-sauge-600 px-3.5 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+                            <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ajouter au dossier
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 4. Factures -->
+            <div role="tabpanel" id="panel-factures" aria-labelledby="tab-factures" x-show="tab === 'factures'" x-cloak tabindex="0">
+                {% if invoices %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <caption class="sr-only">Factures de la patiente</caption>
+                        <thead class="bg-slate-50/50">
+                            <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                                <th scope="col" class="px-4 py-3 text-left font-semibold">Facture</th>
+                                <th scope="col" class="px-4 py-3 text-left font-semibold">Date</th>
+                                <th scope="col" class="px-4 py-3 text-left font-semibold">Statut</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold">Montant</th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold"><span class="sr-only">Reçu</span></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-border-subtle">
+                            {% for invoice in invoices %}
+                            <tr class="h-12 hover:bg-sauge-25 transition-colors duration-150">
+                                <th scope="row" class="px-4 text-left font-medium text-text-main tabular-nums whitespace-nowrap">{{ invoice.invoice_number }}</th>
+                                <td class="px-4 text-text-soft tabular-nums whitespace-nowrap">{{ invoice.created_at|date:"j M Y" }}</td>
+                                <td class="px-4 whitespace-nowrap">
+                                    {% if invoice.status == "paid" %}{% include "_status_badge.html" with tone="emerald" label="Payée" %}
+                                    {% elif invoice.status == "cancelled" %}{% include "_status_badge.html" with tone="slate" label="Annulée" %}
+                                    {% else %}{% include "_status_badge.html" with tone="amber" label="En attente" %}{% endif %}
+                                    {% if invoice.payment_method %}<span class="ml-1.5 text-[12px] text-text-muted">{{ invoice.get_payment_method_display }}</span>{% endif %}
+                                </td>
+                                <td class="px-4 text-right font-semibold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount|dh }}</td>
+                                <td class="px-4 text-right whitespace-nowrap">
+                                    {% if invoice.status == "paid" %}
+                                    <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank" rel="noopener"
+                                       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
+                                        <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Reçu
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="py-12 text-center text-sm text-text-muted">Aucune facture pour cette patiente.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+</div>
+{% endwith %}
+
+<script>
+    function patientFile() {
+        return {
+            tabs: [
+                { key: "historique", label: "Historique", count: {{ consultations|length }} },
+                { key: "evolution", label: "Évolution", count: {{ consultations|length }} },
+                { key: "documents", label: "Documents joints", count: {{ documents|length }} },
+                { key: "factures", label: "Factures", count: {{ invoices|length }} },
+            ],
+            tab: "historique",
+            init() {
+                // Ancres : #visite-<id> (depuis le cockpit) ouvre la visite ; #documents / #factures / #evolution ouvrent l'onglet.
+                const hash = location.hash.slice(1);
+                const visit = /^visite-(\d+)$/.exec(hash);
+                if (visit) this.$nextTick(() => this.openVisit(parseInt(visit[1], 10)));
+                else if (this.tabs.some((t) => t.key === hash)) this.tab = hash;
+            },
+            setTab(key) {
+                this.tab = key;
+                try { history.replaceState(null, "", "#" + key); } catch (e) { /* sans importance */ }
+            },
+            moveTab(step) {
+                const index = this.tabs.findIndex((t) => t.key === this.tab);
+                const next = this.tabs[(index + step + this.tabs.length) % this.tabs.length];
+                this.setTab(next.key);
+                this.$nextTick(() => document.getElementById("tab-" + next.key).focus());
+            },
+            openVisit(pk) {
+                this.tab = "historique";
+                window.dispatchEvent(new CustomEvent("open-visit", { detail: pk }));
+                try { history.replaceState(null, "", "#visite-" + pk); } catch (e) { /* sans importance */ }
+                this.$nextTick(() => {
+                    const card = document.getElementById("visite-" + pk);
+                    if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            },
+        };
+    }
+</script>
+{% endblock %}

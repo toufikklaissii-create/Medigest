@@ -11,7 +11,7 @@
         </div>
 
         <!-- Grid + cards -->
-        <div class="relative flex-1 h-[960px]">
+        <div class="relative flex-1 self-start" style="height: {{ grid_height|unlocalize }}px;">
             {% for slot in slots|slice:":-1" %}
             <button type="button"
                     hx-get="{% url 'appointments:appointment_modal' %}?date={{ current_date|date:'Y-m-d' }}&time={{ slot|time:'H:i' }}"

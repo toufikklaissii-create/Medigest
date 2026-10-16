@@ -226,10 +226,10 @@ def _shift_month(anchor, delta):
     return date(year, month, day)
 
 
-def _day_slots():
+def _day_slots(start_minutes=DAY_START_MINUTES, end_minutes=DAY_END_MINUTES):
     slots = []
-    minutes = DAY_START_MINUTES
-    while minutes <= DAY_END_MINUTES:
+    minutes = start_minutes
+    while minutes <= end_minutes:
         slots.append(time(minutes // 60, minutes % 60))
         minutes += SLOT_MINUTES
     return slots
@@ -243,13 +243,27 @@ def _day_context(cabinet, current_date, status_filter="all"):
     )
     if status_filter and status_filter != "all":
         appointments = appointments.filter(status=status_filter)
+    appointments = list(appointments)
+    # Plage horaire de la grille : 08:30–18:30 par défaut, élargie à l'heure pleine pour
+    # afficher les RDV tôt le matin ou en soirée (sinon ils s'empilaient en bas de grille).
+    day_start, day_end = DAY_START_MINUTES, DAY_END_MINUTES
+    for appt in appointments:
+        local_dt = timezone.localtime(appt.date)
+        begin = local_dt.hour * 60 + local_dt.minute
+        finish = begin + (appt.duration_minutes or SLOT_MINUTES)
+        if begin < day_start:
+            day_start = (begin // 60) * 60
+        if finish > day_end:
+            day_end = min(-(-finish // 60) * 60, 24 * 60 - SLOT_MINUTES)
+    day_total = day_end - day_start
+
     positioned = []
     for appt in appointments:
         local_dt = timezone.localtime(appt.date)
         start_minutes = local_dt.hour * 60 + local_dt.minute
-        offset = start_minutes - DAY_START_MINUTES
-        top_pct = min(max((offset / DAY_TOTAL_MINUTES) * 100, 0), 100)
-        height_pct = max((appt.duration_minutes / DAY_TOTAL_MINUTES) * 100, 3.2)
+        offset = start_minutes - day_start
+        top_pct = min(max((offset / day_total) * 100, 0), 100)
+        height_pct = max((appt.duration_minutes / day_total) * 100, 3.2)
         appt.top_pct = round(top_pct, 2)
         appt.height_pct = round(height_pct, 2)
         appt.next_label = NEXT_STATUS_LABEL.get(appt.status)
@@ -261,11 +275,14 @@ def _day_context(cabinet, current_date, status_filter="all"):
     if current_date == timezone.localdate():
         now_local = timezone.localtime(timezone.now())
         now_minutes = now_local.hour * 60 + now_local.minute
-        if DAY_START_MINUTES <= now_minutes <= DAY_END_MINUTES:
-            now_pct = round(((now_minutes - DAY_START_MINUTES) / DAY_TOTAL_MINUTES) * 100, 2)
+        if day_start <= now_minutes <= day_end:
+            now_pct = round(((now_minutes - day_start) / day_total) * 100, 2)
 
     return {
-        "slots": _day_slots(),
+        "slots": _day_slots(day_start, day_end),
+        # Hauteur exacte de la grille (1 ligne de 48 px par créneau) : les cartes sont
+        # positionnées en % de cette hauteur, elle ne doit pas s'étirer avec la page.
+        "grid_height": (day_end - day_start) // SLOT_MINUTES * 48,
         "day_appointments": positioned,
         "now_pct": now_pct,
     }

@@ -46,3 +46,29 @@ class CalendarDayPositionTest(TestCase):
             self.assertNotIn(",", style, f"Style CSS invalide (virgule locale) : {style}")
         self.assertIn("top: 4.17%", html)
         self.assertIn("Suivi grossesse", html)
+
+
+@override_settings(ALLOWED_HOSTS=["testserver"])
+class CalendarDayEveningTest(TestCase):
+    """Les RDV du soir (après 18:30) élargissent la grille au lieu de s'empiler en bas."""
+
+    def setUp(self):
+        self.cabinet = Cabinet.objects.create(nom="Cabinet Soir", slug="cabinet-soir")
+        user = User.objects.create_user(username="assist_soir", password="testpass123")
+        Profile.objects.update_or_create(user=user, defaults={"role": Profile.Role.ASSISTANT, "cabinet": self.cabinet})
+        self.client.login(username="assist_soir", password="testpass123")
+        self.day = timezone.localdate() + timedelta(days=1)
+        patient = Patient.objects.create(cabinet=self.cabinet, first_name="Rim", last_name="Sbai")
+        for hour, minute in ((20, 0), (22, 30)):
+            Appointment.objects.create(
+                cabinet=self.cabinet, patient=patient, duration_minutes=25,
+                date=timezone.make_aware(datetime.combine(self.day, time(hour, minute))),
+            )
+
+    def test_evening_appointments_get_their_own_rows(self):
+        html = self.client.get(reverse("appointments:calendar"), {"view": "day", "date": self.day.isoformat()}).content.decode()
+        tops = [float(v) for v in re.findall(r'style="top: ([0-9.]+)%', html)]
+        self.assertEqual(len(tops), 2)
+        self.assertLess(tops[0], tops[1])
+        self.assertLess(tops[1], 100)
+        self.assertIn("22:30", html)  # libellé de ligne affiché (grille jusqu'à 23:00)

@@ -1,8 +1,5 @@
-{% extends "pdf/_base_pdf.html" %}
-{% block doc_type %}{{ doc_title }}{% endblock %}
-{% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
+{% extends "pdf/_letterhead_base.html" %}
+{% block title %}{{ doc_title|upper }}{% endblock %}
 {% block body %}
-<div style="font-size: 10.5pt; white-space: pre-line;">
-    {% if content %}{{ content }}{% else %}<p style="color: #64748B; font-style: italic;">Document vide.</p>{% endif %}
-</div>
+{% if content %}<p class="text">{{ content }}</p>{% else %}<p class="muted">Document vide.</p>{% endif %}
 {% endblock %}

@@ -17,6 +17,15 @@ class Cabinet(models.Model):
         validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Format attendu : #RRGGBB.")],
         help_text="Couleur de marque (pas 500) : toute la palette de l'interface en est dérivée.",
     )
+    ville = models.CharField(
+        "Ville", max_length=80, blank=True,
+        help_text="Imprimée sur les documents : « Khemisset, le 16 octobre 2026 ».",
+    )
+    # Mentions légales des factures : imprimées seulement si renseignées.
+    inpe = models.CharField("INPE", max_length=30, blank=True)
+    identifiant_fiscal = models.CharField("Identifiant fiscal (IF)", max_length=30, blank=True)
+    ice = models.CharField("ICE", max_length=30, blank=True)
+    patente = models.CharField("Patente", max_length=30, blank=True)
     actif = models.BooleanField(default=True)
 
     class Meta:

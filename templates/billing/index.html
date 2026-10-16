@@ -1,67 +1,47 @@
 {% extends "base.html" %}
-{% load medigest_format %}
-{% block title %}Facturation — Medigest{% endblock %}
+{% block title %}Facturation · Medigest{% endblock %}
 {% block content %}
-<div class="max-w-4xl mx-auto px-6 py-7">
-    <div class="mb-7">
-        <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Facturation</h1>
-        <p class="text-sm text-text-muted mt-1 tabular-nums">{{ invoices|length }} facture{{ invoices|length|pluralize }} récente{{ invoices|length|pluralize }}</p>
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Facturation</h1>
+            <p class="text-sm text-text-muted mt-1">Factures, encaissements et reste dû. Les recettes comptent au jour de l'encaissement.</p>
+        </div>
+        {% if request.user.profile.is_doctor %}
+        <a href="{% url 'billing:tariffs' %}"
+           class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-3.5 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+            <i data-lucide="tags" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Tarifs des actes
+        </a>
+        {% endif %}
     </div>
 
-    <div class="bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden">
-        {% if invoices %}
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50/50 sticky top-0">
-                    <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
-                        <th class="text-left font-bold px-5 py-3">Patiente</th>
-                        <th class="text-left font-bold px-4 py-3">Facture</th>
-                        <th class="text-left font-bold px-4 py-3">Statut</th>
-                        <th class="text-right font-bold px-4 py-3">Montant</th>
-                        <th class="text-right font-bold px-5 py-3">Reçu</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-border-subtle">
-                    {% for invoice in invoices %}
-                    <tr class="h-14 hover:bg-sauge-25 transition-colors duration-150">
-                        <td class="px-5 font-medium text-text-main truncate">{{ invoice.patient }}</td>
-                        <td class="px-4 text-text-soft whitespace-nowrap">
-                            {{ invoice.invoice_number }}
-                            <span class="text-text-faint">· {{ invoice.created_at|date:"d/m/Y" }}</span>
-                        </td>
-                        <td class="px-4">
-                            <span class="inline-flex items-center gap-1.5 text-[11px] font-medium rounded-full px-2.5 py-0.5 border whitespace-nowrap
-                                {% if invoice.status == 'paid' %}bg-emerald-50 text-emerald-700 border-emerald-200
-                                {% elif invoice.status == 'pending' %}bg-amber-50 text-amber-700 border-amber-200
-                                {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
-                                <span class="h-1.5 w-1.5 rounded-full shrink-0
-                                    {% if invoice.status == 'paid' %}bg-emerald-400
-                                    {% elif invoice.status == 'pending' %}bg-amber-400
-                                    {% else %}bg-slate-400{% endif %}"></span>
-                                {{ invoice.get_status_display }}
-                            </span>
-                        </td>
-                        <td class="px-4 text-right font-bold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount|dh }}</td>
-                        <td class="px-5 text-right">
-                            {% if invoice.status == "paid" %}
-                            <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank"
-                               title="Télécharger le reçu" aria-label="Télécharger le reçu de {{ invoice.invoice_number }}"
-                               class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
-                                <i data-lucide="download" class="w-3.5 h-3.5" stroke-width="1.75"></i>
-                            </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <form id="invoice-filters" class="mt-7 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+          hx-get="{% url 'billing:index' %}" hx-target="#invoice-table" hx-swap="outerHTML"
+          hx-trigger="input changed delay:250ms from:#invoice-search, change, submit"
+          hx-push-url="true" hx-indicator="#invoice-table"
+          x-data="{ statut: '{{ status }}' }" @submit.prevent>
+        <input type="hidden" name="partial" value="table">
+        <div role="radiogroup" aria-label="Statut" class="flex flex-wrap gap-1 rounded-xl bg-slate-100/70 p-1">
+            {% for value, label, count in status_filters %}
+            <label class="btn-tactile inline-flex items-center gap-2 h-9 rounded-lg px-3 text-[13px] font-medium cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sauge-600/30"
+                   :class="statut === '{{ value }}' ? 'bg-surface text-text-main shadow-sm' : 'text-text-muted hover:text-text-main'">
+                <input type="radio" name="statut" value="{{ value }}" x-model="statut" class="sr-only" {% if value == status %}checked{% endif %}>
+                {{ label }}
+                <span id="status-count-{{ value|default:'all' }}" class="tabular-nums text-[11.5px] text-text-faint">{{ count }}</span>
+            </label>
+            {% endfor %}
         </div>
-        {% else %}
-        <div class="px-4 py-16 text-center">
-            <i data-lucide="receipt" class="w-8 h-8 text-slate-300 mx-auto mb-2" stroke-width="1.5"></i>
-            <p class="text-sm text-text-muted">Aucune facture pour le moment.</p>
-        </div>
-        {% endif %}
+        <label class="relative md:w-[320px]">
+            <span class="sr-only">Rechercher une patiente ou un numéro de facture</span>
+            <i data-lucide="search" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
+            <input id="invoice-search" type="search" name="q" value="{{ query }}" autocomplete="off"
+                   placeholder="Patiente ou n° de facture"
+                   class="w-full h-10 rounded-lg border border-border-subtle bg-surface pl-9 pr-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">
+        </label>
+    </form>
+
+    <div class="mt-5">
+        {% include "billing/_invoice_table.html" %}
     </div>
 </div>
 {% endblock %}

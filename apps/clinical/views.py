@@ -14,6 +14,7 @@ from django.views.decorators.http import require_POST
 from apps.accounts.decorators import role_required
 from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, MedicalAct
+from apps.billing.services import parse_amount
 from apps.patients.models import Patient
 
 from .documents import documents_context, parse_exam_date, save_documents
@@ -124,10 +125,20 @@ def _apply_consultation_post(request, consultation, cabinet):
     selected_acts = MedicalAct.objects.filter(cabinet=cabinet, id__in=act_ids)
 
     consultation.consultation_acts.exclude(act_id__in=act_ids).delete()
-    existing_act_ids = set(consultation.consultation_acts.values_list("act_id", flat=True))
+    lines = {line.act_id: line for line in consultation.consultation_acts.all()}
     for act in selected_acts:
-        if act.id not in existing_act_ids:
-            ConsultationAct.objects.create(consultation=consultation, act=act, price=act.price)
+        # Prix de la ligne fixé par la doctoresse, pré-rempli au tarif du catalogue.
+        price = parse_amount(request.POST.get(f"price_{act.id}"))
+        if price is None or price < 0:
+            price = lines[act.id].price if act.id in lines else act.price
+        if act.id not in lines:
+            ConsultationAct.objects.create(consultation=consultation, act=act, price=price)
+        elif lines[act.id].price != price:
+            ConsultationAct.objects.filter(pk=lines[act.id].pk).update(price=price)
+
+    discount = parse_amount(request.POST.get("billing_discount"))
+    consultation.billing_discount = discount if discount and discount > 0 else 0
+    consultation.billing_free = request.POST.get("billing_free") == "on"
 
     prescription_content = request.POST.get("prescription_content", "").strip()
     if prescription_content:
@@ -187,19 +198,24 @@ def consultation_detail(request, appointment_id):
         return redirect("clinical:consultation_detail", appointment_id=appointment.pk)
 
     all_acts = MedicalAct.objects.filter(cabinet=cabinet, is_active=True)
-    selected_act_ids = list(
-        consultation.consultation_acts.values_list("act_id", flat=True)
-    )
+    line_prices = dict(consultation.consultation_acts.values_list("act_id", "price"))
+    selected_act_ids = list(line_prices)
     acts_json = [
         {
             "id": act.id,
             "code": act.code,
             "name": act.name,
             "price": float(act.price),
+            # Prix déjà saisi sur la ligne de cette consultation (sinon tarif catalogue).
+            "line_price": float(line_prices.get(act.id, act.price)),
             "is_quick_exam": act.is_quick_exam,
         }
         for act in all_acts
     ]
+    billing_json = {
+        "discount": float(consultation.billing_discount or 0),
+        "free": consultation.billing_free,
+    }
     prescription_doc = consultation.documents.filter(
         document_type=Document.DocumentType.PRESCRIPTION
     ).first()
@@ -242,6 +258,7 @@ def consultation_detail(request, appointment_id):
             "all_acts": all_acts,
             "selected_act_ids": selected_act_ids,
             "acts_json": acts_json,
+            "billing_json": billing_json,
             "prescription_content": prescription_doc.content if prescription_doc else "",
             "prescription_templates_json": prescription_templates_json,
             "letter_templates_json": letter_templates_json,
@@ -271,7 +288,7 @@ def autosave_consultation(request, appointment_id):
     consultation.save(
         update_fields=[
             "clinical_exam", "clinical_notes", "diagnostic", "gestational_age_weeks",
-            "ultrasound_notes", "doctor", "updated_at",
+            "ultrasound_notes", "doctor", "billing_discount", "billing_free", "updated_at",
         ]
     )
     return HttpResponse(status=204)
@@ -323,7 +340,8 @@ def patient_file(request, patient_id):
             "consultations": consultations,
             "pregnancy": pregnancy,
             **documents_context(request, patient),
-            "invoices": Invoice.objects.filter(cabinet=cabinet, patient=patient).order_by("-created_at"),
+            "invoices": Invoice.objects.filter(cabinet=cabinet, patient=patient)
+            .prefetch_related("payments").order_by("-created_at"),
         },
     )
 
@@ -402,7 +420,7 @@ def download_patient_record_pdf(request, appointment_id):
     appointment = get_object_or_404(
         Appointment.objects.select_related("patient"), pk=appointment_id, cabinet=cabinet
     )
-    pdf_bytes = generate_patient_record_pdf(appointment.patient)
+    pdf_bytes = generate_patient_record_pdf(appointment.patient, doctor=request.user)
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
     response["Content-Disposition"] = (
         f'attachment; filename="dossier_{appointment.patient.patient_number}.pdf"'
@@ -417,7 +435,7 @@ def download_full_patient_archive(request, patient_id):
     cabinet = request.user.profile.cabinet
     patient = get_object_or_404(Patient, pk=patient_id, cabinet=cabinet)
 
-    pdf_bytes = generate_patient_record_pdf(patient, save_copy=False)
+    pdf_bytes = generate_patient_record_pdf(patient, save_copy=False, doctor=request.user)
     documents = PatientDocument.objects.filter(cabinet=cabinet, patient=patient)
 
     buffer = io.BytesIO()

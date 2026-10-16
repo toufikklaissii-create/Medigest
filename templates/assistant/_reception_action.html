@@ -18,12 +18,12 @@ Arrivée → Mettre en attente → (médecin) → Encaisser X DH quand la factur
     {% if appointment.status == "waiting" %}Attend le médecin{% else %}Chez le médecin{% endif %}
 </span>
 {% elif appointment.status == "completed" %}
-    {% if invoice and invoice.status == "pending" and invoice.total_amount %}
+    {% if invoice and invoice.balance_due %}
     {% if not wide %}
     <button type="button" @click="select({{ appointment.pk }}, true)"
             class="btn-tactile relative z-10 inline-flex items-center justify-center gap-1.5 h-9 rounded-lg bg-sauge-600 px-3 text-[13px] font-semibold text-white whitespace-nowrap shadow-sm hover:bg-sauge-700">
         <i data-lucide="banknote" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
-        Encaisser {{ invoice.total_amount|dh }}
+        {% if invoice.status == "partial" %}Reste {{ invoice.balance_due|dh }}{% else %}Encaisser {{ invoice.balance_due|dh }}{% endif %}
     </button>
     {% endif %}
     {% elif invoice and invoice.status == "pending" %}
@@ -32,7 +32,11 @@ Arrivée → Mettre en attente → (médecin) → Encaisser X DH quand la factur
     </span>
     {% elif invoice and invoice.status == "paid" %}
     <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-emerald-700 whitespace-nowrap">
-        <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Encaissé
+        <i data-lucide="check-circle-2" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> {% if invoice.is_free %}Gratuit{% else %}Encaissé{% endif %}
+    </span>
+    {% elif invoice and invoice.status == "cancelled" %}
+    <span class="inline-flex items-center gap-1.5 text-[13px] text-text-muted whitespace-nowrap">
+        <i data-lucide="file-x" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Facture annulée
     </span>
     {% else %}
     <span class="inline-flex items-center gap-1.5 text-[13px] text-text-muted whitespace-nowrap">

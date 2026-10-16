@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Tarifs · Medigest{% endblock %}
+{% block content %}
+<div class="max-w-[1000px] mx-auto px-4 sm:px-8 py-8">
+    <div>
+        <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Tarifs</h1>
+        <p class="text-sm text-text-muted mt-1">Catalogue des actes. Ces prix pré-remplissent la facturation de chaque consultation, où vous pouvez encore les ajuster.</p>
+    </div>
+
+    <section class="mt-7 bg-surface rounded-2xl border border-border-subtle shadow-card" aria-labelledby="add-act-title">
+        <h2 id="add-act-title" class="px-6 pt-5 text-[15px] font-semibold text-text-main">Ajouter un acte</h2>
+        {% include "billing/_tariff_add_form.html" %}
+    </section>
+
+    <section class="mt-6 bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden" aria-label="Actes du catalogue">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50/50">
+                    <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                        <th scope="col" class="text-left font-semibold px-5 py-3 w-[130px]">Code</th>
+                        <th scope="col" class="text-left font-semibold px-4 py-3">Acte</th>
+                        <th scope="col" class="text-right font-semibold px-4 py-3 w-[150px]">Prix</th>
+                        <th scope="col" class="text-center font-semibold px-4 py-3 w-[90px]">Actif</th>
+                        <th scope="col" class="text-center font-semibold px-4 py-3 w-[140px] whitespace-nowrap">Examen rapide</th>
+                        <th scope="col" class="px-5 py-3 w-[150px]"><span class="sr-only">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tariff-rows" class="divide-y divide-border-subtle">
+                    {% for act in acts %}
+                    {% include "billing/_tariff_row.html" %}
+                    {% empty %}
+                    <tr id="tariff-empty"><td colspan="6">
+                        <div class="flex flex-col items-center justify-center gap-2 py-14 text-center">
+                            <span class="size-10 rounded-lg bg-slate-100 text-text-muted grid place-items-center">
+                                <i data-lucide="tags" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+                            </span>
+                            <p class="text-sm text-text-muted">Aucun acte pour le moment. Ajoutez votre premier tarif ci-dessus.</p>
+                        </div>
+                    </td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}

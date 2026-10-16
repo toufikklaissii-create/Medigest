@@ -1,0 +1,40 @@
+{% with input_cls="w-full h-10 rounded-lg border bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" %}
+<form id="tariff-add-form" hx-post="{% url 'billing:tariff_add' %}" hx-target="#tariff-rows" hx-swap="afterbegin"
+      hx-disabled-elt="find button[type=submit]"
+      x-data @tariff-added.window="$el.reset(); document.getElementById('tariff-empty')?.remove(); $el.querySelector('[name=code]').focus()"
+      class="grid gap-4 px-6 pb-6 pt-4 sm:grid-cols-[120px_minmax(0,1fr)_140px] lg:grid-cols-[120px_minmax(0,1fr)_140px_auto_auto] lg:items-end">
+    <div>
+        <label for="new-code" class="block text-[13px] font-medium text-text-soft mb-1.5">Code</label>
+        <input id="new-code" name="code" value="{{ form.code|default:'' }}" required maxlength="30" autocomplete="off" placeholder="ECHO"
+               {% if errors.code %}aria-invalid="true" aria-describedby="new-code-error"{% endif %}
+               class="{{ input_cls }} uppercase {% if errors.code %}border-rose-300{% else %}border-border-subtle{% endif %}">
+        {% if errors.code %}<p id="new-code-error" class="mt-1 text-[13px] text-rose-600">{{ errors.code }}</p>{% endif %}
+    </div>
+    <div>
+        <label for="new-name" class="block text-[13px] font-medium text-text-soft mb-1.5">Libellé</label>
+        <input id="new-name" name="name" value="{{ form.name|default:'' }}" required maxlength="150" autocomplete="off" placeholder="Échographie pelvienne"
+               {% if errors.name %}aria-invalid="true" aria-describedby="new-name-error"{% endif %}
+               class="{{ input_cls }} {% if errors.name %}border-rose-300{% else %}border-border-subtle{% endif %}">
+        {% if errors.name %}<p id="new-name-error" class="mt-1 text-[13px] text-rose-600">{{ errors.name }}</p>{% endif %}
+    </div>
+    <div>
+        <label for="new-price" class="block text-[13px] font-medium text-text-soft mb-1.5">Prix (DH)</label>
+        <input id="new-price" name="price" value="{{ form.price|default:'' }}" required inputmode="decimal" autocomplete="off" placeholder="300"
+               {% if errors.price %}aria-invalid="true" aria-describedby="new-price-error"{% endif %}
+               class="{{ input_cls }} text-right tabular-nums {% if errors.price %}border-rose-300{% else %}border-border-subtle{% endif %}">
+        {% if errors.price %}<p id="new-price-error" class="mt-1 text-[13px] text-rose-600">{{ errors.price }}</p>{% endif %}
+    </div>
+    <div class="flex items-center gap-5 lg:h-10">
+        <label class="inline-flex items-center gap-2 text-[13px] text-text-soft cursor-pointer">
+            <input type="checkbox" name="is_active" {% if not form or form.is_active %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Actif
+        </label>
+        <label class="inline-flex items-center gap-2 text-[13px] text-text-soft cursor-pointer">
+            <input type="checkbox" name="is_quick_exam" {% if form.is_quick_exam %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Examen rapide
+        </label>
+    </div>
+    <button type="submit"
+            class="btn-tactile h-10 inline-flex items-center justify-center gap-1.5 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+        <i data-lucide="plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ajouter
+    </button>
+</form>
+{% endwith %}

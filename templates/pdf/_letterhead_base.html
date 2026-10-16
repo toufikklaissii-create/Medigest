@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+    /* Documents imprimés sur le papier à en-tête du cabinet (static/pdf/entete_cabinet.pdf),
+       posé en fond de chaque page par apps/common/pdf.py. Mêmes zones que l'ordonnance :
+       en-tête et pied du modèle restent libres, le texte ne s'écrit qu'entre les deux.
+       Pas de "margin" sur @page : xhtml2pdf en ferait un cadre pleine page. */
+    @page {
+        size: A4;
+        @frame header_frame { left: 62pt; width: 471pt; top: 150pt; height: 58pt; }
+        @frame body_frame   { left: 62pt; width: 471pt; top: 214pt; height: 528pt; }
+        @frame page_frame   { -pdf-frame-content: page_number; left: 433pt; width: 100pt; top: 806pt; height: 16pt; }
+    }
+    @page suite {
+        size: A4;
+        /* Pages suivantes : pas de titre, le texte démarre sous la bande d'en-tête. */
+        @frame body_frame { left: 62pt; width: 471pt; top: 146pt; height: 596pt; }
+        @frame page_frame { -pdf-frame-content: page_number; left: 433pt; width: 100pt; top: 806pt; height: 16pt; }
+    }
+
+    body { font-family: Times-Roman, serif; color: #111827; font-size: 11.5pt; line-height: 1.35; }
+    p { margin: 0; }
+    .title { text-align: center; font-family: Times-Bold; font-size: 16pt; text-decoration: underline; }
+    .place-date { text-align: center; font-size: 12pt; margin-top: 4pt; }
+    .page-number { text-align: right; font-size: 8pt; color: #6B7280; }
+
+    .patient { font-size: 12pt; padding-bottom: 6pt; margin-bottom: 12pt; border-bottom: 0.6pt solid #E8B4C4; }
+    .patient .meta { color: #4B5563; font-size: 10.5pt; }
+
+    h2 { font-family: Times-Bold; font-size: 12pt; color: #9D2B4F; margin: 12pt 0 3pt 0; padding: 0; }
+    .text { white-space: pre-line; }
+    .muted { color: #6B7280; font-style: italic; }
+
+    table.grid { width: 100%; border: 0.6pt solid #E5D3DA; }
+    table.grid td, table.grid th { padding: 4pt 7pt; font-size: 10.5pt; vertical-align: top; text-align: left; border: 0.6pt solid #E5D3DA; }
+    table.grid th { font-family: Times-Bold; background-color: #FBF3F6; color: #5B1A33; }
+    .right { text-align: right; }
+
+    /* Tampon « ACQUITTÉE » des factures soldées (xhtml2pdf ne gère pas la rotation). */
+    .stamp { font-family: Times-Bold; font-size: 15pt; color: #15803D; border: 1.6pt solid #15803D; padding: 4pt 10pt; letter-spacing: 2pt; }
+    .legal { margin-top: 14pt; font-size: 8.5pt; color: #4B5563; text-align: center; }
+
+    .signature { text-align: right; font-size: 11pt; padding-top: 24pt; }
+    .signature .name { font-family: Times-Bold; }
+</style>
+</head>
+<body>
+    <div id="page_number" class="page-number">Page <pdf:pagenumber/> / <pdf:pagecount/></div>
+
+    <p class="title">{% block title %}DOCUMENT{% endblock %}</p>
+    <p class="place-date">{% if cabinet.ville %}{{ cabinet.ville }}, le{% else %}Le{% endif %} {{ doc_date|date:"j F Y" }}</p>
+    {# Après l'en-tête (page 1 déjà commencée) : sinon xhtml2pdf l'applique dès la page 1. #}
+    <pdf:nexttemplate name="suite"/>
+    <pdf:nextframe/>
+
+    {% block patient %}
+    <div class="patient">
+        <b>Patiente :</b> Mme {{ patient.first_name }} {{ patient.last_name }}
+        <span class="meta">{% if patient.age %} — {{ patient.age }} ans{% endif %} — Dossier {{ patient.patient_number }}</span>
+    </div>
+    {% endblock %}
+
+    {% block body %}{% endblock %}
+
+    {% block signature %}
+    <div class="signature">
+        <p class="name">{{ doctor_name|default:"Le médecin" }}</p>
+        <p>Signature et cachet</p>
+    </div>
+    {% endblock %}
+</body>
+</html>

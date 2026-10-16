@@ -212,6 +212,15 @@
             <i data-lucide="receipt" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Facturation</span>
         </a>
+        {% if role == 'doctor' %}
+        {% url 'billing:tariffs' as tariffs_url %}
+        <a href="{{ tariffs_url }}"
+           class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
+               {% if request.path == tariffs_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
+            <i data-lucide="tags" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
+            <span class="truncate inline md:hidden lg:inline">Tarifs</span>
+        </a>
+        {% endif %}
         <a href="{{ comms_url }}"
            class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
                {% if request.path == comms_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
@@ -279,6 +288,9 @@
 </div>
 </div>
 {% endif %}
+
+<!-- Modales chargées en HTMX (encaissement…) -->
+<div id="modal-host"></div>
 
 <!-- Toast notifications -->
 <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 items-end" x-cloak>

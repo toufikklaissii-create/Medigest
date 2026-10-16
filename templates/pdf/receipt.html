@@ -1,27 +1,26 @@
-{% extends "pdf/_base_pdf.html" %}
+{% extends "pdf/_letterhead_base.html" %}
 {% load medigest_format %}
-{% block page_size %}A5{% endblock %}
-{% block doc_type %}Reçu de consultation{% endblock %}
-{% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
+{% block title %}REÇU DE PAIEMENT{% endblock %}
 {% block body %}
-<table class="info-table">
-    <tr><th>N° reçu</th><td>{{ invoice.invoice_number }}</td></tr>
-    <tr><th>Date / heure</th><td>{{ invoice.paid_at|date:"d/m/Y H:i" }}</td></tr>
-    <tr><th>Mode de paiement</th><td>{{ invoice.get_payment_method_display }}</td></tr>
+<table class="grid">
+    <tr><th style="width: 34%;">N° de reçu</th><td>{{ payment.receipt_number }}</td></tr>
+    <tr><th>Facture</th><td>{{ invoice.invoice_number }} du {{ invoice.created_at|date:"j F Y" }}</td></tr>
+    <tr><th>Réglé le</th><td>{{ payment.paid_at|date:"j F Y à H:i" }}</td></tr>
+    <tr><th>Mode de paiement</th><td>{{ payment.get_method_display }}{% if payment.reference %} (n° {{ payment.reference }}){% endif %}</td></tr>
+    <tr><th>Montant reçu</th><td><b>{{ payment.amount|dh }}</b></td></tr>
 </table>
 
-<table class="info-table" style="margin-top: 6px;">
-    <tr><th style="width: auto;">Prestation</th><th style="width: 30%;">Montant</th></tr>
-    {% for item in items %}
-    <tr><td>{{ item.act.name }}</td><td>{{ item.price|dh }}</td></tr>
-    {% endfor %}
-    <tr>
-        <td style="font-weight: bold; color: #3D5A47;">Total réglé</td>
-        <td style="font-weight: bold; color: #3D5A47;">{{ invoice.total_amount|dh }}</td>
-    </tr>
+<p style="margin-top: 8pt;">Reçu la somme de : <b>{{ amount_words }}</b>.</p>
+
+<h2>Situation de la facture</h2>
+<table class="grid">
+    <tr><td>Montant de la facture</td><td class="right" style="width: 30%;">{{ invoice.total_amount|dh }}</td></tr>
+    <tr><td>Total réglé à ce jour</td><td class="right">{{ invoice.amount_paid|dh }}</td></tr>
+    <tr><th>Reste dû</th><th class="right">{{ invoice.balance_due|dh }}</th></tr>
 </table>
 
-<p style="margin-top: 16px; font-size: 9pt; color: #64748B;">
-    Reçu remis à titre de justificatif de paiement. Les détails cliniques ne figurent pas sur ce document.
-</p>
+<p class="muted" style="margin-top: 10pt; font-size: 9.5pt;">Reçu remis à titre de justificatif de paiement. Aucune information médicale ne figure sur ce document.</p>
+{% endblock %}
+{% block signature %}
+<div class="signature"><p>Cachet du cabinet</p></div>
 {% endblock %}

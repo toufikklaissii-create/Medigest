@@ -10,6 +10,7 @@ from django.utils import timezone
 from apps.accounts.models import Cabinet, Profile
 from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, MedicalAct
+from apps.billing.services import record_payment
 from apps.clinical.models import Consultation, ConsultationAct
 from apps.patients.models import Patient
 
@@ -263,11 +264,11 @@ class Command(BaseCommand):
             consultation.refresh_from_db()
 
         invoice = consultation.invoice
-        if billing["paid"] and invoice and invoice.status == Invoice.Status.PENDING:
-            invoice.status = Invoice.Status.PAID
-            invoice.payment_method = Invoice.PaymentMethod.CASH
+        if billing["paid"] and invoice and invoice.status == Invoice.Status.PENDING and invoice.balance_due:
             # Encaissée à la sortie de la patiente, le jour du RDV.
-            invoice.paid_at = appointment.date + timedelta(minutes=appointment.duration_minutes + 5)
-            invoice.save(update_fields=["status", "payment_method", "paid_at"])
+            record_payment(
+                invoice, None, Invoice.PaymentMethod.CASH, None,
+                paid_at=appointment.date + timedelta(minutes=appointment.duration_minutes + 5),
+            )
             return validated, 1
         return validated, 0

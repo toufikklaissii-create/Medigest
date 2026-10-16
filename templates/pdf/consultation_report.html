@@ -1,16 +1,23 @@
-{% extends "pdf/_base_pdf.html" %}
-{% block doc_type %}Compte rendu{% endblock %}
-{% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
+{% extends "pdf/_letterhead_base.html" %}
+{% block title %}COMPTE RENDU DE CONSULTATION{% endblock %}
 {% block body %}
-<table class="info-table">
-    <tr><th>Indication / Motif</th><td>{{ reason|default:"—" }}</td></tr>
-    <tr><th>DDR</th><td>{{ last_menstrual_period|date:"d/m/Y"|default:"—" }}</td></tr>
-    <tr><th>Âge gestationnel</th><td>{% if gestational_age %}{{ gestational_age }}{% else %}—{% endif %}</td></tr>
-    <tr><th>Date prévue d'accouchement</th><td>{% if due_date %}{{ due_date|date:"d/m/Y" }}{% else %}—{% endif %}</td></tr>
-    <tr><th>Biométrie fœtale</th><td style="white-space: pre-line;">{{ ultrasound_notes|default:"—" }}</td></tr>
-    <tr><th>Conclusion / Conduite à tenir</th><td style="white-space: pre-line;">{{ diagnostic|default:"—" }}</td></tr>
-</table>
-{% if clinical_notes %}
-<p style="margin-top: 18px;"><strong>Examen clinique :</strong><br>{{ clinical_notes|linebreaksbr }}</p>
+{% if reason %}<h2>Motif</h2><p class="text">{{ reason }}</p>{% endif %}
+
+{% if blood_pressure or weight or height %}
+<h2>Constantes</h2>
+<p>{% if blood_pressure %}Tension : <b>{{ blood_pressure }}</b>{% endif %}{% if weight %}{% if blood_pressure %} — {% endif %}Poids : <b>{{ weight }} kg</b>{% endif %}{% if height %} — Taille : <b>{{ height }} cm</b>{% endif %}{% if bmi %} — IMC : <b>{{ bmi }}</b>{% endif %}</p>
 {% endif %}
+
+{% if last_menstrual_period %}
+<h2>Grossesse</h2>
+<p>DDR : <b>{{ last_menstrual_period|date:"j F Y" }}</b>{% if gestational_age %} — Terme : <b>{{ gestational_age }}</b>{% endif %}{% if due_date %} — DPA : <b>{{ due_date|date:"j F Y" }}</b>{% endif %}</p>
+{% endif %}
+
+{% if clinical_exam %}<h2>Examen clinique</h2><p class="text">{{ clinical_exam }}</p>{% endif %}
+{% if ultrasound_notes %}<h2>Échographie</h2><p class="text">{{ ultrasound_notes }}</p>{% endif %}
+{% if quick_exams %}<h2>Examens complémentaires</h2><p>{{ quick_exams|join:", " }}</p>{% endif %}
+{% if clinical_notes %}<h2>Observations</h2><p class="text">{{ clinical_notes }}</p>{% endif %}
+
+<h2>Conclusion</h2>
+{% if diagnostic %}<p class="text">{{ diagnostic }}</p>{% else %}<p class="muted">Aucune conclusion renseignée.</p>{% endif %}
 {% endblock %}

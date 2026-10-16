@@ -1,0 +1,55 @@
+{% with input_cls="w-full h-10 rounded-lg border bg-surface px-3 text-sm text-text-main focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20" %}
+<tr id="tariff-{{ act.pk }}" class="bg-sauge-25 align-top" x-data
+    hx-post="{% url 'billing:tariff_row' act.pk %}" hx-trigger="submit-row" hx-include="#tariff-{{ act.pk }} input" hx-target="this" hx-swap="outerHTML"
+    @keydown.enter.prevent="$dispatch('submit-row')" @keydown.escape="$refs.cancel.click()">
+    <td class="px-5 py-2.5">
+        <label class="sr-only" for="code-{{ act.pk }}">Code</label>
+        <input id="code-{{ act.pk }}" name="code" value="{{ act.code }}" maxlength="30" required
+               class="{{ input_cls }} uppercase {% if errors.code %}border-rose-300{% else %}border-border-subtle{% endif %}"
+               {% if errors.code %}aria-invalid="true" aria-describedby="code-{{ act.pk }}-error"{% endif %}>
+        {% if errors.code %}<p id="code-{{ act.pk }}-error" class="mt-1 text-[12.5px] text-rose-600">{{ errors.code }}</p>{% endif %}
+    </td>
+    <td class="px-4 py-2.5">
+        <label class="sr-only" for="name-{{ act.pk }}">Libellé</label>
+        <input id="name-{{ act.pk }}" name="name" value="{{ act.name }}" maxlength="150" required x-init="$el.focus()"
+               class="{{ input_cls }} {% if errors.name %}border-rose-300{% else %}border-border-subtle{% endif %}"
+               {% if errors.name %}aria-invalid="true" aria-describedby="name-{{ act.pk }}-error"{% endif %}>
+        {% if errors.name %}<p id="name-{{ act.pk }}-error" class="mt-1 text-[12.5px] text-rose-600">{{ errors.name }}</p>{% endif %}
+    </td>
+    <td class="px-4 py-2.5">
+        <label class="sr-only" for="price-{{ act.pk }}">Prix (DH)</label>
+        <div class="relative">
+            <input id="price-{{ act.pk }}" name="price" value="{{ act.price|floatformat:2 }}" inputmode="decimal" required
+                   class="{{ input_cls }} pr-10 text-right tabular-nums {% if errors.price %}border-rose-300{% else %}border-border-subtle{% endif %}"
+                   {% if errors.price %}aria-invalid="true" aria-describedby="price-{{ act.pk }}-error"{% endif %}>
+            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-text-muted">DH</span>
+        </div>
+        {% if errors.price %}<p id="price-{{ act.pk }}-error" class="mt-1 text-[12.5px] text-rose-600">{{ errors.price }}</p>{% endif %}
+    </td>
+    <td class="px-4 py-2.5 text-center">
+        <label class="inline-flex h-10 items-center justify-center cursor-pointer">
+            <span class="sr-only">Actif</span>
+            <input type="checkbox" name="is_active" {% if act.is_active %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600">
+        </label>
+    </td>
+    <td class="px-4 py-2.5 text-center">
+        <label class="inline-flex h-10 items-center justify-center cursor-pointer">
+            <span class="sr-only">Examen rapide</span>
+            <input type="checkbox" name="is_quick_exam" {% if act.is_quick_exam %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600">
+        </label>
+    </td>
+    <td class="px-5 py-2.5">
+        <div class="flex justify-end gap-1.5">
+            <button type="button" x-ref="cancel" aria-label="Annuler la modification"
+                    hx-get="{% url 'billing:tariff_row' act.pk %}" hx-target="#tariff-{{ act.pk }}" hx-swap="outerHTML"
+                    class="btn-tactile h-10 w-10 inline-flex items-center justify-center rounded-lg text-text-muted hover:bg-slate-100/70 hover:text-text-main">
+                <i data-lucide="x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+            </button>
+            <button type="button" @click="$dispatch('submit-row')"
+                    class="btn-tactile h-10 inline-flex items-center gap-1.5 rounded-lg bg-sauge-600 px-3 text-[13px] font-semibold text-white shadow-sm hover:bg-sauge-700">
+                <i data-lucide="check" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Enregistrer
+            </button>
+        </div>
+    </td>
+</tr>
+{% endwith %}

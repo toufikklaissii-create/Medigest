@@ -90,7 +90,7 @@ class AssistantDashboardTest(TestCase):
         appt, invoice = self._completed_with_invoice("450")
         html = self.client.get(reverse("appointments:reception_panel", args=[appt.pk])).content.decode()
         self.assertIn(reverse("billing:pay_invoice", args=[invoice.pk]), html)
-        for method in ('value="cash"', 'value="card"', 'value="check"'):
+        for method in ("method=cash", "method=card", "method=check", "method=transfer"):
             self.assertIn(method, html)
         self.assertNotIn("DIAG-SECRET-ACCUEIL", html)
         timeline = self.client.get(reverse("appointments:reception_timeline")).content.decode()

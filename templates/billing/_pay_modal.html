@@ -1,0 +1,133 @@
+{% load medigest_format %}
+{% comment %}
+Modale d'encaissement (HTMX → #modal-host). Le montant de la facture est en lecture seule :
+l'assistante saisit seulement le montant encaissé, borné au reste dû côté serveur.
+{% endcomment %}
+<div x-data="{ open: true, close() { this.open = false; setTimeout(() => { document.getElementById('modal-host').innerHTML = '' }, 130) } }"
+     x-show="open" @keydown.escape.window="close()"
+     class="fixed inset-0 z-50 flex items-center justify-center bg-sauge-950/30 backdrop-blur-[2px] px-4"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    <div role="dialog" aria-modal="true" aria-labelledby="pay-title" x-trap.noscroll="open" @click.outside="close()"
+         class="w-full max-w-md rounded-2xl border border-border-subtle bg-surface shadow-popover animate-[slide-in_180ms_ease-out] motion-reduce:animate-none">
+
+        {% if done %}
+        <!-- Encaissement enregistré -->
+        <div class="flex flex-col items-center gap-3 px-6 py-8 text-center" x-init="setTimeout(() => close(), 2600)">
+            <span class="size-12 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 grid place-items-center">
+                <i data-lucide="check" class="w-6 h-6" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <h2 id="pay-title" class="text-[15px] font-semibold text-text-main">
+                {% if invoice.status == "paid" %}Facture soldée{% else %}Paiement enregistré{% endif %}
+            </h2>
+            <p class="text-[13px] text-text-muted tabular-nums">
+                {{ payment.amount|dh }} en {{ payment.get_method_display|lower }}{% if invoice.balance_due %}, reste dû {{ invoice.balance_due|dh }}{% endif %}
+            </p>
+            <a href="{{ receipt_url }}" target="_blank" rel="noopener"
+               class="btn-tactile mt-1 inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-4 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Imprimer le reçu
+            </a>
+        </div>
+        {% else %}
+        <form hx-post="{% url 'billing:pay_invoice' invoice.pk %}" hx-target="#modal-host" hx-swap="innerHTML"
+              hx-disabled-elt="find button[type=submit]"
+              x-data="{ method: '{{ method }}', get needsRef() { return {{ methods_with_reference_json }}.includes(this.method) } }"
+              class="relative p-6">
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                    <span class="size-9 shrink-0 rounded-lg bg-sauge-50 text-sauge-600 grid place-items-center">
+                        <i data-lucide="banknote" class="w-[18px] h-[18px]" stroke-width="1.75" aria-hidden="true"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <h2 id="pay-title" class="text-[15px] font-semibold text-text-main">Encaisser</h2>
+                        <p class="mt-0.5 text-[13px] text-text-muted truncate">Mme {{ invoice.patient.first_name }} {{ invoice.patient.last_name }} · {{ invoice.invoice_number }}</p>
+                    </div>
+                </div>
+                <button type="button" @click="close()" aria-label="Fermer"
+                        class="btn-tactile -mr-2 -mt-2 h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-lg text-text-muted hover:bg-slate-100/70 hover:text-text-main">
+                    <i data-lucide="x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <!-- Montants fixés par la doctoresse : lecture seule -->
+            <dl class="mt-5 grid grid-cols-3 gap-3 rounded-xl bg-slate-50/70 px-4 py-3 text-[13px]">
+                <div><dt class="text-text-muted">Facturé</dt><dd class="mt-0.5 font-semibold text-text-main tabular-nums">{{ invoice.total_amount|dh }}</dd></div>
+                <div><dt class="text-text-muted">Déjà réglé</dt><dd class="mt-0.5 font-semibold text-text-main tabular-nums">{{ invoice.amount_paid|dh }}</dd></div>
+                <div><dt class="text-text-muted">Reste dû</dt><dd class="mt-0.5 font-bold text-sauge-700 tabular-nums">{{ invoice.balance_due|dh }}</dd></div>
+            </dl>
+
+            {% if error %}
+            <p role="alert" class="mt-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-[13px] text-rose-700">
+                <i data-lucide="alert-circle" class="w-4 h-4 mt-px shrink-0" stroke-width="1.75" aria-hidden="true"></i> {{ error }}
+            </p>
+            {% endif %}
+
+            <fieldset class="mt-5">
+                <legend class="block text-[13px] font-medium text-text-soft mb-1.5">Mode de paiement</legend>
+                <div class="grid grid-cols-4 gap-2">
+                    {% for value, label, icon in methods %}
+                    <label class="btn-tactile flex flex-col items-center justify-center gap-1 h-16 rounded-xl border text-[12.5px] font-medium cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sauge-600/30"
+                           :class="method === '{{ value }}' ? 'border-sauge-600 bg-sauge-50 text-sauge-700' : 'border-border-subtle text-text-soft hover:border-sauge-200 hover:bg-sauge-25'">
+                        <input type="radio" name="payment_method" value="{{ value }}" x-model="method" class="sr-only" {% if value == method %}checked{% endif %}>
+                        <i data-lucide="{{ icon }}" class="w-[18px] h-[18px]" stroke-width="1.75" aria-hidden="true"></i>
+                        {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+
+            <div class="mt-5 grid gap-4" :class="needsRef && 'sm:grid-cols-2'">
+                <div>
+                    <label for="pay-amount" class="block text-[13px] font-medium text-text-soft mb-1.5">Montant encaissé</label>
+                    <div class="relative">
+                        <input id="pay-amount" name="amount" inputmode="decimal" autocomplete="off" required
+                               value="{{ amount }}"
+                               aria-describedby="pay-amount-help"
+                               class="w-full h-11 rounded-lg border {% if error %}border-rose-300{% else %}border-border-subtle{% endif %} bg-surface pl-3 pr-12 text-[15px] font-semibold text-text-main tabular-nums focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20">
+                        <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-text-muted">DH</span>
+                    </div>
+                    <p id="pay-amount-help" class="mt-1 text-[12px] text-text-muted">Paiement partiel possible, jamais au-delà du reste dû.</p>
+                </div>
+                <div x-show="needsRef" x-cloak>
+                    <label for="pay-reference" class="block text-[13px] font-medium text-text-soft mb-1.5">
+                        <span x-text="method === 'check' ? 'N° de chèque' : 'Référence du virement'">Référence</span>
+                    </label>
+                    <input id="pay-reference" name="reference" value="{{ reference|default:'' }}" autocomplete="off" :required="needsRef"
+                           class="w-full h-11 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint"
+                           placeholder="Obligatoire">
+                </div>
+            </div>
+
+            <div class="mt-6 flex items-center justify-between gap-2 border-t border-border-subtle pt-4"
+                 x-data="{ report: false }">
+                <button type="button" @click="report = !report" :aria-expanded="report.toString()"
+                        class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg px-2.5 text-[13px] font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                    <i data-lucide="flag" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Signaler un écart
+                </button>
+                <button type="submit"
+                        class="btn-tactile min-w-[140px] inline-flex items-center justify-center gap-1.5 h-10 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+                    <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Encaisser
+                </button>
+
+                <!-- Écart : la doctoresse reçoit une tâche, la facture reste inchangée -->
+                <div x-show="report" x-cloak x-transition.opacity class="absolute inset-x-6 bottom-6 rounded-xl border border-border-subtle bg-surface p-4 shadow-popover"
+                     @discrepancy-sent.window="report = false">
+                    <label for="discrepancy-message" class="block text-[13px] font-medium text-text-soft mb-1.5">Quel écart avez-vous constaté ?</label>
+                    <textarea id="discrepancy-message" name="message" rows="3" form="discrepancy-form"
+                              class="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-text-main focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint"
+                              placeholder="Ex. : la patiente indique un tarif convenu de 300 DH."></textarea>
+                    <div class="mt-3 flex justify-end gap-2">
+                        <button type="button" @click="report = false"
+                                class="btn-tactile h-10 rounded-lg px-3 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">Annuler</button>
+                        <button type="submit" form="discrepancy-form"
+                                class="btn-tactile h-10 inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-3.5 text-sm font-semibold text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+                            <i data-lucide="send" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Envoyer à la doctoresse
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <form id="discrepancy-form" hx-post="{% url 'billing:report_discrepancy' invoice.pk %}" hx-swap="none" class="hidden"></form>
+        {% endif %}
+    </div>
+</div>

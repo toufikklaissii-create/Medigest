@@ -1,0 +1,72 @@
+{% extends "pdf/_letterhead_base.html" %}
+{% load medigest_format %}
+{% block title %}FACTURE{% endblock %}
+{% block body %}
+<table class="grid">
+    <tr><th style="width: 34%;">N° de facture</th><td>{{ invoice.invoice_number }}</td></tr>
+    <tr><th>Date</th><td>{{ invoice.created_at|date:"j F Y" }}</td></tr>
+    {% if invoice.is_cancelled %}<tr><th>Statut</th><td>Annulée le {{ invoice.cancelled_at|date:"j F Y" }} : {{ invoice.cancel_reason }}</td></tr>{% endif %}
+</table>
+
+<h2>Prestations</h2>
+<table class="grid">
+    <tr><th>Désignation</th><th class="right" style="width: 30%;">Montant</th></tr>
+    {% for item in items %}
+    <tr><td>{{ item.act.name }}</td><td class="right">{{ item.price|dh }}</td></tr>
+    {% empty %}
+    <tr><td colspan="2" class="muted">Aucune prestation facturée.</td></tr>
+    {% endfor %}
+    {% if invoice.discount or invoice.is_free %}
+    <tr><td>Sous-total</td><td class="right">{{ invoice.subtotal|dh }}</td></tr>
+    {% endif %}
+    {% if invoice.is_free %}
+    <tr><td>Gratuit / contrôle</td><td class="right">- {{ invoice.subtotal|dh }}</td></tr>
+    {% elif invoice.discount %}
+    <tr><td>Remise</td><td class="right">- {{ invoice.discount|dh }}</td></tr>
+    {% endif %}
+    <tr><th>Total</th><th class="right">{{ invoice.total_amount|dh }}</th></tr>
+</table>
+
+<p style="margin-top: 8pt;">Arrêtée la présente facture à la somme de : <b>{{ amount_words }}</b>.</p>
+
+{% if payments %}
+<h2>Paiements reçus</h2>
+<table class="grid">
+    <tr><th>Date</th><th>Mode</th><th>Référence</th><th class="right" style="width: 26%;">Montant</th></tr>
+    {% for payment in payments %}
+    <tr>
+        <td>{{ payment.paid_at|date:"j F Y" }}</td>
+        <td>{{ payment.get_method_display }}</td>
+        <td>{{ payment.reference|default:"" }}</td>
+        <td class="right">{{ payment.amount|dh }}</td>
+    </tr>
+    {% endfor %}
+    <tr><th colspan="3">Total réglé</th><th class="right">{{ amount_paid|dh }}</th></tr>
+</table>
+{% endif %}
+
+{% if not invoice.is_cancelled %}
+<table style="margin-top: 8pt; width: 100%;">
+    <tr>
+        <td style="width: 55%; font-size: 12pt;"><b>Reste dû : {{ invoice.balance_due|dh }}</b></td>
+        <td style="text-align: right;">
+            {% if invoice.status == "paid" %}
+            <span class="stamp">ACQUITTÉE</span>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+{% endif %}
+
+{% if cabinet.inpe or cabinet.identifiant_fiscal or cabinet.ice or cabinet.patente %}
+<p class="legal">
+    {% if cabinet.inpe %}INPE : {{ cabinet.inpe }}&nbsp;&nbsp;{% endif %}
+    {% if cabinet.identifiant_fiscal %}IF : {{ cabinet.identifiant_fiscal }}&nbsp;&nbsp;{% endif %}
+    {% if cabinet.ice %}ICE : {{ cabinet.ice }}&nbsp;&nbsp;{% endif %}
+    {% if cabinet.patente %}Patente : {{ cabinet.patente }}{% endif %}
+</p>
+{% endif %}
+{% endblock %}
+{% block signature %}
+<div class="signature"><p>Cachet du cabinet</p></div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% load medigest_format %}
+<tr id="tariff-{{ act.pk }}" class="h-14 hover:bg-sauge-25 transition-colors duration-150 {% if flash %}animate-slide-in motion-reduce:animate-none{% endif %} {% if not act.is_active %}text-text-muted{% endif %}">
+    <td class="px-5 font-medium tabular-nums {% if act.is_active %}text-text-soft{% endif %}">{{ act.code }}</td>
+    <td class="px-4 {% if act.is_active %}text-text-main{% endif %}">{{ act.name }}</td>
+    <td class="px-4 text-right font-semibold tabular-nums whitespace-nowrap {% if act.is_active %}text-text-main{% endif %}">{{ act.price|dh }}</td>
+    <td class="px-4 text-center">
+        {% if act.is_active %}{% include "_status_badge.html" with tone="emerald" label="Actif" %}{% else %}{% include "_status_badge.html" with tone="slate" label="Inactif" %}{% endif %}
+    </td>
+    <td class="px-4 text-center">
+        {% if act.is_quick_exam %}<i data-lucide="check" class="inline w-4 h-4 text-sauge-600" stroke-width="1.75" aria-hidden="true"></i><span class="sr-only">Oui</span>{% else %}<span class="text-[13px] text-text-faint">Non</span>{% endif %}
+    </td>
+    <td class="px-5 text-right">
+        <button type="button" hx-get="{% url 'billing:tariff_row' act.pk %}?edit=1" hx-target="#tariff-{{ act.pk }}" hx-swap="outerHTML"
+                aria-label="Modifier le tarif {{ act.name }}"
+                class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg border border-border-subtle bg-surface px-3 text-[13px] font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
+            <i data-lucide="pencil" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Modifier
+        </button>
+    </td>
+</tr>

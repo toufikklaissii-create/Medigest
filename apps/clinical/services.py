@@ -32,6 +32,10 @@ PRESCRIPTION_TEMPLATES = {
     },
 }
 
+# Papier à en-tête du cabinet (logo, coordonnées, pied de page), posé en fond de chaque page.
+LETTERHEAD = "pdf/entete_cabinet.pdf"
+PRESCRIPTION_LETTERHEAD = "pdf/ordonnance_modele.pdf"  # même en-tête, titre « ORDONNANCE » imprimé
+
 
 LETTER_TEMPLATES = {
     "letter": {
@@ -69,6 +73,24 @@ def prescription_lines(content):
     return [line.strip() for line in (content or "").splitlines() if line.strip()]
 
 
+def doctor_display_name(user):
+    """« Dr Khadija Errmili » pour la signature des documents."""
+    if user is None:
+        return ""
+    name = user.get_full_name().strip() or user.username
+    return name if name.lower().startswith("dr") else f"Dr {name}"
+
+
+def letterhead_context(patient, doc_date, doctor=None):
+    """Contexte commun des documents imprimés sur le papier à en-tête du cabinet."""
+    return {
+        "patient": patient,
+        "cabinet": patient.cabinet,
+        "doc_date": doc_date,
+        "doctor_name": doctor_display_name(doctor),
+    }
+
+
 def generate_prescription_pdf(consultation, content, save_copy=True):
     patient = consultation.patient
     pdf_bytes = render_pdf(
@@ -78,7 +100,7 @@ def generate_prescription_pdf(consultation, content, save_copy=True):
             "doc_date": consultation.updated_at,
             "prescription_lines": prescription_lines(content),
         },
-        background="pdf/ordonnance_modele.pdf",
+        background=PRESCRIPTION_LETTERHEAD,
     )
     if save_copy:
         save_pdf_copy(patient, "ordonnance", pdf_bytes, reference=consultation.pk)
@@ -91,11 +113,11 @@ def generate_letter_pdf(consultation, document_type, content, save_copy=True):
     pdf_bytes = render_pdf(
         "pdf/letter.html",
         {
-            "patient": patient,
-            "doc_date": consultation.updated_at,
+            **letterhead_context(patient, consultation.updated_at, consultation.doctor),
             "doc_title": doc_title,
             "content": content,
         },
+        background=LETTERHEAD,
     )
     if save_copy:
         save_pdf_copy(patient, document_type, pdf_bytes, reference=consultation.pk)
@@ -109,12 +131,22 @@ def generate_report_pdf(consultation, save_copy=True):
     pregnancy = consultation.pregnancy
     gestational_age = f"{pregnancy['weeks']} SA + {pregnancy['days']} j" if pregnancy else None
 
+    quick_exams = [
+        line.act.name
+        for line in consultation.consultation_acts.select_related("act")
+        if line.act.is_quick_exam
+    ]
     pdf_bytes = render_pdf(
         "pdf/consultation_report.html",
         {
-            "patient": patient,
-            "doc_date": consultation.updated_at,
+            **letterhead_context(patient, consultation.appointment.date, consultation.doctor),
             "reason": consultation.appointment.reason,
+            "blood_pressure": consultation.blood_pressure,
+            "weight": consultation.weight_kg,
+            "height": consultation.height_cm,
+            "bmi": consultation.bmi,
+            "clinical_exam": consultation.clinical_exam,
+            "quick_exams": quick_exams,
             "last_menstrual_period": consultation.last_menstrual_period,
             "gestational_age": gestational_age,
             "due_date": pregnancy["due_date"] if pregnancy else None,
@@ -122,24 +154,25 @@ def generate_report_pdf(consultation, save_copy=True):
             "diagnostic": consultation.diagnostic,
             "clinical_notes": consultation.clinical_notes,
         },
+        background=LETTERHEAD,
     )
     if save_copy:
         save_pdf_copy(patient, "compte_rendu", pdf_bytes, reference=consultation.pk)
     return pdf_bytes
 
 
-def generate_patient_record_pdf(patient, save_copy=True):
+def generate_patient_record_pdf(patient, save_copy=True, doctor=None):
     consultations = (
         patient.consultations.select_related("appointment")
-        .order_by("-created_at")[:20]
+        .order_by("-appointment__date")[:20]
     )
     pdf_bytes = render_pdf(
         "pdf/patient_record.html",
         {
-            "patient": patient,
-            "doc_date": timezone.now(),
+            **letterhead_context(patient, timezone.now(), doctor),
             "consultations": consultations,
         },
+        background=LETTERHEAD,
     )
     if save_copy:
         save_pdf_copy(patient, "dossier_patient", pdf_bytes)

@@ -1,0 +1,176 @@
+{% load medigest_format %}
+<div id="invoice-table"
+     hx-get="{% url 'billing:index' %}" hx-include="#invoice-filters" hx-trigger="invoice-paid from:body"
+     hx-target="this" hx-swap="outerHTML"
+     x-data="{ cancelling: null, reason: '', error: '',
+               ask(id, number) { this.cancelling = { id, number }; this.reason = ''; this.error = ''; },
+               confirmCancel() {
+                   if (!this.reason.trim()) { this.error = 'Indiquez le motif de l\'annulation.'; return; }
+                   htmx.ajax('POST', '{% url 'billing:cancel_invoice' 0 %}'.replace('/0/', '/' + this.cancelling.id + '/'),
+                             { values: { reason: this.reason }, swap: 'none' });
+                   this.cancelling = null;
+               } }"
+     class="group/table bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden">
+
+    {% if is_partial %}{% for value, label, count in status_filters %}
+    <span id="status-count-{{ value|default:'all' }}" hx-swap-oob="true" class="tabular-nums text-[11.5px] text-text-faint">{{ count }}</span>
+    {% endfor %}{% endif %}
+
+    <!-- Skeleton pendant le filtrage (hx-indicator) -->
+    <div class="hidden group-[.htmx-request]/table:block divide-y divide-border-subtle" aria-hidden="true">
+        {% for _ in "123456" %}
+        <div class="h-14 px-5 flex items-center gap-4"><div class="h-3.5 w-40 rounded bg-slate-100 animate-pulse"></div><div class="h-3.5 w-24 rounded bg-slate-100 animate-pulse"></div><div class="ml-auto h-3.5 w-20 rounded bg-slate-100 animate-pulse"></div></div>
+        {% endfor %}
+    </div>
+
+    <div class="group-[.htmx-request]/table:hidden">
+    {% if invoices %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50/50">
+                <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                    <th scope="col" class="text-left font-semibold px-5 py-3">Patiente</th>
+                    <th scope="col" class="text-left font-semibold px-4 py-3">Facture</th>
+                    <th scope="col" class="text-left font-semibold px-4 py-3">Statut</th>
+                    <th scope="col" class="text-right font-semibold px-4 py-3">Total</th>
+                    <th scope="col" class="text-right font-semibold px-4 py-3">Payé</th>
+                    <th scope="col" class="text-right font-semibold px-4 py-3">Reste dû</th>
+                    <th scope="col" class="px-5 py-3"><span class="sr-only">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-subtle">
+                {% for invoice in invoices %}
+                <tr class="h-14 hover:bg-sauge-25 transition-colors duration-150 {% if invoice.is_cancelled %}text-text-muted{% endif %}">
+                    <td class="px-5 font-medium {% if invoice.is_cancelled %}text-text-muted{% else %}text-text-main{% endif %} whitespace-nowrap">
+                        {{ invoice.patient.first_name }} {{ invoice.patient.last_name }}
+                    </td>
+                    <td class="px-4 text-text-soft whitespace-nowrap tabular-nums">
+                        <span class="{% if invoice.is_cancelled %}line-through decoration-text-faint{% endif %}">{{ invoice.invoice_number }}</span>
+                        <span class="block text-[12px] text-text-faint">{{ invoice.created_at|date:"j M Y" }}</span>
+                    </td>
+                    <td class="px-4 whitespace-nowrap">
+                        {% include "_status_badge.html" with tone=invoice.status_tone label=invoice.get_status_display %}
+                        {% if invoice.is_free %}<span class="ml-1 text-[12px] text-text-muted">Gratuit</span>{% endif %}
+                        {% if invoice.is_cancelled and invoice.cancel_reason %}
+                        <span class="block mt-0.5 max-w-[220px] truncate text-[12px] text-text-muted" title="{{ invoice.cancel_reason }}">{{ invoice.cancel_reason }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 text-right tabular-nums whitespace-nowrap {% if invoice.is_cancelled %}line-through decoration-text-faint{% else %}text-text-main{% endif %}">{{ invoice.total_amount|dh }}</td>
+                    <td class="px-4 text-right tabular-nums whitespace-nowrap text-text-soft">{{ invoice.amount_paid|dh }}</td>
+                    <td class="px-4 text-right font-semibold tabular-nums whitespace-nowrap {% if invoice.balance_due %}text-text-main{% else %}text-text-faint{% endif %}">{{ invoice.balance_due|dh }}</td>
+                    <td class="px-5">
+                        <div class="flex items-center justify-end gap-1.5">
+                            {% if invoice.balance_due %}
+                            <button type="button" hx-get="{% url 'billing:pay_invoice' invoice.pk %}" hx-target="#modal-host" hx-swap="innerHTML"
+                                    class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg bg-sauge-600 px-3 text-[13px] font-semibold text-white shadow-sm hover:bg-sauge-700">
+                                <i data-lucide="banknote" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Encaisser
+                            </button>
+                            {% endif %}
+                            <div class="relative" x-data="{ menu: false }" @keydown.escape="menu = false" @click.outside="menu = false">
+                                <button type="button" @click="menu = !menu" :aria-expanded="menu.toString()" aria-haspopup="menu"
+                                        aria-label="Actions sur la facture {{ invoice.invoice_number }}"
+                                        class="btn-tactile h-9 w-9 inline-flex items-center justify-center rounded-lg text-text-muted hover:bg-slate-100/70 hover:text-text-main">
+                                    <i data-lucide="more-horizontal" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                                </button>
+                                <div role="menu" x-show="menu" x-cloak
+                                     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+                                     class="absolute right-0 top-full z-30 mt-1 w-60 rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
+                                    <a role="menuitem" href="{% url 'billing:invoice_pdf' invoice.pk %}" target="_blank" rel="noopener"
+                                       class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                        <i data-lucide="file-text" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i> Facture (PDF)
+                                    </a>
+                                    {% for payment in invoice.payments.all %}
+                                    <a role="menuitem" href="{% url 'billing:payment_receipt' payment.pk %}" target="_blank" rel="noopener"
+                                       class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-main hover:bg-sauge-25">
+                                        <i data-lucide="receipt" class="w-4 h-4 text-sauge-500" stroke-width="1.75" aria-hidden="true"></i>
+                                        <span class="truncate">Reçu {{ payment.amount|dh }} <span class="text-text-muted">· {{ payment.paid_at|date:"j/m" }}</span></span>
+                                    </a>
+                                    {% endfor %}
+                                    {% if request.user.profile.is_doctor and not invoice.is_cancelled and not invoice.payments.all %}
+                                    <div class="my-1.5 h-px bg-border-subtle" role="separator"></div>
+                                    <button type="button" role="menuitem" @click="menu = false; ask({{ invoice.pk }}, '{{ invoice.invoice_number }}')"
+                                            class="w-full flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-rose-700 hover:bg-rose-50">
+                                        <i data-lucide="file-x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Annuler la facture
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="flex items-center justify-between gap-3 border-t border-border-subtle px-5 py-3 text-[13px] text-text-muted" aria-label="Pagination">
+        <span class="tabular-nums">Page {{ page_obj.number }} sur {{ page_obj.paginator.num_pages }}</span>
+        <div class="flex gap-2">
+            {% if page_obj.has_previous %}
+            <button type="button" hx-get="{% url 'billing:index' %}?page={{ page_obj.previous_page_number }}" hx-include="#invoice-filters"
+                    class="btn-tactile h-9 inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-3 font-medium text-text-main hover:bg-sauge-25">
+                <i data-lucide="chevron-left" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Précédente
+            </button>
+            {% endif %}
+            {% if page_obj.has_next %}
+            <button type="button" hx-get="{% url 'billing:index' %}?page={{ page_obj.next_page_number }}" hx-include="#invoice-filters"
+                    class="btn-tactile h-9 inline-flex items-center gap-1 rounded-lg border border-border-subtle bg-surface px-3 font-medium text-text-main hover:bg-sauge-25">
+                Suivante <i data-lucide="chevron-right" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+        </div>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="flex flex-col items-center justify-center gap-2 px-4 py-16 text-center">
+        <span class="size-10 rounded-lg bg-slate-100 text-text-muted grid place-items-center">
+            <i data-lucide="receipt" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+        </span>
+        {% if query or status %}
+        <p class="text-sm text-text-muted">Aucune facture ne correspond à cette recherche.</p>
+        <a href="{% url 'billing:index' %}" class="text-[13px] font-medium text-sauge-600 hover:underline">Effacer les filtres</a>
+        {% else %}
+        <p class="text-sm text-text-muted">Aucune facture pour le moment.</p>
+        <p class="text-[13px] text-text-faint">Elles sont créées à la validation des consultations.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    </div>
+
+    {% if request.user.profile.is_doctor %}
+    <!-- Annulation (doctoresse) : motif obligatoire, le numéro reste attribué -->
+    <template x-teleport="body">
+        <div x-show="cancelling" x-cloak @keydown.escape.window="cancelling = null"
+             class="fixed inset-0 z-50 flex items-center justify-center bg-sauge-950/30 backdrop-blur-[2px] px-4"
+             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+            <div role="alertdialog" aria-modal="true" aria-labelledby="cancel-invoice-title" x-trap.noscroll="cancelling" @click.outside="cancelling = null"
+                 class="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 shadow-popover">
+                <div class="flex items-start gap-3">
+                    <span class="size-9 shrink-0 rounded-lg bg-rose-50 text-rose-700 grid place-items-center">
+                        <i data-lucide="file-x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                    </span>
+                    <div>
+                        <h2 id="cancel-invoice-title" class="text-[15px] font-semibold text-text-main">Annuler la facture <span x-text="cancelling && cancelling.number"></span> ?</h2>
+                        <p class="mt-1.5 text-[13px] leading-relaxed text-text-soft">La facture reste dans l'historique avec son numéro et le motif. Cette action est réservée à la doctoresse.</p>
+                    </div>
+                </div>
+                <label for="cancel-reason" class="mt-5 block text-[13px] font-medium text-text-soft mb-1.5">Motif de l'annulation</label>
+                <textarea id="cancel-reason" rows="3" x-model="reason" aria-describedby="cancel-reason-error"
+                          :class="error ? 'border-rose-300' : 'border-border-subtle'"
+                          class="w-full rounded-lg border bg-surface px-3 py-2 text-sm text-text-main focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint"
+                          placeholder="Ex. : erreur de saisie, consultation non réalisée"></textarea>
+                <p id="cancel-reason-error" x-show="error" x-text="error" class="mt-1 text-[13px] text-rose-600"></p>
+                <div class="mt-6 flex justify-end gap-2">
+                    <button type="button" @click="cancelling = null"
+                            class="btn-tactile h-10 rounded-lg px-3.5 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">Garder la facture</button>
+                    <button type="button" @click="confirmCancel()"
+                            class="btn-tactile h-10 inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-rose-700">
+                        <i data-lucide="file-x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Annuler la facture
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+    {% endif %}
+</div>

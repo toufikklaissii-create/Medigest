@@ -11,7 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Profile
-from apps.billing.models import Invoice
+from apps.billing.models import Payment
+from apps.billing.services import PAYMENT_SHORTCUTS, pending_invoices_queryset
 from apps.clinical.models import Consultation
 from apps.communications.views import _active_tasks_for
 from apps.patients.models import Patient
@@ -135,9 +136,10 @@ def _timeline_context(cabinet):
 def _day_counters(cabinet, appointments):
     S = Appointment.Status
     today = timezone.localdate()
+    # Recettes du jour : comptées à la date d'encaissement, paiements partiels compris.
     cashed = (
-        Invoice.objects.filter(cabinet=cabinet, status=Invoice.Status.PAID, paid_at__date=today)
-        .aggregate(total=Sum("total_amount"))["total"]
+        Payment.objects.filter(invoice__cabinet=cabinet, paid_at__date=today)
+        .aggregate(total=Sum("amount"))["total"]
         or 0
     )
     return {
@@ -650,15 +652,13 @@ def quick_create_patient(request):
 @login_required
 def assistant_dashboard(request):
     cabinet = request.user.profile.cabinet
-    pending_invoices = Invoice.objects.select_related("patient").filter(
-        status=Invoice.Status.PENDING, cabinet=cabinet
-    )
+    pending_invoices = list(pending_invoices_queryset(cabinet))
     my_tasks = _active_tasks_for(request.user)
     context = {
         **_timeline_context(cabinet),
         **_whatsapp_context(cabinet),
         "pending_invoices": pending_invoices,
-        "pending_invoices_total": pending_invoices.aggregate(total=Sum("total_amount"))["total"] or 0,
+        "pending_invoices_total": sum(invoice.balance_due for invoice in pending_invoices),
         "my_tasks": my_tasks,
         "urgent_tasks_count": sum(1 for t in my_tasks if t.priority == "urgent"),
         "today_total": _today_appointments(cabinet).filter(status__in=RECEIVED_STATUSES).count(),
@@ -765,6 +765,7 @@ def reception_panel(request, pk):
             "consultation": consultation,
             "invoice": _invoice_for(appointment),
             "action_label": RECEPTION_ACTION_LABEL.get(appointment.status),
+            "payment_shortcuts": PAYMENT_SHORTCUTS,
         },
     )
 

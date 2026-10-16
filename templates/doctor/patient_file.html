@@ -282,7 +282,7 @@
                                 <th scope="col" class="px-4 py-3 text-left font-semibold">Date</th>
                                 <th scope="col" class="px-4 py-3 text-left font-semibold">Statut</th>
                                 <th scope="col" class="px-4 py-3 text-right font-semibold">Montant</th>
-                                <th scope="col" class="px-4 py-3 text-right font-semibold"><span class="sr-only">Reçu</span></th>
+                                <th scope="col" class="px-4 py-3 text-right font-semibold"><span class="sr-only">Facture PDF</span></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-border-subtle">
@@ -291,19 +291,15 @@
                                 <th scope="row" class="px-4 text-left font-medium text-text-main tabular-nums whitespace-nowrap">{{ invoice.invoice_number }}</th>
                                 <td class="px-4 text-text-soft tabular-nums whitespace-nowrap">{{ invoice.created_at|date:"j M Y" }}</td>
                                 <td class="px-4 whitespace-nowrap">
-                                    {% if invoice.status == "paid" %}{% include "_status_badge.html" with tone="emerald" label="Payée" %}
-                                    {% elif invoice.status == "cancelled" %}{% include "_status_badge.html" with tone="slate" label="Annulée" %}
-                                    {% else %}{% include "_status_badge.html" with tone="amber" label="En attente" %}{% endif %}
-                                    {% if invoice.payment_method %}<span class="ml-1.5 text-[12px] text-text-muted">{{ invoice.get_payment_method_display }}</span>{% endif %}
+                                    {% include "_status_badge.html" with tone=invoice.status_tone label=invoice.get_status_display %}
+                                    {% if invoice.balance_due and invoice.status == "partial" %}<span class="ml-1.5 text-[12px] text-text-muted tabular-nums">reste {{ invoice.balance_due|dh }}</span>{% endif %}
                                 </td>
                                 <td class="px-4 text-right font-semibold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount|dh }}</td>
                                 <td class="px-4 text-right whitespace-nowrap">
-                                    {% if invoice.status == "paid" %}
-                                    <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank" rel="noopener"
+                                    <a href="{% url 'billing:invoice_pdf' invoice.pk %}" target="_blank" rel="noopener"
                                        class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium text-sauge-600 hover:bg-sauge-50">
-                                        <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Reçu
+                                        <i data-lucide="printer" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Facture
                                     </a>
-                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

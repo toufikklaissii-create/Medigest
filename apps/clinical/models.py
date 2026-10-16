@@ -5,7 +5,6 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Sum
 
 from apps.accounts.models import Cabinet
 from apps.appointments.models import Appointment
@@ -67,6 +66,9 @@ class Consultation(models.Model):
     invoice = models.OneToOneField(
         Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="consultation"
     )
+    # Montants fixés par la doctoresse (onglet facturation), appliqués par _bill() à la validation.
+    billing_discount = models.DecimalField("Remise (DH)", max_digits=10, decimal_places=2, default=0)
+    billing_free = models.BooleanField("Gratuit / contrôle", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -110,14 +112,29 @@ class Consultation(models.Model):
         if old_status != self.Status.VALIDATED and self.status == self.Status.VALIDATED:
             self._bill()
 
+    @property
+    def billing_subtotal(self):
+        return sum((line.price for line in self.consultation_acts.all()), Decimal("0"))
+
+    @property
+    def billing_total(self):
+        """Net à payer : lignes − remise (bornée au sous-total), 0 si gratuit / contrôle."""
+        if self.billing_free:
+            return Decimal("0")
+        subtotal = self.billing_subtotal
+        return subtotal - min(self.billing_discount or 0, subtotal)
+
     def _bill(self):
-        """Sum ConsultationAct prices into the linked Invoice (pending), creating it if needed."""
-        if self.invoice_id and self.invoice.status == Invoice.Status.PAID:
-            # Already cashed in: the invoice is an accounting record, never rewrite it.
+        """Recopie lignes, remise et gratuité sur la facture liée, créée au besoin.
+
+        Une facture encaissée (même en partie) est une pièce comptable : jamais réécrite.
+        Une facture annulée garde son numéro ; la revalidation en émet une nouvelle.
+        """
+        invoice = self.invoice if self.invoice_id else None
+        settled = invoice and invoice.status == Invoice.Status.PAID and not invoice.is_free
+        if invoice and (settled or invoice.payments.exists()):
             return
-        if self.invoice_id:
-            invoice = self.invoice
-        else:
+        if invoice is None or invoice.is_cancelled:
             invoice = Invoice.objects.create(
                 cabinet=self.cabinet, patient=self.patient, status=Invoice.Status.PENDING
             )
@@ -125,14 +142,16 @@ class Consultation(models.Model):
             self.invoice = invoice
 
         invoice.items.all().delete()
-        for consultation_act in self.consultation_acts.select_related("act"):
-            InvoiceItem.objects.create(
-                invoice=invoice, act=consultation_act.act, price=consultation_act.price
-            )
-        total = invoice.items.aggregate(total=Sum("price"))["total"] or 0
-        invoice.total_amount = total
-        invoice.status = Invoice.Status.PENDING
-        invoice.save(update_fields=["total_amount", "status"])
+        lines = list(self.consultation_acts.select_related("act"))
+        InvoiceItem.objects.bulk_create(
+            InvoiceItem(invoice=invoice, act=line.act, price=line.price) for line in lines
+        )
+        subtotal = sum((line.price for line in lines), Decimal("0"))
+        invoice.discount = min(self.billing_discount or 0, subtotal)
+        invoice.is_free = self.billing_free
+        invoice.total_amount = Decimal("0") if self.billing_free else subtotal - invoice.discount
+        invoice.save(update_fields=["total_amount", "discount", "is_free"])
+        invoice.refresh_payment_status()
 
 
 class ConsultationAct(models.Model):

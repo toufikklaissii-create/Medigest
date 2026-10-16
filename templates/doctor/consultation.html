@@ -4,6 +4,7 @@
 {% block content %}
 {{ acts_json|json_script:"acts-data" }}
 {{ selected_act_ids|json_script:"selected-acts-data" }}
+{{ billing_json|json_script:"billing-data" }}
 {{ prescription_templates_json|json_script:"prescription-templates-data" }}
 {{ prescription_content|default:""|json_script:"prescription-content-data" }}
 {{ letter_templates_json|json_script:"letter-templates-data" }}
@@ -379,16 +380,27 @@
                 {% endif %}
             </div>
 
-            <fieldset aria-label="Actes réalisés" class="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3" {% if is_locked %}disabled{% endif %}>
+            <div class="min-h-[120px] min-w-0 flex-1 overflow-y-auto overscroll-contain">
+            <fieldset aria-label="Actes réalisés" class="min-w-0 px-3 pt-3" {% if is_locked %}disabled{% endif %}>
                 {% for act in all_acts %}
-                <label class="btn-tactile flex items-center gap-3 rounded-lg px-2 min-h-[44px] cursor-pointer hover:bg-sauge-25"
-                       :class="selected.includes({{ act.id }}) && 'bg-sauge-50 hover:bg-sauge-50'">
-                    <input type="checkbox" name="acts" value="{{ act.id }}" {% if act.id in selected_act_ids %}checked{% endif %}
-                           :checked="selected.includes({{ act.id }})" @change="toggle({{ act.id }})"
-                           class="size-4 shrink-0 rounded border-border-strong accent-sauge-600 cursor-pointer">
-                    <span class="min-w-0 flex-1 py-1.5 text-sm leading-snug text-text-main line-clamp-2 break-words" title="{{ act.name }}">{{ act.name }}</span>
-                    <span class="shrink-0 text-[13px] font-medium text-text-muted tabular-nums">{{ act.price|dh }}</span>
-                </label>
+                <div class="flex items-center gap-2 rounded-lg pl-2 pr-1 min-h-[44px] transition-colors duration-150 hover:bg-sauge-25"
+                     :class="selected.includes({{ act.id }}) && 'bg-sauge-50 hover:bg-sauge-50'">
+                    <label class="btn-tactile flex min-w-0 flex-1 items-center gap-3 cursor-pointer">
+                        <input type="checkbox" name="acts" value="{{ act.id }}" {% if act.id in selected_act_ids %}checked{% endif %}
+                               :checked="selected.includes({{ act.id }})" @change="toggle({{ act.id }})"
+                               class="size-4 shrink-0 rounded border-border-strong accent-sauge-600 cursor-pointer">
+                        <span class="min-w-0 flex-1 py-1.5 text-sm leading-snug text-text-main line-clamp-2 break-words" title="{{ act.name }}">{{ act.name }}</span>
+                    </label>
+                    <span x-show="!selected.includes({{ act.id }})" class="shrink-0 pr-1 text-[13px] font-medium text-text-muted tabular-nums">{{ act.price|dh }}</span>
+                    <!-- Prix de la ligne : pré-rempli au tarif du catalogue, ajustable par la doctoresse -->
+                    <label x-show="selected.includes({{ act.id }})" x-cloak class="relative shrink-0">
+                        <span class="sr-only">Prix facturé pour {{ act.name }}</span>
+                        <input type="text" inputmode="decimal" name="price_{{ act.id }}" x-model="prices[{{ act.id }}]" @input="markDirty()"
+                               class="w-[92px] h-8 rounded-md border border-border-subtle bg-surface pl-2 pr-7 text-right text-[13px] font-medium text-text-main tabular-nums focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20"
+                               :class="Number(String(prices[{{ act.id }}]).replace(',', '.')) !== {{ act.price|stringformat:'s' }} && 'border-sauge-400 text-sauge-700'">
+                        <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-text-muted">DH</span>
+                    </label>
+                </div>
                 {% empty %}
                 <div class="flex flex-col items-center py-8 text-center">
                     <span class="size-10 rounded-lg bg-slate-100 text-text-muted grid place-items-center">
@@ -398,12 +410,35 @@
                 </div>
                 {% endfor %}
             </fieldset>
+            </div>
 
-            <div class="mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
-                <div class="flex items-baseline justify-between gap-2">
-                    <span class="text-[13px] text-text-muted"><span x-text="selected.length">{{ selected_act_ids|length }}</span> acte<span x-show="selected.length > 1">s</span></span>
-                    <span class="text-2xl font-bold text-text-main tabular-nums" aria-live="polite" x-text="formatDh(total)">0,00&nbsp;DH</span>
+            <div class="shrink-0 mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
+                <fieldset class="grid gap-2.5" aria-label="Remise et gratuité" {% if is_locked %}disabled{% endif %}>
+                    <div class="flex items-center justify-between gap-3" :class="free && 'opacity-50'">
+                        <label for="billing-discount" class="text-[13px] text-text-soft">Remise</label>
+                        <div class="relative">
+                            <input id="billing-discount" type="text" inputmode="decimal" name="billing_discount" x-model="discount" @input="markDirty()" :disabled="free"
+                                   placeholder="0"
+                                   class="w-[92px] h-8 rounded-md border border-border-subtle bg-surface pl-2 pr-7 text-right text-[13px] font-medium text-text-main tabular-nums focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint">
+                            <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-text-muted">DH</span>
+                        </div>
+                    </div>
+                    <label class="flex items-center gap-2.5 text-[13px] text-text-soft cursor-pointer">
+                        <input type="checkbox" name="billing_free" x-model="free" @change="markDirty()" class="size-4 rounded border-border-strong accent-sauge-600">
+                        Gratuit / contrôle
+                    </label>
+                    <p x-show="free" x-cloak class="-mt-1 pl-[26px] text-[12px] text-text-muted">Facture à 0 DH, tracée avec ses actes.</p>
+                </fieldset>
+                <div class="mt-3 flex items-baseline justify-between gap-2 border-t border-dashed border-border-subtle pt-3">
+                    <span class="text-[13px] text-text-muted">
+                        <span x-text="selected.length">{{ selected_act_ids|length }}</span> acte<span x-show="selected.length > 1">s</span>
+                        <span x-show="!free && discountValue > 0" x-cloak class="block text-[12px] tabular-nums">sur <span x-text="formatDh(subtotal)"></span></span>
+                    </span>
+                    <span class="text-2xl font-bold text-text-main tabular-nums transition-opacity duration-150" aria-live="polite" x-text="formatDh(total)">0,00&nbsp;DH</span>
                 </div>
+                {% if consultation.invoice and consultation.invoice.is_locked %}
+                <p class="mt-2 text-[12px] text-text-muted">Facture {{ consultation.invoice.invoice_number }} déjà encaissée ou annulée : ses montants ne changeront plus.</p>
+                {% endif %}
 
                 {% if is_locked %}
                 <button type="button" @click="confirmUnlock = true"
@@ -557,6 +592,9 @@
             action: "draft",
             acts: read("acts-data"),
             selected: read("selected-acts-data"),
+            prices: Object.fromEntries(read("acts-data").map((a) => [a.id, a.line_price])),
+            discount: read("billing-data").discount || "",
+            free: read("billing-data").free,
             prescriptionTemplates: read("prescription-templates-data"),
             prescriptionContent: read("prescription-content-data"),
             letterTemplates: read("letter-templates-data"),
@@ -666,10 +704,21 @@
             get quickExamActs() {
                 return this.acts.filter((a) => a.is_quick_exam);
             },
-            get total() {
+            amount(value) {
+                const n = parseFloat(String(value ?? "").replace(/\s/g, "").replace(",", "."));
+                return Number.isFinite(n) && n > 0 ? n : 0;
+            },
+            get subtotal() {
                 return this.acts
                     .filter((a) => this.selected.includes(a.id))
-                    .reduce((sum, a) => sum + a.price, 0);
+                    .reduce((sum, a) => sum + this.amount(this.prices[a.id]), 0);
+            },
+            get discountValue() {
+                return Math.min(this.amount(this.discount), this.subtotal);
+            },
+            get total() {
+                // Même règle que Consultation.billing_total : remise bornée au sous-total, 0 si gratuit.
+                return this.free ? 0 : this.subtotal - this.discountValue;
             },
             formatDh(amount) {
                 // Même rendu que le filtre |dh : espace insécable U+00A0 (Intl produit une espace fine U+202F).

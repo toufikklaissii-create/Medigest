@@ -1,4 +1,5 @@
 {% extends "pdf/_base_pdf.html" %}
+{% load medigest_format %}
 {% block page_size %}A5{% endblock %}
 {% block doc_type %}Reçu de consultation{% endblock %}
 {% block patient_block %}{% include "pdf/_patient_block.html" %}{% endblock %}
@@ -12,11 +13,11 @@
 <table class="info-table" style="margin-top: 6px;">
     <tr><th style="width: auto;">Prestation</th><th style="width: 30%;">Montant</th></tr>
     {% for item in items %}
-    <tr><td>{{ item.act.name }}</td><td>{{ item.price }} DH</td></tr>
+    <tr><td>{{ item.act.name }}</td><td>{{ item.price|dh }}</td></tr>
     {% endfor %}
     <tr>
         <td style="font-weight: bold; color: #3D5A47;">Total réglé</td>
-        <td style="font-weight: bold; color: #3D5A47;">{{ invoice.total_amount }} DH</td>
+        <td style="font-weight: bold; color: #3D5A47;">{{ invoice.total_amount|dh }}</td>
     </tr>
 </table>
 

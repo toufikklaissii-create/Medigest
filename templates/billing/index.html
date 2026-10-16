@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load medigest_format %}
 {% block title %}Facturation — Medigest{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto px-6 py-7">
@@ -40,7 +41,7 @@
                                 {{ invoice.get_status_display }}
                             </span>
                         </td>
-                        <td class="px-4 text-right font-bold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount }} <span class="font-medium text-text-muted text-xs">DH</span></td>
+                        <td class="px-4 text-right font-bold text-text-main tabular-nums whitespace-nowrap">{{ invoice.total_amount|dh }}</td>
                         <td class="px-5 text-right">
                             {% if invoice.status == "paid" %}
                             <a href="{% url 'billing:invoice_receipt' invoice.pk %}" target="_blank"

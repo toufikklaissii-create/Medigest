@@ -19,7 +19,7 @@ def duree_courte(value, now=None):
 
 @register.filter
 def dh(value):
-    """Montant au format « 1 250,00 DH » (espace fine insécable pour les milliers)."""
+    """Montant au format « 1 250,00 DH » : espace insécable (U+00A0) pour les milliers et avant DH."""
     if value in (None, ""):
         return ""
-    return f"{value:,.2f}".replace(",", " ").replace(".", ",") + " DH"
+    return f"{value:,.2f}".replace(",", " ").replace(".", ",") + " DH"

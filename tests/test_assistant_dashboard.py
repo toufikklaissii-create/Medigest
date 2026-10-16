@@ -105,5 +105,11 @@ class AssistantDashboardTest(TestCase):
     def test_dh_filter(self):
         from apps.common.templatetags.medigest_format import dh
 
-        self.assertEqual(dh(Decimal("1250")), "1 250,00 DH")
+        self.assertEqual(dh(Decimal("1250")), "1 250,00 DH")
         self.assertEqual(dh(0), "0,00 DH")
+
+    def test_amounts_use_non_breaking_spaces(self):
+        Invoice.objects.create(cabinet=self.cabinet, patient=self.patient, total_amount=Decimal("1100"))
+        expected = "1 100,00 DH"
+        self.assertIn(expected, self.client.get(reverse("appointments:assistant_dashboard")).content.decode())
+        self.assertIn(expected, self.client.get(reverse("billing:index")).content.decode())

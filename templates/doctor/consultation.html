@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load medigest_format %}
 {% block title %}Consultation · {{ patient.first_name }} {{ patient.last_name }}{% endblock %}
 {% block content %}
 {{ acts_json|json_script:"acts-data" }}
@@ -370,7 +371,7 @@
                            :checked="selected.includes({{ act.id }})" @change="toggle({{ act.id }})"
                            class="size-4 shrink-0 rounded border-border-strong accent-sauge-600 cursor-pointer">
                     <span class="min-w-0 flex-1 py-1.5 text-sm leading-snug text-text-main line-clamp-2 break-words" title="{{ act.name }}">{{ act.name }}</span>
-                    <span class="shrink-0 text-[13px] font-medium text-text-muted tabular-nums">{{ act.price|floatformat:2 }} DH</span>
+                    <span class="shrink-0 text-[13px] font-medium text-text-muted tabular-nums">{{ act.price|dh }}</span>
                 </label>
                 {% empty %}
                 <div class="flex flex-col items-center py-8 text-center">
@@ -385,7 +386,7 @@
             <div class="mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
                 <div class="flex items-baseline justify-between gap-2">
                     <span class="text-[13px] text-text-muted"><span x-text="selected.length">{{ selected_act_ids|length }}</span> acte<span x-show="selected.length > 1">s</span></span>
-                    <span class="text-2xl font-bold text-text-main tabular-nums" aria-live="polite" x-text="formatDh(total)">0,00 DH</span>
+                    <span class="text-2xl font-bold text-text-main tabular-nums" aria-live="polite" x-text="formatDh(total)">0,00&nbsp;DH</span>
                 </div>
 
                 <button type="submit" form="consultation-form" @click="action = 'validate'"
@@ -600,7 +601,9 @@
                     .reduce((sum, a) => sum + a.price, 0);
             },
             formatDh(amount) {
-                return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) + " DH";
+                // Même rendu que le filtre |dh : espace insécable U+00A0 (Intl produit une espace fine U+202F).
+                return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    .format(amount).replace(/[   ]/g, " ") + " DH";
             },
         };
     }

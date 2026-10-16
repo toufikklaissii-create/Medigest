@@ -154,6 +154,8 @@ class Command(BaseCommand):
 
         day = timezone.localdate() + timedelta(days=0 if options["today"] else 1)
         start = timezone.make_aware(datetime.combine(day, options["start"]))
+        # DDR par défaut si la patiente enceinte n'en a pas encore ; sinon on réutilise la sienne
+        # (une seule grossesse : la DDR ne dépend pas du jour seedé).
         lmp = day - timedelta(days=PREGNANCY_DAYS)
         # Le RDV en cours a commencé il y a ~15 min (arrondi à 5 min) si la journée est aujourd'hui.
         consult_dt = (timezone.localtime() - IN_CONSULTATION_SINCE).replace(second=0, microsecond=0)
@@ -176,6 +178,14 @@ class Command(BaseCommand):
             )
             new_patients += created
             patients[spec["cin"]] = (patient, spec)
+            if spec.get("pregnant"):
+                known_lmp = (
+                    Consultation.objects.filter(patient=patient, last_menstrual_period__isnull=False)
+                    .order_by("appointment__date")
+                    .values_list("last_menstrual_period", flat=True)
+                    .first()
+                )
+                lmp = known_lmp or lmp
 
         new_appointments = new_consultations = validated = paid = 0
         moved = 0

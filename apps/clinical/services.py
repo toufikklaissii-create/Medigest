@@ -104,9 +104,10 @@ def generate_letter_pdf(consultation, document_type, content, save_copy=True):
 
 def generate_report_pdf(consultation, save_copy=True):
     patient = consultation.patient
-    gestational_age = None
-    if consultation.gestational_age_weeks is not None:
-        gestational_age = f"{consultation.gestational_age_weeks} SA"
+    # Même calcul que le cockpit et le dossier (Consultation.pregnancy, au jour du RDV) :
+    # le champ stocké gestational_age_weeks peut être périmé si la DDR a changé depuis.
+    pregnancy = consultation.pregnancy
+    gestational_age = f"{pregnancy['weeks']} SA + {pregnancy['days']} j" if pregnancy else None
 
     pdf_bytes = render_pdf(
         "pdf/consultation_report.html",
@@ -116,6 +117,7 @@ def generate_report_pdf(consultation, save_copy=True):
             "reason": consultation.appointment.reason,
             "last_menstrual_period": consultation.last_menstrual_period,
             "gestational_age": gestational_age,
+            "due_date": pregnancy["due_date"] if pregnancy else None,
             "ultrasound_notes": consultation.ultrasound_notes,
             "diagnostic": consultation.diagnostic,
             "clinical_notes": consultation.clinical_notes,

@@ -6,6 +6,7 @@
     <tr><th>Indication / Motif</th><td>{{ reason|default:"—" }}</td></tr>
     <tr><th>DDR</th><td>{{ last_menstrual_period|date:"d/m/Y"|default:"—" }}</td></tr>
     <tr><th>Âge gestationnel</th><td>{% if gestational_age %}{{ gestational_age }}{% else %}—{% endif %}</td></tr>
+    <tr><th>Date prévue d'accouchement</th><td>{% if due_date %}{{ due_date|date:"d/m/Y" }}{% else %}—{% endif %}</td></tr>
     <tr><th>Biométrie fœtale</th><td style="white-space: pre-line;">{{ ultrasound_notes|default:"—" }}</td></tr>
     <tr><th>Conclusion / Conduite à tenir</th><td style="white-space: pre-line;">{{ diagnostic|default:"—" }}</td></tr>
 </table>

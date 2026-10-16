@@ -56,7 +56,7 @@
 
             <!-- Rappels J+2, tâches, autres encaissements : repliable -->
             <section class="bg-surface rounded-2xl border border-border-subtle shadow-card"
-                     x-data="{ open: {% if urgent_tasks_count %}true{% else %}false{% endif %} }"
+                     x-data="{ open: {% if urgent_tasks_count or relaunch_appointments %}true{% else %}false{% endif %} }"
                      x-init="try { const v = localStorage.getItem('medigest:reception-more'); if (v !== null) open = v === '1'; } catch (e) {}
                              $watch('open', (v) => { try { localStorage.setItem('medigest:reception-more', v ? '1' : '0'); } catch (e) {} })">
                 <h2>
@@ -64,15 +64,15 @@
                             class="btn-tactile w-full flex items-center justify-between gap-3 rounded-2xl px-5 min-h-[56px] text-left hover:bg-sauge-25">
                         <span class="text-[15px] font-semibold text-text-main">Rappels, tâches et factures en attente</span>
                         <span class="flex items-center gap-2 text-[12px] text-text-muted">
-                            <span class="tabular-nums">{{ j2_appointments|length }} rappel{{ j2_appointments|length|pluralize }} · {{ my_tasks|length }} tâche{{ my_tasks|length|pluralize }}{% if urgent_tasks_count %} <span class="font-semibold text-rose-700">({{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }})</span>{% endif %} · {{ pending_invoices|length }} facture{{ pending_invoices|length|pluralize }}</span>
+                            <span class="tabular-nums">{{ whatsapp_total }} rappel{{ whatsapp_total|pluralize }}{% if relaunch_appointments %} <span class="font-semibold text-rose-700">({{ relaunch_appointments|length }} à relancer)</span>{% endif %} · {{ my_tasks|length }} tâche{{ my_tasks|length|pluralize }}{% if urgent_tasks_count %} <span class="font-semibold text-rose-700">({{ urgent_tasks_count }} urgente{{ urgent_tasks_count|pluralize }})</span>{% endif %} · {{ pending_invoices|length }} facture{{ pending_invoices|length|pluralize }}</span>
                             <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none" :class="open && 'rotate-180'" stroke-width="1.75" aria-hidden="true"></i>
                         </span>
                     </button>
                 </h2>
                 <div id="reception-more" x-show="open" x-cloak x-transition.opacity.duration.150ms
                      class="grid gap-6 border-t border-border-subtle p-5 md:grid-cols-2 xl:grid-cols-3">
-                    <div class="min-w-0">
-                        <h3 class="mb-3 text-[13px] font-semibold text-text-main">Rappels WhatsApp J+2</h3>
+                    <div class="min-w-0" x-data="{ tab: 'j1' }">
+                        <h3 class="mb-3 text-[13px] font-semibold text-text-main">Rappels WhatsApp</h3>
                         {% include "assistant/_j2_reminders.html" %}
                     </div>
                     <div class="min-w-0">

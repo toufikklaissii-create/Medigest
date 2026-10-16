@@ -1,0 +1,13 @@
+{% comment %}
+Bouton d'envoi WhatsApp : ouvre wa.me dans un nouvel onglet ET trace l'envoi (hx-post en parallèle).
+Paramètres : appt, link, action ("send" | "relaunch"), label, target (défaut #j2-reminders), wide.
+{% endcomment %}
+<button type="button"
+        x-data
+        data-wa-url="{{ link }}"
+        @click="window.open($el.dataset.waUrl, '_blank', 'noopener')"
+        hx-post="{% url 'appointments:whatsapp_action' appt.pk action %}"
+        hx-target="{{ target|default:'#j2-reminders' }}" hx-swap="{{ swap|default:'outerHTML' }}"
+        class="btn-tactile {% if wide %}mt-3 w-full h-10 text-sm{% else %}w-full text-xs py-1.5{% endif %} inline-flex items-center justify-center gap-1.5 rounded-lg border border-sauge-100 px-2.5 font-medium text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200">
+    <i data-lucide="send" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> {{ label }}
+</button>

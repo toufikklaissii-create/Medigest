@@ -1,0 +1,2 @@
+{% if appt.whatsapp_phone_state == "missing" %}{% include "_status_badge.html" with tone="rose" label="Numéro manquant" %}
+{% else %}{% include "_status_badge.html" with tone="amber" label="Numéro à vérifier" %}{% endif %}

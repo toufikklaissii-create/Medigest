@@ -1,49 +1,74 @@
-<div id="j2-reminders" class="flex flex-col gap-2">
-    {% for appt in j2_appointments %}
-    <div class="border-b border-border-subtle pb-2.5 last:border-0">
-        <div class="flex items-center justify-between mb-1.5">
-            <div>
-                <p class="font-medium text-text-main text-sm">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
-                <p class="text-xs text-text-muted">{{ appt.date|date:"d/m H:i" }}</p>
-            </div>
-            <span class="text-[10px] font-semibold uppercase rounded-full px-2 py-0.5 border
-                {% if appt.whatsapp_status == 'confirmed' %}bg-emerald-50 text-emerald-700 border-emerald-200
-                {% elif appt.whatsapp_status == 'sent' %}bg-sky-50 text-sky-700 border-sky-200
-                {% elif appt.whatsapp_status == 'rescheduled' %}bg-amber-50 text-amber-700 border-amber-200
-                {% elif appt.whatsapp_status == 'cancelled' %}bg-rose-50 text-rose-700 border-rose-200
-                {% else %}bg-slate-50 text-slate-600 border-slate-200{% endif %}">
-                {{ appt.get_whatsapp_status_display }}
-            </span>
-        </div>
-
-        {% if appt.whatsapp_status == "pending" %}
-        <button
-            hx-post="{% url 'appointments:whatsapp_action' appt.pk 'send' %}"
-            hx-target="#j2-reminders" hx-swap="outerHTML"
-            class="btn-tactile w-full text-xs font-medium text-sauge-600 border border-sauge-100 rounded-lg px-2.5 py-1.5 hover:bg-sauge-50 hover:border-sauge-200 flex items-center justify-center gap-1">
-            <i data-lucide="send" class="w-3.5 h-3.5" stroke-width="1.75"></i> Envoyer le rappel
+{% comment %}
+Suivi WhatsApp (wa.me) : onglets J+1 / J+2 / À relancer. L'onglet actif (`tab`) vit dans le
+x-data parent (dashboard), hors de la zone remplacée par HTMX, pour survivre aux swaps.
+{% endcomment %}
+<div id="j2-reminders" class="flex flex-col gap-3">
+    <div class="grid grid-cols-3 gap-1 rounded-lg bg-sauge-25 p-1" role="tablist" aria-label="Rappels WhatsApp">
+        <button type="button" role="tab" @click="tab = 'j1'" :aria-selected="(tab === 'j1').toString()"
+                :class="tab === 'j1' ? 'bg-surface text-text-main shadow-card' : 'text-text-muted hover:text-text-main'"
+                class="btn-tactile rounded-md px-2 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
+            J+1 <span class="tabular-nums rounded-full bg-sauge-50 px-1.5 text-[10px] text-sauge-600">{{ j1_appointments|length }}</span>
         </button>
-        {% elif appt.whatsapp_status == "sent" %}
-        <div class="grid grid-cols-3 gap-1.5">
-            <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'confirm' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
-                    class="btn-tactile text-xs font-medium text-emerald-700 border border-emerald-200 rounded-lg py-1.5 hover:bg-emerald-50">
-                Confirmer
-            </button>
-            <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'reschedule' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
-                    class="btn-tactile text-xs font-medium text-amber-700 border border-amber-200 rounded-lg py-1.5 hover:bg-amber-50">
-                Déplacer
-            </button>
-            <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'cancel' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
-                    class="btn-tactile text-xs font-medium text-rose-700 border border-rose-200 rounded-lg py-1.5 hover:bg-rose-50">
-                Annuler
-            </button>
+        <button type="button" role="tab" @click="tab = 'j2'" :aria-selected="(tab === 'j2').toString()"
+                :class="tab === 'j2' ? 'bg-surface text-text-main shadow-card' : 'text-text-muted hover:text-text-main'"
+                class="btn-tactile rounded-md px-2 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
+            J+2 <span class="tabular-nums rounded-full bg-sauge-50 px-1.5 text-[10px] text-sauge-600">{{ j2_appointments|length }}</span>
+        </button>
+        <button type="button" role="tab" @click="tab = 'relaunch'" :aria-selected="(tab === 'relaunch').toString()"
+                :class="tab === 'relaunch' ? 'bg-surface text-text-main shadow-card' : 'text-text-muted hover:text-text-main'"
+                class="btn-tactile rounded-md px-2 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
+            À relancer <span class="tabular-nums rounded-full px-1.5 text-[10px] {% if relaunch_appointments %}bg-rose-50 text-rose-700{% else %}bg-sauge-50 text-sauge-600{% endif %}">{{ relaunch_appointments|length }}</span>
+        </button>
+    </div>
+
+    <div x-show="tab === 'j1'" role="tabpanel" class="flex flex-col gap-2">
+        {% include "assistant/_whatsapp_day_list.html" with day_appointments=j1_appointments day_date=j1_date %}
+    </div>
+    <div x-show="tab === 'j2'" x-cloak role="tabpanel" class="flex flex-col gap-2">
+        {% include "assistant/_whatsapp_day_list.html" with day_appointments=j2_appointments day_date=j2_date %}
+    </div>
+
+    <div x-show="tab === 'relaunch'" x-cloak role="tabpanel" class="flex flex-col gap-2">
+        {% for appt in relaunch_appointments %}
+        <div class="border-b border-border-subtle pb-2.5 last:border-0">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+                <div class="min-w-0">
+                    <p class="font-medium text-text-main text-sm truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                    <p class="text-xs text-text-muted tabular-nums">{{ appt.date|date:"l j F · H:i" }}</p>
+                </div>
+                {% if appt.whatsapp_phone_state != "ok" %}{% include "assistant/_whatsapp_phone_warning.html" %}
+                {% else %}{% include "_status_badge.html" with tone="amber" label="Sans réponse" %}{% endif %}
+            </div>
+            {% if appt.whatsapp_sent_label %}<p class="mb-1.5 text-xs text-text-muted">{{ appt.whatsapp_sent_label }}</p>{% endif %}
+            {% if appt.whatsapp_phone_state == "missing" %}
+            <a href="{% url 'patients:edit_patient' appt.patient.pk %}"
+               class="btn-tactile w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle py-1.5 text-xs font-medium text-text-main hover:bg-sauge-25">
+                <i data-lucide="pencil" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Compléter la fiche
+            </a>
+            {% else %}
+            <div class="grid grid-cols-2 gap-1.5">
+                {% with link=appt.whatsapp_reminder_link %}
+                {% if link %}
+                {% include "assistant/_whatsapp_send_button.html" with action="relaunch" label="Relancer" %}
+                {% else %}
+                <a href="{% url 'patients:edit_patient' appt.patient.pk %}"
+                   class="btn-tactile w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle py-1.5 text-xs font-medium text-text-main hover:bg-sauge-25">
+                    <i data-lucide="pencil" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Corriger le numéro
+                </a>
+                {% endif %}
+                {% endwith %}
+                <a href="tel:{{ appt.patient.phone }}"
+                   class="btn-tactile w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle py-1.5 text-xs font-medium text-text-main hover:bg-sauge-25">
+                    <i data-lucide="phone" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> Appeler
+                </a>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
+        {% empty %}
+        <div class="flex flex-col items-center justify-center gap-1.5 py-6 text-center">
+            <i data-lucide="check-circle-2" class="w-5 h-5 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
+            <p class="text-sm text-text-muted">Personne à relancer pour le moment.</p>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="flex flex-col items-center justify-center gap-1.5 py-6 text-center">
-        <i data-lucide="message-circle" class="w-5 h-5 text-slate-300" stroke-width="1.5"></i>
-        <p class="text-sm text-text-muted italic">Aucun RDV à J+2 ({{ j2_date|date:"d/m/Y" }}).</p>
-    </div>
-    {% endfor %}
 </div>

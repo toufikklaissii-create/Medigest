@@ -49,15 +49,18 @@ aucune donnée clinique (diagnostic, observations, ordonnances) n'est rendue ici
             {% elif appointment.whatsapp_status == "cancelled" %}{% include "_status_badge.html" with tone="rose" label=appointment.get_whatsapp_status_display %}
             {% else %}{% include "_status_badge.html" with tone="slate" label="Non envoyé" %}{% endif %}
         </div>
-        {% if appointment.whatsapp_reminder_link %}
-        <a href="{{ appointment.whatsapp_reminder_link }}" target="_blank" rel="noopener noreferrer"
-           class="btn-tactile mt-3 w-full h-10 inline-flex items-center justify-center gap-2 rounded-lg border border-border-subtle bg-surface text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200">
-            <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600" stroke-width="1.75" aria-hidden="true"></i>
-            Ouvrir WhatsApp avec le rappel
-        </a>
-        {% else %}
-        <p class="mt-2 text-[13px] text-text-muted">Aucun numéro de téléphone : ajoutez-le dans la fiche patiente pour envoyer un rappel.</p>
+        {% if appointment.whatsapp_sent_label %}
+        <p class="mt-2 text-[13px] text-text-muted">{{ appointment.whatsapp_sent_label }}</p>
         {% endif %}
+        {% with link=appointment.whatsapp_reminder_link appt=appointment %}
+        {% if link %}
+        {% include "assistant/_whatsapp_send_button.html" with action="send" label="Envoyer le rappel" wide=True %}
+        {% elif appointment.whatsapp_phone_state == "missing" %}
+        <p class="mt-2 text-[13px] text-text-muted">Numéro manquant : ajoutez-le dans la fiche patiente pour envoyer un rappel.</p>
+        {% else %}
+        <p class="mt-2 text-[13px] text-amber-700">Numéro à vérifier : « {{ appointment.patient.phone }} » n'est pas un numéro WhatsApp valide.</p>
+        {% endif %}
+        {% endwith %}
     </div>
 
     <!-- Encaissement -->

@@ -46,12 +46,28 @@
 
         <p class="text-sm text-text-main mb-5">{{ appointment.reason|default:"—" }}</p>
 
-        {% if appointment.whatsapp_reminder_link %}
-        <a href="{{ appointment.whatsapp_reminder_link }}" target="_blank" rel="noopener noreferrer"
-           class="btn-tactile w-full inline-flex items-center justify-center gap-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg py-2.5 shadow-sm hover:bg-emerald-700 mb-5">
-            <i data-lucide="message-circle" class="w-4 h-4" stroke-width="1.75"></i> Rappel WhatsApp
-        </a>
+        {% with link=appointment.whatsapp_reminder_link %}
+        {% if link %}
+        <div class="mb-5 grid gap-2">
+            <a href="{{ link }}" target="_blank" rel="noopener noreferrer"
+               class="btn-tactile w-full inline-flex items-center justify-center gap-2 text-sm font-semibold bg-emerald-600 text-white rounded-lg py-2.5 shadow-sm hover:bg-emerald-700">
+                <i data-lucide="message-circle" class="w-4 h-4" stroke-width="1.75"></i> Rappel WhatsApp
+            </a>
+            <div class="grid grid-cols-2 gap-2">
+                <a href="{{ appointment.whatsapp_confirmation_link }}" target="_blank" rel="noopener noreferrer"
+                   class="btn-tactile inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle py-2 text-xs font-medium text-text-main hover:bg-sauge-25">
+                    <i data-lucide="calendar-check" class="w-3.5 h-3.5" stroke-width="1.75"></i> Confirmation
+                </a>
+                <a href="{{ appointment.whatsapp_rescheduled_link }}" target="_blank" rel="noopener noreferrer"
+                   class="btn-tactile inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle py-2 text-xs font-medium text-text-main hover:bg-sauge-25">
+                    <i data-lucide="calendar-clock" class="w-3.5 h-3.5" stroke-width="1.75"></i> RDV déplacé
+                </a>
+            </div>
+        </div>
+        {% elif appointment.whatsapp_phone_state == "invalid" %}
+        <p class="mb-5 text-[13px] text-amber-700">Numéro à vérifier : pas de lien WhatsApp possible.</p>
         {% endif %}
+        {% endwith %}
 
         {% if next_label %}
         <form hx-post="{% url 'appointments:calendar_advance_status' appointment.pk %}"

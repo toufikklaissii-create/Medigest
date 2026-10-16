@@ -120,6 +120,11 @@
                                    class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200 border border-border-subtle">
                                     <i data-lucide="message-circle" class="w-4 h-4" stroke-width="1.75"></i>
                                 </a>
+                                {% elif patient.next_appointment and patient.next_appointment.whatsapp_phone_state == "invalid" %}
+                                <span title="Numéro à vérifier" aria-label="Numéro à vérifier"
+                                      class="inline-flex items-center justify-center h-9 w-9 rounded-lg text-amber-700 border border-amber-200 bg-amber-50">
+                                    <i data-lucide="phone-off" class="w-4 h-4" stroke-width="1.75"></i>
+                                </span>
                                 {% endif %}
                                 <a href="{% url 'patients:patient_documents' patient.pk %}"
                                    title="Documents (bilans, radios)" aria-label="Documents de {{ patient.first_name }} {{ patient.last_name }}"

@@ -154,15 +154,57 @@ def _today_list_context(cabinet):
     return {"scheduled_today": scheduled_today}
 
 
-def _j2_context(cabinet):
-    target_date = timezone.localdate() + timezone.timedelta(days=2)
-    appointments = (
-        Appointment.objects.select_related("patient")
+def _reminder_day(cabinet, target_date):
+    return (
+        Appointment.objects.select_related("patient", "cabinet", "whatsapp_sent_by")
         .filter(cabinet=cabinet, date__date=target_date)
         .exclude(status=Appointment.Status.CANCELLED)
         .order_by("date")
     )
-    return {"j2_appointments": appointments, "j2_date": target_date}
+
+
+RELAUNCH_AFTER = timedelta(hours=24)
+
+
+def _relaunch_appointments(cabinet):
+    """RDV des 2 prochains jours : rappel sans réponse depuis plus de 24 h, ou numéro inutilisable."""
+    now = timezone.now()
+    candidates = (
+        Appointment.objects.select_related("patient", "cabinet", "whatsapp_sent_by")
+        .filter(
+            cabinet=cabinet,
+            status=Appointment.Status.SCHEDULED,
+            date__gte=now,
+            date__date__lte=timezone.localdate() + timedelta(days=2),
+        )
+        .exclude(whatsapp_status=Appointment.WhatsappStatus.CANCELLED)
+        .order_by("date")
+    )
+    return [
+        appt for appt in candidates
+        if appt.whatsapp_phone_state != "ok"
+        or (
+            appt.whatsapp_status == Appointment.WhatsappStatus.SENT
+            and appt.whatsapp_sent_at
+            and appt.whatsapp_sent_at <= now - RELAUNCH_AFTER
+        )
+    ]
+
+
+def _whatsapp_context(cabinet):
+    today = timezone.localdate()
+    j1_date, j2_date = today + timedelta(days=1), today + timedelta(days=2)
+    j1 = list(_reminder_day(cabinet, j1_date))
+    j2 = list(_reminder_day(cabinet, j2_date))
+    relaunch = _relaunch_appointments(cabinet)
+    return {
+        "j1_appointments": j1,
+        "j1_date": j1_date,
+        "j2_appointments": j2,
+        "j2_date": j2_date,
+        "relaunch_appointments": relaunch,
+        "whatsapp_total": len(j1) + len(j2) + len(relaunch),
+    }
 
 
 def _parse_date(value):
@@ -595,7 +637,7 @@ def assistant_dashboard(request):
     my_tasks = _active_tasks_for(request.user)
     context = {
         **_timeline_context(cabinet),
-        **_j2_context(cabinet),
+        **_whatsapp_context(cabinet),
         "pending_invoices": pending_invoices,
         "pending_invoices_total": pending_invoices.aggregate(total=Sum("total_amount"))["total"] or 0,
         "my_tasks": my_tasks,
@@ -709,25 +751,35 @@ def reception_panel(request, pk):
 
 
 WHATSAPP_ACTIONS = {
-    "send": (Appointment.WhatsappStatus.SENT, "Rappel WhatsApp J-2 envoyé (simulation) à {patient}."),
-    "confirm": (Appointment.WhatsappStatus.CONFIRMED, "{patient} a confirmé son RDV (simulation)."),
-    "reschedule": (Appointment.WhatsappStatus.RESCHEDULED, "{patient} souhaite déplacer son RDV (simulation)."),
-    "cancel": (Appointment.WhatsappStatus.CANCELLED, "{patient} a annulé son RDV (simulation)."),
+    "send": (Appointment.WhatsappStatus.SENT, "Rappel WhatsApp envoyé à {patient}."),
+    "relaunch": (Appointment.WhatsappStatus.SENT, "Relance WhatsApp envoyée à {patient}."),
+    "confirm": (Appointment.WhatsappStatus.CONFIRMED, "{patient} a confirmé son RDV."),
+    "reschedule": (Appointment.WhatsappStatus.RESCHEDULED, "{patient} souhaite déplacer son RDV."),
+    "cancel": (Appointment.WhatsappStatus.CANCELLED, "{patient} a annulé son RDV."),
 }
 
 
 @login_required
 def whatsapp_action(request, pk, action):
+    """POST (HTMX) : trace un envoi wa.me (ouvert côté navigateur) ou la réponse de la patiente.
+
+    Accessible à l'assistante comme à la doctoresse, toujours limité au cabinet de l'utilisateur.
+    """
     cabinet = request.user.profile.cabinet
-    appointment = get_object_or_404(Appointment, pk=pk, cabinet=cabinet)
+    appointment = get_object_or_404(Appointment.objects.select_related("patient"), pk=pk, cabinet=cabinet)
     toast_message = None
     if request.method == "POST" and action in WHATSAPP_ACTIONS:
         new_status, message_template = WHATSAPP_ACTIONS[action]
-        appointment.whatsapp_status = new_status
-        appointment.save(update_fields=["whatsapp_status"])
+        if new_status == Appointment.WhatsappStatus.SENT:
+            appointment.mark_whatsapp_sent(request.user)
+        else:
+            appointment.whatsapp_status = new_status
+            appointment.save(update_fields=["whatsapp_status"])
         toast_message = message_template.format(patient=appointment.patient)
 
-    response = render(request, "assistant/_j2_reminders.html", _j2_context(cabinet))
+    response = render(request, "assistant/_j2_reminders.html", _whatsapp_context(cabinet))
     if toast_message:
-        response.headers["HX-Trigger"] = _toast_header(toast_message)
+        response.headers["HX-Trigger"] = json.dumps(
+            {"toast": {"message": toast_message, "type": "success"}, "panel-refresh": True}
+        )
     return response

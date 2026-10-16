@@ -1,0 +1,46 @@
+{% for appt in day_appointments %}
+<div class="border-b border-border-subtle pb-2.5 last:border-0">
+    <div class="flex items-center justify-between gap-2 mb-1.5">
+        <div class="min-w-0">
+            <p class="font-medium text-text-main text-sm truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+            <p class="text-xs text-text-muted tabular-nums">{{ appt.date|date:"H:i" }}</p>
+        </div>
+        {% if appt.whatsapp_status == 'confirmed' %}{% include "_status_badge.html" with tone="emerald" label=appt.get_whatsapp_status_display %}
+        {% elif appt.whatsapp_status == 'sent' %}{% include "_status_badge.html" with tone="sky" label=appt.get_whatsapp_status_display %}
+        {% elif appt.whatsapp_status == 'rescheduled' %}{% include "_status_badge.html" with tone="amber" label=appt.get_whatsapp_status_display %}
+        {% elif appt.whatsapp_status == 'cancelled' %}{% include "_status_badge.html" with tone="rose" label=appt.get_whatsapp_status_display %}
+        {% else %}{% include "_status_badge.html" with tone="slate" label="Non envoyé" %}{% endif %}
+    </div>
+
+    {% if appt.whatsapp_status == "pending" %}
+        {% with link=appt.whatsapp_reminder_link %}
+        {% if link %}
+        {% include "assistant/_whatsapp_send_button.html" with action="send" label="Envoyer le rappel" %}
+        {% else %}
+        {% include "assistant/_whatsapp_phone_warning.html" %}
+        {% endif %}
+        {% endwith %}
+    {% elif appt.whatsapp_status == "sent" %}
+    {% if appt.whatsapp_sent_label %}<p class="mb-1.5 text-xs text-text-muted">{{ appt.whatsapp_sent_label }}</p>{% endif %}
+    <div class="grid grid-cols-3 gap-1.5">
+        <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'confirm' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
+                class="btn-tactile text-xs font-medium text-emerald-700 border border-emerald-200 rounded-lg py-1.5 hover:bg-emerald-50">
+            Confirmé
+        </button>
+        <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'reschedule' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
+                class="btn-tactile text-xs font-medium text-amber-700 border border-amber-200 rounded-lg py-1.5 hover:bg-amber-50">
+            À déplacer
+        </button>
+        <button hx-post="{% url 'appointments:whatsapp_action' appt.pk 'cancel' %}" hx-target="#j2-reminders" hx-swap="outerHTML"
+                class="btn-tactile text-xs font-medium text-rose-700 border border-rose-200 rounded-lg py-1.5 hover:bg-rose-50">
+            Annulé
+        </button>
+    </div>
+    {% endif %}
+</div>
+{% empty %}
+<div class="flex flex-col items-center justify-center gap-1.5 py-6 text-center">
+    <i data-lucide="message-circle" class="w-5 h-5 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
+    <p class="text-sm text-text-muted">Aucun rendez-vous le {{ day_date|date:"l j F" }}.</p>
+</div>
+{% endfor %}

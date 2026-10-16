@@ -46,13 +46,16 @@
                 </thead>
                 <tbody class="divide-y divide-border-subtle">
                     {% for patient in patients %}
-                    <tr class="h-14 hover:bg-sauge-25 transition-colors duration-150">
+                    {% if is_doctor %}{% url 'clinical:patient_file' patient.pk as row_url %}{% else %}{% url 'patients:edit_patient' patient.pk as row_url %}{% endif %}
+                    <tr class="h-14 cursor-pointer hover:bg-sauge-25 transition-colors duration-150"
+                        @click="if (!$event.target.closest('a, button')) window.location.href = '{{ row_url }}'">
                         <td class="px-5">
                             <div class="flex items-center gap-3 min-w-0">
                                 <div class="h-9 w-9 shrink-0 rounded-full bg-gradient-to-br from-sauge-100 to-sauge-50 flex items-center justify-center text-sauge-700 font-semibold text-xs">
                                     {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
                                 </div>
-                                <p class="font-medium text-text-main truncate">{{ patient.first_name }} {{ patient.last_name }}</p>
+                                <a href="{{ row_url }}" class="font-medium text-text-main truncate hover:text-sauge-700 hover:underline"
+                                   title="{% if is_doctor %}Ouvrir le dossier patiente{% else %}Modifier la fiche{% endif %}">{{ patient.first_name }} {{ patient.last_name }}</a>
                             </div>
                         </td>
                         <td class="px-4 text-text-soft tabular-nums whitespace-nowrap">

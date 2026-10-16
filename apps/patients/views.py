@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 
 from apps.appointments.models import Appointment
@@ -47,6 +48,7 @@ def index(request):
             "patients": patients,
             "view_filter": view_filter,
             "completed_count": len(last_completed_by_patient),
+            "is_doctor": request.user.profile.role == "doctor",
         },
     )
 
@@ -120,6 +122,11 @@ def patient_documents(request, pk):
             file=request.FILES["file"],
         )
         messages.success(request, "Document ajouté au dossier de la patiente.")
+        next_url = request.POST.get("next", "")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
+            return redirect(next_url)
         return redirect("patients:patient_documents", pk=patient.pk)
 
     documents = PatientDocument.objects.filter(cabinet=request.user.profile.cabinet, patient=patient)

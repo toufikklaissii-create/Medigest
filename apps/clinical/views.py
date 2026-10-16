@@ -12,10 +12,10 @@ from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
 from apps.appointments.models import Appointment
-from apps.billing.models import MedicalAct
+from apps.billing.models import Invoice, MedicalAct
 from apps.patients.models import Patient
 
-from .models import Consultation, ConsultationAct, Document, PatientDocument
+from .models import Consultation, ConsultationAct, Document, PatientDocument, pregnancy_dates
 from .services import (
     LETTER_TEMPLATES,
     PRESCRIPTION_TEMPLATES,
@@ -267,6 +267,58 @@ def autosave_consultation(request, appointment_id):
         ]
     )
     return HttpResponse(status=204)
+
+
+LETTER_LABELS = {
+    Document.DocumentType.LETTER: ("letter", "Lettre à un confrère"),
+    Document.DocumentType.CERTIFICATE: ("certificate", "Certificat de prise en charge"),
+    Document.DocumentType.PREANESTHESIA: ("preanesthesia", "Consultation pré-anesthésie"),
+}
+
+
+@login_required
+@role_required("doctor")
+def patient_file(request, patient_id):
+    """Dossier patiente (lecture seule) : historique des visites, évolution, documents, factures."""
+    cabinet = request.user.profile.cabinet
+    patient = get_object_or_404(Patient, pk=patient_id, cabinet=cabinet)
+
+    consultations = list(
+        Consultation.objects.filter(cabinet=cabinet, patient=patient)
+        .select_related("appointment", "invoice")
+        .prefetch_related("consultation_acts__act", "documents")
+        .order_by("-appointment__date", "-pk")
+    )
+    for consultation in consultations:
+        documents = {doc.document_type: doc for doc in consultation.documents.all()}
+        prescription = documents.get(Document.DocumentType.PRESCRIPTION)
+        consultation.prescription = prescription.content if prescription else ""
+        consultation.letters = [
+            (key, label) for doc_type, (key, label) in LETTER_LABELS.items()
+            if doc_type in documents and documents[doc_type].content
+        ]
+        # `acts` est le M2M du modèle : les lignes chargées vivent dans `act_lines`.
+        consultation.act_lines = list(consultation.consultation_acts.all())
+        consultation.quick_exams = [ca for ca in consultation.act_lines if ca.act.is_quick_exam]
+        consultation.acts_total = sum((ca.price for ca in consultation.act_lines), 0)
+        consultation.term = consultation.pregnancy
+
+    # Bandeau grossesse : DDR la plus récente, terme recalculé à aujourd'hui (None si hors grossesse).
+    latest_lmp = next((c.last_menstrual_period for c in consultations if c.last_menstrual_period), None)
+    pregnancy = pregnancy_dates(latest_lmp, timezone.localdate())
+
+    return render(
+        request,
+        "doctor/patient_file.html",
+        {
+            "patient": patient,
+            "consultations": consultations,
+            "pregnancy": pregnancy,
+            "documents": PatientDocument.objects.filter(cabinet=cabinet, patient=patient),
+            "document_type_choices": PatientDocument.DocumentType.choices,
+            "invoices": Invoice.objects.filter(cabinet=cabinet, patient=patient).order_by("-created_at"),
+        },
+    )
 
 
 @login_required

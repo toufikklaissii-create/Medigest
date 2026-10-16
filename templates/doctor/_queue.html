@@ -11,7 +11,7 @@ prochaine patiente suivent en hx-swap-oob ; `doctor-waiting-data` alimente le to
                     <p class="font-medium text-text-main truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
                     <p class="text-xs text-text-muted mt-0.5">{{ appt.date|date:"H:i" }} · {{ appt.get_status_display }} · {{ appt.reason|default:"—" }}</p>
                 </div>
-                <a href="{% url 'clinical:consultation_detail' appt.pk %}"
+                <a href="{% url 'clinical:patient_file' appt.patient_id %}"
                    class="btn-tactile shrink-0 text-sm font-medium text-sauge-600 border border-sauge-100 rounded-lg px-3 py-1.5 hover:bg-sauge-50">
                     Ouvrir le dossier
                 </a>

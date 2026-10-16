@@ -27,7 +27,10 @@ SAUGE_SCALE = {
 STEPS = (25, 50, 100, 200, 400, 500, 600, 700, 900, 950)
 # Pas clairs : part de blanc mélangée en luminosité ; pas foncés : facteur appliqué à la luminosité.
 LIGHTEN = {25: 0.965, 50: 0.93, 100: 0.84, 200: 0.68, 400: 0.28}
-DARKEN = {600: 0.80, 700: 0.66, 900: 0.42, 950: 0.30}
+DARKEN = {600: 0.80, 700: 0.66}
+# Sidebar (900 → 950) : prune très foncé, désaturé et légèrement décalé vers le violet.
+DEEP = {900: (0.42, 0.21, 0.58), 950: (0.30, 0.15, 0.55)}  # pas: (facteur, luminosité max, facteur de saturation)
+DEEP_HUE_SHIFT = -12 / 360
 AA_TEXT = 4.5
 
 
@@ -79,7 +82,9 @@ def brand_scale(primary=DEFAULT_PRIMARY):
         # Les fonds très clairs restent teintés mais désaturés, pour ne pas « crier ».
         scale[step] = _from_hls(h, l + (1 - l) * mix, s * (0.85 if step <= 100 else 0.95))
     for step, factor in DARKEN.items():
-        scale[step] = _from_hls(h, l * factor, s * (0.9 if step >= 900 else 1))
+        scale[step] = _from_hls(h, l * factor, s)
+    for step, (factor, max_lightness, sat_factor) in DEEP.items():
+        scale[step] = _from_hls((h + DEEP_HUE_SHIFT) % 1, min(l * factor, max_lightness), s * sat_factor)
 
     # Boutons primaires : texte blanc lisible (AA) sur brand-600, sinon on assombrit.
     l600 = l * DARKEN[600]

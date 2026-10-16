@@ -85,6 +85,10 @@ class Consultation(models.Model):
         return round(Decimal(self.weight_kg) / (height_m * height_m), 1)
 
     @property
+    def is_validated(self):
+        return self.status == self.Status.VALIDATED
+
+    @property
     def pregnancy(self):
         """Terme (SA + jours) au jour du RDV et date prévue d'accouchement (DDR + 280 j)."""
         from django.utils import timezone

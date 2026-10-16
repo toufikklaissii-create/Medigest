@@ -160,6 +160,10 @@ def consultation_detail(request, appointment_id):
     )
 
     if request.method == "POST":
+        if consultation.status == Consultation.Status.VALIDATED:
+            # Lecture seule tant que le médecin n'a pas explicitement déverrouillé la consultation.
+            messages.error(request, "Consultation validée : déverrouillez-la avant de la modifier.")
+            return redirect("clinical:consultation_detail", appointment_id=appointment.pk)
         action = request.POST.get("action")
         _apply_consultation_post(request, consultation, cabinet)
 
@@ -258,6 +262,8 @@ def autosave_consultation(request, appointment_id):
         appointment=appointment,
         defaults={"patient": appointment.patient, "doctor": request.user, "cabinet": cabinet},
     )
+    if consultation.status == Consultation.Status.VALIDATED:
+        return HttpResponse("Consultation validée : lecture seule.", status=409)
     _apply_consultation_post(request, consultation, cabinet)
     # update_fields exclut `status` : une autosave en vol ne peut pas annuler une validation concurrente.
     consultation.save(
@@ -319,6 +325,26 @@ def patient_file(request, patient_id):
             "invoices": Invoice.objects.filter(cabinet=cabinet, patient=patient).order_by("-created_at"),
         },
     )
+
+
+@login_required
+@role_required("doctor")
+@require_POST
+def unlock_consultation(request, appointment_id):
+    """Repasse une consultation validée en brouillon pour la modifier.
+
+    La facture n'est pas touchée ici ; à la revalidation, Consultation._bill() ne réécrit
+    jamais une facture déjà encaissée.
+    """
+    cabinet = request.user.profile.cabinet
+    consultation = get_object_or_404(
+        Consultation, appointment_id=appointment_id, appointment__cabinet=cabinet
+    )
+    if consultation.status == Consultation.Status.VALIDATED:
+        consultation.status = Consultation.Status.DRAFT
+        consultation.save(update_fields=["status", "updated_at"])
+        messages.success(request, "Consultation déverrouillée : modifiez-la puis validez-la à nouveau.")
+    return redirect("clinical:consultation_detail", appointment_id=appointment_id)
 
 
 @login_required

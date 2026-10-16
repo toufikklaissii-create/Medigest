@@ -97,6 +97,13 @@
                         {% endif %}
                         <td class="px-5 text-right">
                             <div class="inline-flex items-center gap-1.5">
+                                {% if is_doctor %}
+                                <a href="{% url 'clinical:patient_file' patient.pk %}"
+                                   title="Dossier patiente" aria-label="Ouvrir le dossier de {{ patient.first_name }} {{ patient.last_name }}"
+                                   class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-sauge-700 hover:text-sauge-700 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">
+                                    <i data-lucide="folder-heart" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                                </a>
+                                {% endif %}
                                 <a href="{% url 'patients:edit_patient' patient.pk %}"
                                    title="Modifier le dossier" aria-label="Modifier le dossier de {{ patient.first_name }} {{ patient.last_name }}"
                                    class="btn-tactile inline-flex items-center justify-center h-9 w-9 rounded-lg text-text-muted hover:text-sauge-600 hover:bg-sauge-50 hover:border-sauge-200 border border-border-subtle">

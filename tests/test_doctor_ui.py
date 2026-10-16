@@ -65,10 +65,10 @@ class DoctorUiTest(TestCase):
         self.assertEqual(consultation.status, Consultation.Status.DRAFT)
 
         Consultation.objects.filter(pk=consultation.pk).update(status=Consultation.Status.VALIDATED)
-        self.client.post(url, {"clinical_exam": "Examen relu"})
+        self.assertEqual(self.client.post(url, {"clinical_exam": "Examen relu"}).status_code, 409)
         consultation.refresh_from_db()
         self.assertEqual(consultation.status, Consultation.Status.VALIDATED)
-        self.assertEqual(consultation.clinical_exam, "Examen relu")
+        self.assertEqual(consultation.clinical_exam, "Abdomen souple")  # lecture seule
         self.assertEqual(self.client.get(url).status_code, 405)
 
     def test_autosave_forbidden_to_assistant(self):

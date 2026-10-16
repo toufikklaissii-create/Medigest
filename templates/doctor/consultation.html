@@ -9,9 +9,10 @@
 {{ letter_templates_json|json_script:"letter-templates-data" }}
 {{ letters_json|json_script:"letters-data" }}
 
+{% with is_locked=consultation.is_validated %}
 {% with field_cls="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2.5 text-sm leading-relaxed text-text-main transition-colors duration-150 hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" input_cls="w-full h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main transition-colors duration-150 hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" label_cls="block text-[13px] font-medium text-text-soft mb-1.5" chip_cls="btn-tactile inline-flex items-center gap-1.5 min-h-[36px] rounded-full border px-3.5 text-[13px] font-medium" %}
 
-<div x-data="consultationForm({{ consultation.updated_at|date:'U' }}, {{ patient_documents|length }})"
+<div x-data="consultationForm({{ consultation.updated_at|date:'U' }}, {{ patient_documents|length }}, {{ is_locked|yesno:'true,false' }})"
      class="px-4 sm:px-6 py-6">
 
 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[248px_minmax(0,1fr)_288px]">
@@ -159,8 +160,8 @@
     <!-- ═══ Formulaire : colonne centrale (onglets) + colonne droite (actes) ═══ -->
     <form method="post" action="{% url 'clinical:consultation_detail' appointment.pk %}" id="consultation-form"
           class="lg:col-span-2 grid gap-5 lg:grid-cols-subgrid"
-          hx-post="{% url 'clinical:autosave_consultation' appointment.pk %}"
-          hx-trigger="autosave delay:2s, autosave-now"
+          {% if not is_locked %}hx-post="{% url 'clinical:autosave_consultation' appointment.pk %}"
+          hx-trigger="autosave delay:2s, autosave-now"{% endif %}
           hx-swap="none"
           hx-sync="this:replace"
           @input="markDirty()" @change="markDirty()"
@@ -193,7 +194,13 @@
                 </template>
             </div>
 
-            <div class="p-5 sm:p-6">
+            {% if is_locked %}
+            <div id="locked-note" class="mx-5 mt-5 sm:mx-6 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800" role="note">
+                <i data-lucide="lock" class="w-4 h-4 mt-0.5 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+                <p class="text-[13px]"><span class="font-semibold">Consultation validée, en lecture seule.</span> Utilisez « Modifier la consultation » pour la rouvrir.</p>
+            </div>
+            {% endif %}
+            <fieldset class="min-w-0 p-5 sm:p-6" {% if is_locked %}disabled aria-describedby="locked-note"{% endif %}>
                 <!-- 1. Clinique -->
                 <div role="tabpanel" id="panel-clinique" aria-labelledby="tab-clinique" x-show="tab === 'clinique'" tabindex="0">
                     <h2 class="text-[15px] font-semibold text-text-main">Examen clinique</h2>
@@ -356,7 +363,7 @@
                         <input type="hidden" name="letter_type" :value="letterType">
                     </div>
                 </div>
-            </div>
+            </fieldset>
         </section>
 
         <!-- ═══ Colonne droite : actes, total, validation ═══ -->
@@ -371,7 +378,7 @@
                 {% endif %}
             </div>
 
-            <div role="group" aria-label="Actes réalisés" class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3">
+            <fieldset aria-label="Actes réalisés" class="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-3" {% if is_locked %}disabled{% endif %}>
                 {% for act in all_acts %}
                 <label class="btn-tactile flex items-center gap-3 rounded-lg px-2 min-h-[44px] cursor-pointer hover:bg-sauge-25"
                        :class="selected.includes({{ act.id }}) && 'bg-sauge-50 hover:bg-sauge-50'">
@@ -389,7 +396,7 @@
                     <p class="mt-2 text-[13px] text-text-muted">Aucun acte actif dans le catalogue.</p>
                 </div>
                 {% endfor %}
-            </div>
+            </fieldset>
 
             <div class="mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
                 <div class="flex items-baseline justify-between gap-2">
@@ -397,6 +404,12 @@
                     <span class="text-2xl font-bold text-text-main tabular-nums" aria-live="polite" x-text="formatDh(total)">0,00&nbsp;DH</span>
                 </div>
 
+                {% if is_locked %}
+                <button type="button" @click="confirmUnlock = true"
+                        class="btn-tactile mt-4 w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg border border-sauge-200 bg-surface px-4 text-sm font-semibold text-sauge-700 hover:bg-sauge-50 hover:border-sauge-400">
+                    <i data-lucide="lock-open" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Modifier la consultation
+                </button>
+                {% else %}
                 <button type="submit" form="consultation-form" @click="action = 'validate'"
                         class="btn-tactile mt-4 w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
                     <span x-show="!(submitting && action === 'validate')" class="inline-flex items-center gap-2">
@@ -407,6 +420,7 @@
                         Validation…
                     </span>
                 </button>
+                {% endif %}
 
                 <div class="mt-2 grid grid-cols-2 gap-2">
                     <div class="relative" x-data="{ menu: false, close(refocus) { if (!this.menu) return; this.menu = false; if (refocus) this.$refs.menuButton.focus(); } }"
@@ -452,10 +466,17 @@
                             </a>
                         </div>
                     </div>
+                    {% if is_locked %}
+                    <a href="{% url 'clinical:patient_file' patient.pk %}"
+                       class="btn-tactile h-10 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
+                        <i data-lucide="folder-open" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Dossier
+                    </a>
+                    {% else %}
                     <button type="submit" form="consultation-form" @click="action = 'draft'"
                             class="btn-tactile h-10 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">
                         <i data-lucide="save" class="w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i> Brouillon
                     </button>
+                    {% endif %}
                 </div>
 
                 <!-- Indicateur d'autosave -->
@@ -477,11 +498,49 @@
     {% csrf_token %}
 </form>
 
+{% if is_locked %}
+<form id="unlock-form" method="post" class="hidden" action="{% url 'clinical:unlock_consultation' appointment.pk %}">
+    {% csrf_token %}
+</form>
+<div x-show="confirmUnlock" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-sauge-950/30 backdrop-blur-[2px] px-4"
+     @keydown.escape.window="confirmUnlock = false"
+     x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+    <div role="dialog" aria-modal="true" aria-labelledby="unlock-title" x-trap.noscroll="confirmUnlock" @click.outside="confirmUnlock = false"
+         class="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 shadow-popover">
+        <div class="flex items-start gap-3">
+            <span class="size-9 shrink-0 rounded-lg bg-amber-50 text-amber-700 grid place-items-center">
+                <i data-lucide="lock-open" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <div>
+                <h2 id="unlock-title" class="text-[15px] font-semibold text-text-main">Modifier une consultation validée ?</h2>
+                <p class="mt-1.5 text-[13px] leading-relaxed text-text-soft">
+                    La consultation repasse en brouillon jusqu'à sa nouvelle validation.
+                    {% if consultation.invoice and consultation.invoice.status == "paid" %}
+                    La facture {{ consultation.invoice.invoice_number }}, déjà encaissée, ne sera pas modifiée.
+                    {% elif consultation.invoice %}
+                    La facture {{ consultation.invoice.invoice_number }} sera recalculée à la nouvelle validation.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="mt-6 flex justify-end gap-2">
+            <button type="button" @click="confirmUnlock = false"
+                    class="btn-tactile h-10 rounded-lg px-3.5 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">Annuler</button>
+            <button type="submit" form="unlock-form"
+                    class="btn-tactile h-10 inline-flex items-center gap-1.5 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+                <i data-lucide="lock-open" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Déverrouiller
+            </button>
+        </div>
+    </div>
 </div>
+{% endif %}
+
+</div>
+{% endwith %}
 {% endwith %}
 
 <script>
-    function consultationForm(savedAtEpoch, documentCount) {
+    function consultationForm(savedAtEpoch, documentCount, locked) {
         const read = (id) => JSON.parse(document.getElementById(id).textContent);
         const letters = read("letters-data");
         const storageKey = "medigest:consultation-tab:{{ appointment.pk }}";
@@ -510,6 +569,8 @@
             saving: false,
             saveError: false,
             submitting: false,
+            locked: locked,
+            confirmUnlock: false,
 
             init() {
                 try {
@@ -545,7 +606,7 @@
             markDirty() {
                 this.$nextTick(() => {
                     this.refreshFilled();
-                    if (this.submitting) return;
+                    if (this.submitting || this.locked) return;
                     this.dirty = true;
                     htmx.trigger("#consultation-form", "autosave");
                 });
@@ -567,6 +628,7 @@
                 }
             },
             get saveLabel() {
+                if (this.locked) return "Consultation validée, lecture seule";
                 if (this.saveError) return "Échec de l'enregistrement automatique.";
                 if (this.saving) return "Enregistrement…";
                 if (this.dirty) return "Modifications en cours…";

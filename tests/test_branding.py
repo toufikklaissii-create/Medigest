@@ -69,7 +69,7 @@ class CabinetBrandingPagesTest(TestCase):
         html = Client().get(reverse("tenant_login", kwargs={"slug": "cabinet-rose"})).content.decode()
         self.assertIn(self.cabinet.logo.url, html)
         self.assertIn("--brand-500: 246 83 135;", html)
-        self.assertIn("from-sauge-500", html)
+        self.assertIn("from-sauge-700", html)
 
     def test_discovery_page_keeps_medigest_palette(self):
         html = Client().get(reverse("accounts:login")).content.decode()

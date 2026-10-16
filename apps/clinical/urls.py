@@ -10,6 +10,11 @@ urlpatterns = [
     path("patient/<int:patient_id>/", views.patient_file, name="patient_file"),
     path("consultation/<int:appointment_id>/", views.consultation_detail, name="consultation_detail"),
     path(
+        "consultation/<int:appointment_id>/unlock/",
+        views.unlock_consultation,
+        name="unlock_consultation",
+    ),
+    path(
         "consultation/<int:appointment_id>/autosave/",
         views.autosave_consultation,
         name="autosave_consultation",

@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Connexion — Medigest{% endblock %}
+{% block title %}Connexion · {{ cabinet.nom }}{% endblock %}
 {% block content %}
 <div class="min-h-screen w-full flex">
 
     <!-- Colonne de gauche : formulaire -->
     <div class="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 lg:px-24 bg-white">
         <div class="w-full max-w-sm mx-auto lg:mx-0">
+            {% if cabinet.logo %}
+            <img src="{{ cabinet.logo.url }}" alt="Logo {{ cabinet.nom }}" width="176" height="176"
+                 class="h-40 w-40 sm:h-44 sm:w-44 object-contain mb-8 -ml-2 animate-logo-in motion-reduce:animate-none">
+            {% else %}
             <img src="{% static 'images/logo-medigest.png' %}" alt="Medigest" class="h-24 w-auto mb-12">
+            {% endif %}
 
             <h1 class="text-3xl font-bold text-text-main">Bienvenue sur l'espace {{ cabinet.nom }}</h1>
             <p class="text-text-muted mt-2 mb-8">Connectez-vous pour accéder à la gestion de votre cabinet</p>
@@ -45,20 +50,20 @@
                 </button>
             </form>
 
-            <p class="text-center text-xs text-text-faint mt-8">Accès réservé au personnel du cabinet.</p>
+            <p class="text-center text-xs text-text-faint mt-8">Accès réservé au personnel du cabinet · propulsé par Medigest</p>
         </div>
     </div>
 
-    <!-- Colonne de droite : branding -->
-    <div class="hidden lg:flex w-1/2 bg-gradient-to-br from-[#2F3E46] to-[#1A2429] p-16 flex-col justify-center relative overflow-hidden">
-        <div class="blur-[100px] bg-white/10 rounded-full w-96 h-96 absolute -top-10 -right-10" aria-hidden="true"></div>
-        <div class="blur-[100px] bg-white/10 rounded-full w-96 h-96 absolute -bottom-24 -left-16" aria-hidden="true"></div>
+    <!-- Colonne de droite : couleurs du cabinet -->
+    <div class="hidden lg:flex w-1/2 bg-gradient-to-br from-sauge-500 via-sauge-600 to-sauge-900 p-16 flex-col justify-center relative overflow-hidden">
+        <div class="blur-[100px] bg-white/15 rounded-full w-96 h-96 absolute -top-10 -right-10" aria-hidden="true"></div>
+        <div class="blur-[100px] bg-sauge-950/30 rounded-full w-96 h-96 absolute -bottom-24 -left-16" aria-hidden="true"></div>
 
         <div class="relative">
-            <h2 class="text-5xl font-extrabold text-white leading-tight">Votre cabinet, réinventé.</h2>
-            <p class="text-sauge-100/80 mt-6 text-lg">Une plateforme premium, fluide et sécurisée. Moins de paperasse, plus de temps pour vos patients.</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.12em] text-white/75">{{ cabinet.nom }}</p>
+            <h2 class="mt-4 text-5xl font-extrabold text-white leading-tight">Votre cabinet, réinventé.</h2>
+            <p class="text-white/85 mt-6 text-lg max-w-md">Une plateforme fluide et sécurisée. Moins de paperasse, plus de temps pour vos patientes.</p>
         </div>
     </div>
-
 </div>
 {% endblock %}

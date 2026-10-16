@@ -1,11 +1,22 @@
 from django.conf import settings
+from django.core.validators import RegexValidator
 from django.db import models
+
+from .branding import DEFAULT_PRIMARY
 
 
 class Cabinet(models.Model):
     nom = models.CharField(max_length=150)
     slug = models.SlugField(max_length=160, unique=True)
     initiales_logo = models.CharField(max_length=4, blank=True)
+    logo = models.ImageField(upload_to="cabinets/logos/", blank=True)
+    couleur_primaire = models.CharField(
+        "Couleur primaire",
+        max_length=7,
+        default=DEFAULT_PRIMARY,
+        validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Format attendu : #RRGGBB.")],
+        help_text="Couleur de marque (pas 500) : toute la palette de l'interface en est dérivée.",
+    )
     actif = models.BooleanField(default=True)
 
     class Meta:

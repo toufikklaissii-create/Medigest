@@ -9,25 +9,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+    <style>:root { {{ brand_css_vars }} }</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
+                        // Palette de marque du cabinet : variables CSS injectées par
+                        // apps.accounts.context_processors.brand (sauge par défaut).
                         sauge: {
-                            25: "#F8FAF9",
-                            50: "#F4F7F5",
-                            100: "#E3ECE7",
-                            200: "#C9D8D0",
-                            400: "#6B9080",
-                            500: "#52796F",
-                            600: "#354F52",
-                            700: "#2E4345",
-                            900: "#2F3E46",
-                            950: "#25333A",
+                            25: "rgb(var(--brand-25) / <alpha-value>)",
+                            50: "rgb(var(--brand-50) / <alpha-value>)",
+                            100: "rgb(var(--brand-100) / <alpha-value>)",
+                            200: "rgb(var(--brand-200) / <alpha-value>)",
+                            400: "rgb(var(--brand-400) / <alpha-value>)",
+                            500: "rgb(var(--brand-500) / <alpha-value>)",
+                            600: "rgb(var(--brand-600) / <alpha-value>)",
+                            700: "rgb(var(--brand-700) / <alpha-value>)",
+                            900: "rgb(var(--brand-900) / <alpha-value>)",
+                            950: "rgb(var(--brand-950) / <alpha-value>)",
                         },
-                        canvas: "#F7F8F8",
+                        canvas: "rgb(var(--brand-25) / <alpha-value>)",
                         surface: "#FFFFFF",
                         "surface-raised": "#FFFFFF",
                         "border-subtle": "#E7EAEE",
@@ -38,9 +41,9 @@
                         "text-faint": "#98A2B3",
                         // Legacy aliases kept so any un-migrated markup stays on-palette.
                         primary: {
-                            DEFAULT: "#354F52",
-                            dark: "#2F3E46",
-                            light: "#E3ECE7",
+                            DEFAULT: "rgb(var(--brand-600) / <alpha-value>)",
+                            dark: "rgb(var(--brand-900) / <alpha-value>)",
+                            light: "rgb(var(--brand-100) / <alpha-value>)",
                         },
                         cream: "#FBFBFC",
                         border: "#E2E8F0",
@@ -100,7 +103,7 @@
         /* Feedback global des requêtes HTMX (état "en cours" sans toucher aux templates) */
         #htmx-progress-bar {
             position: fixed; top: 0; left: 0; height: 2.5px; width: 100%;
-            background: linear-gradient(90deg, #52796F, #354F52);
+            background: linear-gradient(90deg, rgb(var(--brand-500)), rgb(var(--brand-600)));
             z-index: 100; opacity: 0; transform: scaleX(0); transform-origin: left;
             transition: transform 300ms ease-out, opacity 200ms ease-out;
         }
@@ -113,12 +116,12 @@
         @media (prefers-reduced-motion: reduce) {
             #htmx-progress-bar { transition: none; }
         }
-        ::selection { background-color: #E3ECE7; color: #2F3E46; }
+        ::selection { background-color: rgb(var(--brand-100)); color: rgb(var(--brand-900)); }
         /* Anneau de focus conforme DESIGN.md §1.3 (ring-2 ring-sauge-600/30 ring-offset-2) : filet de séparation + anneau sauge. Les classes focus:ring-* posées explicitement sur un élément priment sur cette règle de secours. */
         *:focus-visible {
             outline: none;
             border-radius: 4px;
-            box-shadow: 0 0 0 2px #F7F8F8, 0 0 0 4px rgba(53, 79, 82, 0.3);
+            box-shadow: 0 0 0 2px rgb(var(--brand-25)), 0 0 0 4px rgb(var(--brand-600) / 0.3);
         }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
@@ -167,9 +170,15 @@
 
     <!-- Marque -->
     <div class="flex items-center gap-3 px-2 pt-1.5 pb-5">
+        {% if request.user.profile.cabinet.logo %}
+        <div class="h-10 w-10 shrink-0 rounded-xl bg-white p-0.5 shadow-sm overflow-hidden">
+            <img src="{{ request.user.profile.cabinet.logo.url }}" alt="Logo {{ request.user.profile.cabinet.nom }}" width="36" height="36" class="h-full w-full object-contain">
+        </div>
+        {% else %}
         <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-sauge-500 to-sauge-700 flex items-center justify-center text-white shadow-sm">
             {{ request.user.profile.cabinet.initiales_logo|default:"CAB" }}
         </div>
+        {% endif %}
         <div class="min-w-0 inline md:hidden lg:block">
             <p class="font-bold text-sm text-white leading-tight truncate">{{ request.user.profile.cabinet.nom|default:"Mon Cabinet" }}</p>
             <p class="text-[11.5px] text-white/45 leading-tight mt-0.5 truncate">Gynécologie &amp; Obstétrique</p>

@@ -18,7 +18,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="px-4 sm:px-6 py-6" x-data="reception('{% url 'appointments:reception_panel' 0 %}')">
+<div class="px-4 sm:px-6 py-6" x-data="reception('{% url 'appointments:reception_panel' 0 %}')"
+     @whatsapp-reschedule.window="htmx.ajax('GET', $event.detail.url, { target: '#drawer-container', swap: 'innerHTML' })">
 
     <!-- Ligne de tête : titre + compteurs + actions -->
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3 mb-6">
@@ -70,16 +71,47 @@
                     </button>
                 </h2>
                 <div id="reception-more" x-show="open" x-cloak x-transition.opacity.duration.150ms
-                     class="grid gap-6 border-t border-border-subtle p-5 md:grid-cols-2 xl:grid-cols-3">
-                    <div class="min-w-0" x-data="{ tab: 'j1' }">
+                     class="grid gap-6 border-t border-border-subtle p-5 md:grid-cols-2">
+                    <div class="min-w-0 md:col-span-2" x-data="whatsappReminders()">
                         <h3 class="mb-3 text-[13px] font-semibold text-text-main">Rappels WhatsApp</h3>
                         {% include "assistant/_j2_reminders.html" %}
+
+                        <!-- Confirmation d'annulation (hors de #j2-reminders pour survivre aux swaps) -->
+                        <div x-show="cancel" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-sauge-950/30 backdrop-blur-[2px] px-4"
+                             @keydown.escape.window="cancel = null"
+                             x-transition:enter="transition ease-out duration-150" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                             x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+                            <div role="alertdialog" aria-modal="true" aria-labelledby="wa-cancel-title" aria-describedby="wa-cancel-desc"
+                                 x-trap.noscroll="cancel" @click.outside="cancel = null"
+                                 class="w-full max-w-md rounded-2xl border border-border-subtle bg-surface p-6 shadow-popover">
+                                <div class="flex items-start gap-3">
+                                    <span class="size-9 shrink-0 rounded-lg bg-rose-50 text-rose-600 grid place-items-center">
+                                        <i data-lucide="calendar-x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i>
+                                    </span>
+                                    <div class="min-w-0">
+                                        <h2 id="wa-cancel-title" class="text-[15px] font-semibold text-text-main">Annuler le rendez-vous ?</h2>
+                                        <p id="wa-cancel-desc" class="mt-1.5 text-[13px] leading-relaxed text-text-soft">
+                                            Le RDV de <span class="font-medium text-text-main" x-text="cancel && cancel.name"></span>
+                                            (<span class="tabular-nums" x-text="cancel && cancel.when"></span>) sera annulé et le créneau libéré dans le planning.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="mt-6 flex justify-end gap-2">
+                                    <button type="button" @click="cancel = null"
+                                            class="btn-tactile h-10 rounded-lg px-3.5 text-sm font-medium text-text-soft hover:bg-slate-100/70 hover:text-text-main">Garder le RDV</button>
+                                    <button type="button" @click="confirmCancel()"
+                                            class="btn-tactile h-10 inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-rose-700">
+                                        <i data-lucide="calendar-x" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Annuler le RDV
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="min-w-0">
                         <h3 class="mb-3 text-[13px] font-semibold text-text-main">Tâches</h3>
                         {% include "communications/_tasks_panel.html" with tasks=my_tasks %}
                     </div>
-                    <div class="min-w-0 md:col-span-2 xl:col-span-1">
+                    <div class="min-w-0">
                         <div class="mb-3 flex items-center justify-between gap-2">
                             <h3 class="text-[13px] font-semibold text-text-main">Encaissements en attente</h3>
                             <a href="{% url 'billing:index' %}" class="text-[12px] font-medium text-sauge-600 hover:underline">Facturation</a>
@@ -104,6 +136,9 @@
             </div>
         </aside>
     </div>
+
+    <!-- Tiroir RDV (« À déplacer » d'un rappel WhatsApp) -->
+    <div id="drawer-container"></div>
 
     <!-- Squelette du panneau (même gabarit que le contenu final) -->
     <template x-ref="panelSkeleton">
@@ -144,6 +179,21 @@
 </div>
 
 <script>
+    function whatsappReminders() {
+        return {
+            tab: "j1",
+            cancel: null,
+            askCancel(el) {
+                this.cancel = { url: el.dataset.url, name: el.dataset.name, when: el.dataset.when };
+            },
+            confirmCancel() {
+                if (!this.cancel) return;
+                htmx.ajax("POST", this.cancel.url, { source: "#j2-reminders", target: "#j2-reminders", swap: "outerHTML" });
+                this.cancel = null;
+            },
+        };
+    }
+
     function reception(panelUrlTemplate) {
         return {
             selected: null,

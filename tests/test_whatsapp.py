@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timedelta
 from urllib.parse import unquote
 
@@ -173,3 +174,82 @@ class WhatsappFlowTest(TestCase):
         self.assertIn("J+2", html)
         self.assertIn("https://wa.me/212612345678", html)
         self.assertNotIn("simulation", html)
+
+    def test_cancel_frees_the_slot(self):
+        appt = self._appt(whatsapp_status="sent", whatsapp_sent_at=timezone.now())
+        response = self.client.post(reverse("appointments:whatsapp_action", args=[appt.pk, "cancel"]))
+        self.assertEqual(response.status_code, 200)
+        appt.refresh_from_db()
+        self.assertEqual(appt.whatsapp_status, Appointment.WhatsappStatus.CANCELLED)
+        self.assertEqual(appt.status, Appointment.Status.CANCELLED)
+        self.assertEqual(json.loads(response.headers["HX-Trigger"])["toast"]["message"], "RDV de Imane Tazi annulé, créneau libéré.")
+        # Le RDV annulé quitte la liste des rappels et le créneau n'est plus occupé.
+        self.assertNotIn(appt, response.context["j1_appointments"])
+        self.assertFalse(
+            Appointment.objects.filter(date=appt.date, cabinet=self.cabinet)
+            .exclude(status=Appointment.Status.CANCELLED).exists()
+        )
+
+    def test_cancel_asks_confirmation_without_alert(self):
+        self._appt(whatsapp_status="sent", whatsapp_sent_at=timezone.now())
+        html = self.client.get(reverse("appointments:assistant_dashboard")).content.decode()
+        self.assertIn('@click="askCancel($el)"', html)
+        self.assertIn('role="alertdialog"', html)
+        self.assertNotIn("hx-confirm", html)
+
+    def test_cancel_get_changes_nothing(self):
+        appt = self._appt(whatsapp_status="sent")
+        self.client.get(reverse("appointments:whatsapp_action", args=[appt.pk, "cancel"]))
+        appt.refresh_from_db()
+        self.assertEqual(appt.status, Appointment.Status.SCHEDULED)
+
+    def test_reschedule_opens_drawer_on_date_field(self):
+        appt = self._appt(whatsapp_status="sent", whatsapp_sent_at=timezone.now())
+        response = self.client.post(reverse("appointments:whatsapp_action", args=[appt.pk, "reschedule"]))
+        appt.refresh_from_db()
+        self.assertEqual(appt.whatsapp_status, Appointment.WhatsappStatus.RESCHEDULED)
+        self.assertEqual(appt.status, Appointment.Status.SCHEDULED)
+        drawer_url = json.loads(response.headers["HX-Trigger"])["whatsapp-reschedule"]["url"]
+        self.assertEqual(drawer_url, reverse("appointments:appointment_drawer", args=[appt.pk]) + "?from=whatsapp")
+
+        html = self.client.get(drawer_url).content.decode()
+        self.assertIn('name="source" value="whatsapp"', html)
+        self.assertIn("$el.focus()", html)
+        self.assertIn('hx-target="#drawer-reschedule"', html)
+        self.assertNotIn("Annuler le rendez-vous", html)
+
+    def test_reschedule_save_then_send_new_slot(self):
+        appt = self._appt(whatsapp_status="rescheduled", whatsapp_sent_at=timezone.now() - timedelta(days=1))
+        new_day = (timezone.localtime() + timedelta(days=2)).date()
+        response = self.client.post(
+            reverse("appointments:update_appointment_ajax", args=[appt.pk]),
+            {"date": new_day.isoformat(), "time": "15:00", "source": "whatsapp"},
+        )
+        self.assertEqual(response.status_code, 200)
+        appt.refresh_from_db()
+        self.assertEqual(appt.local_date.date(), new_day)
+        self.assertEqual(appt.local_date.strftime("%H:%M"), "15:00")
+        html = response.content.decode()
+        self.assertIn("Envoyer le nouveau créneau", html)
+        self.assertIn(reverse("appointments:whatsapp_action", args=[appt.pk, "send_rescheduled"]), html)
+        self.assertIn(unquote(appt.whatsapp_rescheduled_link).split("text=")[0], unquote(html))
+        self.assertIn("a été déplacé au", unquote(html))
+        self.assertIn('hx-swap-oob="true"', html)
+
+        response = self.client.post(reverse("appointments:whatsapp_action", args=[appt.pk, "send_rescheduled"]))
+        appt.refresh_from_db()
+        self.assertEqual(appt.whatsapp_status, Appointment.WhatsappStatus.SENT)
+        self.assertEqual(appt.whatsapp_sent_by, self.assistant)
+        self.assertLess(timezone.now() - appt.whatsapp_sent_at, timedelta(seconds=5))
+        self.assertIn("Nouveau créneau envoyé", json.loads(response.headers["HX-Trigger"])["toast"]["message"])
+
+    def test_calendar_reschedule_unchanged(self):
+        appt = self._appt()
+        new_day = (timezone.localtime() + timedelta(days=3)).date()
+        response = self.client.post(
+            reverse("appointments:update_appointment_ajax", args=[appt.pk]),
+            {"date": new_day.isoformat(), "time": "09:00"},
+        )
+        self.assertTemplateUsed(response, "assistant/_calendar_body.html")
+        appt.refresh_from_db()
+        self.assertEqual(appt.whatsapp_status, Appointment.WhatsappStatus.PENDING)

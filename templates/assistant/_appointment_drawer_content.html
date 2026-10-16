@@ -46,6 +46,10 @@
 
         <p class="text-sm text-text-main mb-5">{{ appointment.reason|default:"—" }}</p>
 
+        {% if from_whatsapp %}
+        {% include "assistant/_drawer_reschedule.html" %}
+        {% else %}
+
         {% with link=appointment.whatsapp_reminder_link %}
         {% if link %}
         <div class="mb-5 grid gap-2">
@@ -86,23 +90,7 @@
                 {% if appointment.status != 'scheduled' and appointment.status != 'cancelled' %}
             {% include "assistant/_intake_vitals_form.html" %}
         {% endif %}
-        <div class="border-t border-border-subtle pt-4 mb-4">
-            <p class="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Reprogrammer</p>
-            <form hx-post="{% url 'appointments:update_appointment_ajax' appointment.pk %}"
-                  hx-target="#calendar-body" hx-swap="outerHTML"
-                  @htmx:after-request="if (event.detail.successful) open = false"
-                  class="flex items-center gap-2">
-                {% csrf_token %}
-                <input type="date" name="date" value="{{ appointment.date|date:'Y-m-d' }}" required
-                       class="flex-1 rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
-                <input type="time" name="time" value="{{ appointment.date|date:'H:i' }}" required
-                       class="flex-1 rounded-lg border border-border-subtle px-2.5 py-2 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-500/40 focus:border-sauge-500">
-                <button type="submit"
-                        class="btn-tactile shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-lg bg-sauge-600 text-white shadow-sm hover:bg-sauge-900">
-                    <i data-lucide="check" class="w-4 h-4" stroke-width="1.75"></i>
-                </button>
-            </form>
-        </div>
+        {% include "assistant/_drawer_reschedule.html" %}
 
         <form hx-post="{% url 'appointments:cancel_appointment_ajax' appointment.pk %}"
               hx-target="#calendar-body" hx-swap="outerHTML"
@@ -113,6 +101,7 @@
                 Annuler le rendez-vous
             </button>
         </form>
+        {% endif %}
         {% endif %}
     </div>
 </div>

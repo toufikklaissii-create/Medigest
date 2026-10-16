@@ -1,45 +1,48 @@
 {% comment %}
 Suivi WhatsApp (wa.me) : onglets J+1 / J+2 / À relancer. L'onglet actif (`tab`) vit dans le
-x-data parent (dashboard), hors de la zone remplacée par HTMX, pour survivre aux swaps.
+x-data parent (dashboard), hors de la zone remplacée par HTMX, pour survivre aux swaps — tout comme
+la modale de confirmation d'annulation (askCancel). `oob` : renvoyé en hx-swap-oob après un déplacement.
 {% endcomment %}
-<div id="j2-reminders" class="flex flex-col gap-3">
-    <div class="grid grid-cols-3 gap-1 rounded-lg bg-sauge-25 p-1" role="tablist" aria-label="Rappels WhatsApp">
+<div id="j2-reminders" class="flex flex-col gap-3"{% if oob %} hx-swap-oob="true"{% endif %}>
+    <div class="inline-flex w-fit max-w-full gap-1 overflow-x-auto rounded-lg bg-sauge-25 p-1" role="tablist" aria-label="Rappels WhatsApp">
         <button type="button" role="tab" @click="tab = 'j1'" :aria-selected="(tab === 'j1').toString()"
                 :class="tab === 'j1' ? 'bg-surface text-text-main shadow-card' : 'text-text-muted hover:text-text-main'"
-                class="btn-tactile rounded-md px-2 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
+                class="btn-tactile shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
             J+1 <span class="tabular-nums rounded-full bg-sauge-50 px-1.5 text-[10px] text-sauge-600">{{ j1_appointments|length }}</span>
         </button>
         <button type="button" role="tab" @click="tab = 'j2'" :aria-selected="(tab === 'j2').toString()"
                 :class="tab === 'j2' ? 'bg-surface text-text-main shadow-card' : 'text-text-muted hover:text-text-main'"
-                class="btn-tactile rounded-md px-2 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
+                class="btn-tactile shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
             J+2 <span class="tabular-nums rounded-full bg-sauge-50 px-1.5 text-[10px] text-sauge-600">{{ j2_appointments|length }}</span>
         </button>
         <button type="button" role="tab" @click="tab = 'relaunch'" :aria-selected="(tab === 'relaunch').toString()"
                 :class="tab === 'relaunch' ? 'bg-surface text-text-main shadow-card' : 'text-text-muted hover:text-text-main'"
-                class="btn-tactile rounded-md px-2 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
+                class="btn-tactile shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium inline-flex items-center justify-center gap-1.5">
             À relancer <span class="tabular-nums rounded-full px-1.5 text-[10px] {% if relaunch_appointments %}bg-rose-50 text-rose-700{% else %}bg-sauge-50 text-sauge-600{% endif %}">{{ relaunch_appointments|length }}</span>
         </button>
     </div>
 
-    <div x-show="tab === 'j1'" role="tabpanel" class="flex flex-col gap-2">
+    <div x-show="tab === 'j1'" role="tabpanel" class="flex flex-col">
         {% include "assistant/_whatsapp_day_list.html" with day_appointments=j1_appointments day_date=j1_date %}
     </div>
-    <div x-show="tab === 'j2'" x-cloak role="tabpanel" class="flex flex-col gap-2">
+    <div x-show="tab === 'j2'" x-cloak role="tabpanel" class="flex flex-col">
         {% include "assistant/_whatsapp_day_list.html" with day_appointments=j2_appointments day_date=j2_date %}
     </div>
 
-    <div x-show="tab === 'relaunch'" x-cloak role="tabpanel" class="flex flex-col gap-2">
+    <div x-show="tab === 'relaunch'" x-cloak role="tabpanel" class="flex flex-col">
         {% for appt in relaunch_appointments %}
-        <div class="border-b border-border-subtle pb-2.5 last:border-0">
-            <div class="flex items-center justify-between gap-2 mb-1.5">
+        <div class="flex flex-col gap-2 border-b border-border-subtle py-3 first:pt-0 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4">
+            <div class="flex min-w-0 flex-1 items-start justify-between gap-3 sm:items-center">
                 <div class="min-w-0">
-                    <p class="font-medium text-text-main text-sm truncate">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
-                    <p class="text-xs text-text-muted tabular-nums">{{ appt.date|date:"l j F · H:i" }}</p>
+                    <p class="font-medium text-text-main text-sm break-words">{{ appt.patient.first_name }} {{ appt.patient.last_name }}</p>
+                    <p class="text-xs text-text-muted tabular-nums">{{ appt.date|date:"l j F · H:i" }}{% if appt.whatsapp_sent_label %} · {{ appt.whatsapp_sent_label }}{% endif %}</p>
                 </div>
+                <div class="shrink-0">
                 {% if appt.whatsapp_phone_state != "ok" %}{% include "assistant/_whatsapp_phone_warning.html" %}
                 {% else %}{% include "_status_badge.html" with tone="amber" label="Sans réponse" %}{% endif %}
+                </div>
             </div>
-            {% if appt.whatsapp_sent_label %}<p class="mb-1.5 text-xs text-text-muted">{{ appt.whatsapp_sent_label }}</p>{% endif %}
+            <div class="sm:w-60 sm:shrink-0">
             {% if appt.whatsapp_phone_state == "missing" %}
             <a href="{% url 'patients:edit_patient' appt.patient.pk %}"
                class="btn-tactile w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-border-subtle py-1.5 text-xs font-medium text-text-main hover:bg-sauge-25">
@@ -63,6 +66,7 @@ x-data parent (dashboard), hors de la zone remplacée par HTMX, pour survivre au
                 </a>
             </div>
             {% endif %}
+            </div>
         </div>
         {% empty %}
         <div class="flex flex-col items-center justify-center gap-1.5 py-6 text-center">

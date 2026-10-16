@@ -406,6 +406,7 @@ def appointment_drawer(request, pk):
             "appointment": appointment,
             "next_label": NEXT_STATUS_LABEL.get(appointment.status),
             "consultation": consultation,
+            "from_whatsapp": request.GET.get("from") == "whatsapp",
         },
     )
 
@@ -547,6 +548,24 @@ def update_appointment_ajax(request, pk):
             toast_message = (
                 f"{appointment.patient} — RDV reprogrammé au {anchor_date:%d/%m/%Y} à {time_str}."
             )
+
+    if request.POST.get("source") == "whatsapp":
+        # Depuis « À déplacer » (accueil) : le tiroir reste ouvert et propose d'envoyer le
+        # nouveau créneau ; la liste des rappels est rafraîchie en hx-swap-oob.
+        response = render(
+            request,
+            "assistant/_drawer_reschedule.html",
+            {
+                "appointment": appointment,
+                "from_whatsapp": True,
+                "rescheduled": toast_message is not None,
+                "oob_reminders": True,
+                **_whatsapp_context(request.user.profile.cabinet),
+            },
+        )
+        if toast_message:
+            response.headers["HX-Trigger"] = _toast_header(toast_message)
+        return response
 
     return _render_day_fragment(request, anchor_date, toast_message)
 
@@ -753,9 +772,10 @@ def reception_panel(request, pk):
 WHATSAPP_ACTIONS = {
     "send": (Appointment.WhatsappStatus.SENT, "Rappel WhatsApp envoyé à {patient}."),
     "relaunch": (Appointment.WhatsappStatus.SENT, "Relance WhatsApp envoyée à {patient}."),
+    "send_rescheduled": (Appointment.WhatsappStatus.SENT, "Nouveau créneau envoyé à {patient}."),
     "confirm": (Appointment.WhatsappStatus.CONFIRMED, "{patient} a confirmé son RDV."),
     "reschedule": (Appointment.WhatsappStatus.RESCHEDULED, "{patient} souhaite déplacer son RDV."),
-    "cancel": (Appointment.WhatsappStatus.CANCELLED, "{patient} a annulé son RDV."),
+    "cancel": (Appointment.WhatsappStatus.CANCELLED, "RDV de {name} annulé, créneau libéré."),
 }
 
 
@@ -763,23 +783,34 @@ WHATSAPP_ACTIONS = {
 def whatsapp_action(request, pk, action):
     """POST (HTMX) : trace un envoi wa.me (ouvert côté navigateur) ou la réponse de la patiente.
 
-    Accessible à l'assistante comme à la doctoresse, toujours limité au cabinet de l'utilisateur.
+    « cancel » annule aussi le RDV (créneau libéré) ; « reschedule » ouvre le tiroir du RDV
+    sur le champ date/heure. Accessible à l'assistante comme à la doctoresse, toujours limité
+    au cabinet de l'utilisateur.
     """
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(Appointment.objects.select_related("patient"), pk=pk, cabinet=cabinet)
-    toast_message = None
+    events = {}
     if request.method == "POST" and action in WHATSAPP_ACTIONS:
         new_status, message_template = WHATSAPP_ACTIONS[action]
         if new_status == Appointment.WhatsappStatus.SENT:
             appointment.mark_whatsapp_sent(request.user)
         else:
             appointment.whatsapp_status = new_status
-            appointment.save(update_fields=["whatsapp_status"])
-        toast_message = message_template.format(patient=appointment.patient)
+            update_fields = ["whatsapp_status"]
+            if action == "cancel":
+                appointment.status = Appointment.Status.CANCELLED
+                update_fields.append("status")
+            appointment.save(update_fields=update_fields)
+        if action == "reschedule":
+            events["whatsapp-reschedule"] = {
+                "url": f"{reverse('appointments:appointment_drawer', args=[pk])}?from=whatsapp"
+            }
+        patient = appointment.patient
+        message = message_template.format(patient=patient, name=f"{patient.first_name} {patient.last_name}")
+        events["toast"] = {"message": message, "type": "success"}
+        events["panel-refresh"] = True
 
     response = render(request, "assistant/_j2_reminders.html", _whatsapp_context(cabinet))
-    if toast_message:
-        response.headers["HX-Trigger"] = json.dumps(
-            {"toast": {"message": toast_message, "type": "success"}, "panel-refresh": True}
-        )
+    if events:
+        response.headers["HX-Trigger"] = json.dumps(events)
     return response

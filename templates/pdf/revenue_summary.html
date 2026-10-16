@@ -1,0 +1,48 @@
+{% extends "pdf/_letterhead_base.html" %}
+{% load medigest_format %}
+{% block title %}RÉCAPITULATIF DES RECETTES{% endblock %}
+{% block patient %}
+<div class="patient"><b>Période :</b> {{ period.label }}
+    <span class="meta"> — du {{ period.start|date:"d/m/Y" }} au {{ period.end|date:"d/m/Y" }}</span>
+</div>
+{% endblock %}
+{% block body %}
+<table class="grid">
+    <tr><th style="width: 55%;">Total encaissé</th><td class="right"><b>{{ total|dh }}</b></td></tr>
+    <tr><th>Nombre d'encaissements</th><td class="right">{{ count }}</td></tr>
+    <tr><th>Patientes distinctes</th><td class="right">{{ patients }}</td></tr>
+    <tr><th>Panier moyen (par encaissement)</th><td class="right">{{ average|dh }}</td></tr>
+    <tr><th>Impayés en cours (reste dû)</th><td class="right">{{ outstanding|dh }}</td></tr>
+    <tr><th>Factures annulées (exclues)</th><td class="right">{{ cancelled }}</td></tr>
+</table>
+
+<h2>Par mode de paiement</h2>
+<table class="grid">
+    <tr><th>Mode</th><th class="right" style="width: 35%;">Montant</th></tr>
+    {% for row in by_method %}
+    <tr><td>{{ row.label }}</td><td class="right">{{ row.amount|dh }}</td></tr>
+    {% endfor %}
+    <tr><th>Total</th><th class="right">{{ total|dh }}</th></tr>
+</table>
+
+<h2>Par acte</h2>
+<table class="grid">
+    <tr><th>Acte</th><th class="right" style="width: 15%;">Quantité</th><th class="right" style="width: 30%;">Montant</th></tr>
+    {% for row in by_act %}
+    <tr><td>{{ row.name }}</td><td class="right">{{ row.quantity }}</td><td class="right">{{ row.amount|dh }}</td></tr>
+    {% empty %}
+    <tr><td colspan="3" class="muted">Aucun acte encaissé sur la période.</td></tr>
+    {% endfor %}
+</table>
+
+<h2>Par jour</h2>
+<table class="grid">
+    <tr><th>Jour</th><th class="right" style="width: 20%;">Encaissements</th><th class="right" style="width: 30%;">Montant</th></tr>
+    {% for row in by_day %}{% if row.count %}
+    <tr><td>{{ row.date|date:"l j F Y" }}</td><td class="right">{{ row.count }}</td><td class="right">{{ row.amount|dh }}</td></tr>
+    {% endif %}{% empty %}{% endfor %}
+    <tr><th>Total</th><th class="right">{{ count }}</th><th class="right">{{ total|dh }}</th></tr>
+</table>
+
+<p class="legal">Recettes comptées à la date d'encaissement. Document comptable : aucune donnée médicale.</p>
+{% endblock %}

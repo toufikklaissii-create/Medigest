@@ -208,3 +208,29 @@ class InvoiceItem(models.Model):
 
     def __str__(self):
         return f"{self.invoice.invoice_number} — {self.act.name}"
+
+
+class CashClosing(models.Model):
+    """Clôture de caisse d'une journée : espèces comptées face aux espèces attendues."""
+
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name="cash_closings")
+    date = models.DateField("Journée")
+    expected_cash = models.DecimalField("Espèces attendues", max_digits=10, decimal_places=2)
+    counted_cash = models.DecimalField("Espèces comptées", max_digits=10, decimal_places=2)
+    difference = models.DecimalField("Écart", max_digits=10, decimal_places=2)
+    note = models.TextField("Commentaire", blank=True)
+    closed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    closed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "Clôture de caisse"
+        verbose_name_plural = "Clôtures de caisse"
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(fields=["cabinet", "date"], name="unique_cash_closing_per_day"),
+        ]
+
+    def __str__(self):
+        return f"Clôture du {self.date:%d/%m/%Y}"

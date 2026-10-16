@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Rapports · Medigest{% endblock %}
+{% block content %}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 py-8">
+    <div>
+        <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Rapports</h1>
+        <p class="text-sm text-text-muted mt-1">Recettes encaissées sur la période, comparées à la période précédente. Exports pour la comptabilité.</p>
+    </div>
+
+    <form id="report-filters" class="mt-7 flex flex-col gap-3 md:flex-row md:items-center"
+          hx-get="{% url 'billing:reports' %}" hx-target="#report-body" hx-swap="outerHTML" hx-push-url="true"
+          hx-trigger="change" hx-indicator="#report-body"
+          x-data="{ periode: '{{ period.kind }}' }" @submit.prevent>
+        <div role="radiogroup" aria-label="Période" class="flex flex-wrap gap-1 rounded-xl bg-slate-100/70 p-1">
+            {% for value, label in period_choices %}
+            <label class="btn-tactile inline-flex items-center h-9 rounded-lg px-3 text-[13px] font-medium cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-sauge-600/30"
+                   :class="periode === '{{ value }}' ? 'bg-surface text-text-main shadow-sm' : 'text-text-muted hover:text-text-main'">
+                <input type="radio" name="periode" value="{{ value }}" x-model="periode" class="sr-only" {% if value == period.kind %}checked{% endif %}>
+                {{ label }}
+            </label>
+            {% endfor %}
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <label x-show="periode !== 'libre'" class="flex items-center gap-2">
+                <span class="sr-only">Date de référence</span>
+                <input id="report-date" type="date" name="date" value="{{ period.anchor|date:'Y-m-d' }}" :disabled="periode === 'libre'"
+                       class="h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20">
+            </label>
+            <template x-if="periode === 'libre'">
+                <div class="flex flex-wrap items-center gap-2 text-[13px] text-text-muted">
+                    <label class="flex items-center gap-2">Du
+                        <input type="date" name="du" value="{{ period.start|date:'Y-m-d' }}"
+                               class="h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20"></label>
+                    <label class="flex items-center gap-2">au
+                        <input type="date" name="au" value="{{ period.end|date:'Y-m-d' }}"
+                               class="h-10 rounded-lg border border-border-subtle bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20"></label>
+                </div>
+            </template>
+        </div>
+    </form>
+
+    <div class="mt-6">
+        {% include "billing/_report_body.html" %}
+    </div>
+</div>
+{% endblock %}

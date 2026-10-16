@@ -1,0 +1,15 @@
+<div class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6">
+    <p class="text-[13px] text-text-muted">{{ label }}{% if hint %} <span class="text-text-faint">· {{ hint }}</span>{% endif %}</p>
+    <p class="mt-2 text-[26px] font-bold text-text-main tabular-nums leading-none">{{ value }}</p>
+    <p class="mt-2 flex items-center gap-1.5 text-[12px]">
+        {% if variation is None %}
+        <span class="text-text-faint">Pas de comparaison possible</span>
+        {% else %}
+        <span class="inline-flex items-center gap-0.5 font-semibold tabular-nums {% if variation > 0 %}text-emerald-700{% elif variation < 0 %}text-rose-700{% else %}text-text-muted{% endif %}">
+            <i data-lucide="{% if variation > 0 %}trending-up{% elif variation < 0 %}trending-down{% else %}minus{% endif %}" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>
+            {% if variation > 0 %}+{% endif %}{{ variation|floatformat:1 }} %
+        </span>
+        <span class="text-text-faint">vs {{ previous }}</span>
+        {% endif %}
+    </p>
+</div>

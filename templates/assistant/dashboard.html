@@ -58,7 +58,7 @@
             <!-- Rappels J+2, tâches, autres encaissements : repliable -->
             <section class="bg-surface rounded-2xl border border-border-subtle shadow-card"
                      x-data="{ open: {% if urgent_tasks_count or relaunch_appointments %}true{% else %}false{% endif %} }"
-                     x-init="try { const v = localStorage.getItem('medigest:reception-more'); if (v !== null) open = v === '1'; } catch (e) {}
+                     x-init="(() => { try { const v = localStorage.getItem('medigest:reception-more'); if (v !== null) open = v === '1'; } catch (e) {} })();
                              $watch('open', (v) => { try { localStorage.setItem('medigest:reception-more', v ? '1' : '0'); } catch (e) {} })">
                 <h2>
                     <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-controls="reception-more"

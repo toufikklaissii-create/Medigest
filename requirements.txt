@@ -7,3 +7,4 @@ whitenoise>=6.7.0
 pytest-django>=4.8.0
 pypdf>=4.0
 qrcode>=7.4
+openpyxl>=3.1

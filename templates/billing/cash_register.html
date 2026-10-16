@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Caisse · Medigest{% endblock %}
+{% block content %}
+<div class="max-w-[1200px] mx-auto px-4 sm:px-8 py-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Caisse</h1>
+            <p class="text-sm text-text-muted mt-1">Journal des encaissements du jour et clôture de caisse. Les recettes comptent à l'heure de l'encaissement.</p>
+        </div>
+        {% if request.user.profile.is_doctor %}
+        <a href="{% url 'billing:reports' %}"
+           class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg border border-border-subtle bg-surface px-3.5 text-sm font-medium text-text-main hover:bg-sauge-25 hover:border-sauge-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sauge-600/30 focus-visible:ring-offset-2">
+            <i data-lucide="chart-column" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Rapports
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="mt-7">
+        {% include "billing/_cash_journal.html" %}
+    </div>
+</div>
+{% endblock %}

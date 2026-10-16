@@ -13,6 +13,7 @@ from apps.accounts.decorators import role_required
 from apps.common.templatetags.medigest_format import dh
 
 from .models import Invoice, MedicalAct, Payment, PaymentMethod
+from .reports import is_day_closed, local_date
 from .services import (
     METHODS_WITH_REFERENCE,
     PAYMENT_SHORTCUTS,
@@ -150,12 +151,16 @@ def pay_invoice(request, pk):
         message = f"Facture {invoice.invoice_number} soldée ({payment.get_method_display()})."
     else:
         message = f"{dh(payment.amount)} encaissés · reste {dh(invoice.balance_due)}."
+    toast_type = "success"
+    if is_day_closed(invoice.cabinet, local_date(payment.paid_at)):
+        message += " Caisse du jour déjà clôturée : encaissement signalé."
+        toast_type = "error"
     response = render(
         request, "billing/_pay_modal.html",
         {"invoice": invoice, "payment": payment, "receipt_url": receipt_url, "done": True},
     )
     return _hx_trigger(
-        response, toast=_toast(message), **{"invoice-paid": True, "receipt-ready": {"url": receipt_url}}
+        response, toast=_toast(message, toast_type), **{"invoice-paid": True, "receipt-ready": {"url": receipt_url}}
     )
 
 

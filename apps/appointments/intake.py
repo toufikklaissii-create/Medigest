@@ -44,7 +44,7 @@ def clean_intake_vitals(data, today):
     raw = {
         name: (data.get(name) or "").strip()
         for name in ("blood_pressure", "weight_kg", "height_cm", "last_menstrual_period", "medical_history",
-                     "medical_history_add")
+                     "medical_history_add", "allergies", "allergies_add")
     }
     cleaned, errors = {}, {}
 
@@ -82,8 +82,9 @@ def clean_intake_vitals(data, today):
                 cleaned["last_menstrual_period"] = lmp
 
     cleaned["medical_history"] = raw["medical_history"]
-    for name in ("medical_history", "medical_history_add"):
-        if len(raw[name]) > HISTORY_MAX_LENGTH:
-            errors["medical_history"] = f"{HISTORY_MAX_LENGTH} caractères maximum."
+    for field in ("medical_history", "allergies"):
+        for name in (field, field + "_add"):
+            if len(raw[name]) > HISTORY_MAX_LENGTH:
+                errors[field] = f"{HISTORY_MAX_LENGTH} caractères maximum."
 
     return cleaned, errors, raw

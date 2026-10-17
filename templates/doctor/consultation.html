@@ -423,7 +423,7 @@
                 {% if free_control and not is_locked %}
                 <p class="mb-3 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12.5px] text-sky-800" role="status">
                     <i data-lucide="calendar-check" class="mt-px w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
-                    <span>Contrôle gratuit possible : consultation du {{ free_control.date|date:"d/m" }} (il y a {{ free_control.days }} jour{{ free_control.days|pluralize }})</span>
+                    <span>Contrôle gratuit possible : consultation du {{ free_control.date|date:"d/m" }} ({% if free_control.days == 0 %}aujourd'hui{% elif free_control.days == 1 %}hier{% else %}il y a {{ free_control.days }} jours{% endif %})</span>
                 </p>
                 {% endif %}
                 <fieldset class="grid gap-2.5" aria-label="Remise et gratuité" {% if is_locked %}disabled{% endif %}>

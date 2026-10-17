@@ -472,7 +472,7 @@ def intake_vitals_modal(request, pk):
 @login_required
 def save_intake_vitals(request, pk):
     """POST: saves Tension/Poids/Taille/DDR onto the appointment's Consultation,
-    plus the patient's antécédents (Patient.medical_history).
+    plus the patient's antécédents and allergies (Patient.medical_history / allergies).
 
     Only ever touches these intake fields — never clinical_exam, clinical_notes,
     diagnostic, or ultrasound_notes — so this endpoint stays safe to expose

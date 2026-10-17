@@ -129,6 +129,33 @@ class HistoryBlindToAssistantTest(ReglagesBase):
         self.assertTrue(self.patient.medical_history.endswith("] G2P1"))
         self.assertNotIn("ÉCRASÉ", self.patient.medical_history)
 
+    def test_create_form_has_no_vitals_fields(self):
+        # Les constantes se saisissent à l'arrivée, sur le RDV : jamais à la création ni à l'édition.
+        for url in (reverse("patients:create_patient"), reverse("patients:edit_patient", args=[self.patient.pk])):
+            for client in (self.assistant_client, self.doctor_client):
+                with self.subTest(url=url):
+                    html = client.get(url).content.decode()
+                    for name in ("blood_pressure", "weight_kg", "height_cm", "last_menstrual_period"):
+                        self.assertNotIn(f'name="{name}"', html)
+
+    def test_intake_allergy_appends_without_overwriting(self):
+        url = reverse("appointments:save_intake_vitals", args=[self.appt.pk])
+        response = self.assistant_client.post(url, {"allergies": "ÉCRASÉ", "allergies_add": "Latex"})
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode()
+        self.assertIn('name="allergies_add"', html)
+        self.assertNotIn('name="allergies"', html)
+        self.assertIn("Allergies renseignées", html)
+        self.assertNotIn(SECRET_ALLERGY, html)
+        self.assertNotIn("Latex", html)
+        self.patient.refresh_from_db()
+        today = f"{timezone.localdate():%d/%m/%Y}"
+        self.assertEqual(self.patient.allergies, f"{SECRET_ALLERGY}\n[{today}] Latex")
+        modal = self.assistant_client.get(reverse("appointments:intake_vitals_modal", args=[self.appt.pk])).content.decode()
+        self.assertIn('name="allergies_add"', modal)
+        self.assertNotIn(SECRET_ALLERGY, modal)
+        self.assertNotIn("Latex", modal)
+
     def test_doctor_sees_and_replaces(self):
         html = self.doctor_client.get(reverse("patients:edit_patient", args=[self.patient.pk])).content.decode()
         self.assertIn(SECRET_HISTORY, html)
@@ -356,6 +383,21 @@ class FreeControlTest(ReglagesBase):
         self.assertIn(f"Contrôle gratuit possible : consultation du {label} (il y a 19 jours)", html)
         billing = json.loads(html.split('id="billing-data" type="application/json">')[1].split("</script>")[0])
         self.assertTrue(billing["free"])  # pré-cochée
+
+    def test_banner_wording_today_yesterday_n_days(self):
+        url = reverse("clinical:consultation_detail", args=[self.appt.pk])
+        self.current()
+        for days, wording in ((0, "(aujourd'hui)"), (1, "(hier)"), (2, "(il y a 2 jours)")):
+            with self.subTest(days=days):
+                Consultation.objects.exclude(appointment=self.appt).delete()
+                previous = self.previous_consultation(days)
+                if days == 0:  # même jour, plus tôt
+                    Appointment.objects.filter(pk=previous.pk).update(date=self.appt.date - timedelta(seconds=1))
+                html = self.doctor_client.get(url).content.decode()
+                self.assertIn("Contrôle gratuit possible : consultation du", html)
+                self.assertIn(wording, html)
+                self.assertNotIn("il y a 0 jour", html)
+                self.assertNotIn("il y a 1 jour", html)
 
     def test_21_days_no_suggestion(self):
         self.previous_consultation(21)

@@ -63,6 +63,24 @@
             {% endif %}
             {% if errors.medical_history %}<p id="iv-atcd-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.medical_history }}</p>{% endif %}
         </div>
+        <div class="col-span-2">
+            {% if request.user.profile.is_doctor %}
+            <label for="iv-allergy-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Allergies</label>
+            <textarea id="iv-allergy-{{ appointment.pk }}" name="allergies" rows="2" placeholder="Ex. pénicilline, iode…"
+                      {% if errors.allergies %}aria-invalid="true" aria-describedby="iv-allergy-err-{{ appointment.pk }}"{% endif %}
+                      class="{{ base }} resize-y {% if errors.allergies %}{{ ko }}{% else %}{{ ok }}{% endif %}">{% if values %}{{ values.allergies }}{% else %}{{ appointment.patient.allergies }}{% endif %}</textarea>
+            {% else %}
+            {# Assistante : jamais le contenu existant, seulement un ajout daté. #}
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+                <label for="iv-allergy-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted">Ajouter une allergie</label>
+                {% include "patients/_history_state.html" with filled=appointment.patient.allergies yes="Allergies renseignées" no="Aucune allergie saisie" %}
+            </div>
+            <textarea id="iv-allergy-{{ appointment.pk }}" name="allergies_add" rows="2" maxlength="2000" placeholder="Ex. pénicilline"
+                      {% if errors.allergies %}aria-invalid="true" aria-describedby="iv-allergy-err-{{ appointment.pk }}"{% endif %}
+                      class="{{ base }} resize-y {% if errors.allergies %}{{ ko }}{% else %}{{ ok }}{% endif %}">{% if values %}{{ values.allergies_add }}{% endif %}</textarea>
+            {% endif %}
+            {% if errors.allergies %}<p id="iv-allergy-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.allergies }}</p>{% endif %}
+        </div>
         <button type="submit"
                 class="btn-tactile col-span-2 inline-flex items-center justify-center gap-1.5 text-sm font-semibold bg-sauge-600 text-white rounded-lg py-2.5 shadow-sm hover:bg-sauge-900">
             <i data-lucide="save" class="w-4 h-4" stroke-width="1.75"></i> Enregistrer les constantes

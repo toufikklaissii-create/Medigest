@@ -1,0 +1,6 @@
+{# État d'un champ clinique pour l'assistante : présence seulement, jamais le contenu. #}
+{% if filled %}
+<p class="inline-flex items-center gap-1 text-[12.5px] font-medium text-emerald-700"><i data-lucide="check" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> {{ yes }}</p>
+{% else %}
+<p class="text-[12.5px] text-text-muted">{{ no }}</p>
+{% endif %}

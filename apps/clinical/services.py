@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.utils import timezone
 
 from apps.accounts.models import PrintProfile
@@ -77,6 +79,38 @@ LETTER_TEMPLATES = {
         ),
     },
 }
+
+
+def free_control_candidate(consultation):
+    """Dernière consultation facturée (non gratuite, non annulée) de la patiente dans le délai
+    de contrôle gratuit du cabinet : {"date", "days"} ou None."""
+    from apps.billing.models import Invoice
+
+    from .models import Consultation
+
+    cabinet = consultation.cabinet
+    delay = getattr(cabinet, "controle_gratuit_jours", 0)
+    if not delay or not consultation.appointment_id:
+        return None
+    reference = timezone.localtime(consultation.appointment.date).date()
+    since = reference - timedelta(days=delay)
+    previous = (
+        Consultation.objects.filter(
+            cabinet=cabinet, patient=consultation.patient, invoice__isnull=False, invoice__is_free=False,
+            appointment__date__lt=consultation.appointment.date,
+        )
+        .exclude(pk=consultation.pk)
+        .exclude(invoice__status=Invoice.Status.CANCELLED)
+        .select_related("appointment")
+        .order_by("-appointment__date")
+        .first()
+    )
+    if previous is None:
+        return None
+    day = timezone.localtime(previous.appointment.date).date()
+    if day < since:
+        return None
+    return {"date": day, "days": (reference - day).days}
 
 
 def prescription_lines(content):

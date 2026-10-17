@@ -46,10 +46,21 @@
             {% if errors.last_menstrual_period %}<p id="iv-lmp-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.last_menstrual_period }}</p>{% endif %}
         </div>
         <div class="col-span-2">
+            {% if request.user.profile.is_doctor %}
             <label for="iv-atcd-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Antécédents</label>
             <textarea id="iv-atcd-{{ appointment.pk }}" name="medical_history" rows="2" placeholder="Ex. G2P1, césarienne 2022, HTA…"
                       {% if errors.medical_history %}aria-invalid="true" aria-describedby="iv-atcd-err-{{ appointment.pk }}"{% endif %}
                       class="{{ base }} resize-y {% if errors.medical_history %}{{ ko }}{% else %}{{ ok }}{% endif %}">{% if values %}{{ values.medical_history }}{% else %}{{ appointment.patient.medical_history }}{% endif %}</textarea>
+            {% else %}
+            {# Assistante : jamais le contenu existant, seulement un ajout daté. #}
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+                <label for="iv-atcd-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted">Ajouter un antécédent</label>
+                {% include "patients/_history_state.html" with filled=appointment.patient.medical_history yes="Antécédents renseignés" no="Aucun antécédent saisi" %}
+            </div>
+            <textarea id="iv-atcd-{{ appointment.pk }}" name="medical_history_add" rows="2" maxlength="2000" placeholder="Ex. césarienne 2022"
+                      {% if errors.medical_history %}aria-invalid="true" aria-describedby="iv-atcd-err-{{ appointment.pk }}"{% endif %}
+                      class="{{ base }} resize-y {% if errors.medical_history %}{{ ko }}{% else %}{{ ok }}{% endif %}">{% if values %}{{ values.medical_history_add }}{% endif %}</textarea>
+            {% endif %}
             {% if errors.medical_history %}<p id="iv-atcd-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.medical_history }}</p>{% endif %}
         </div>
         <button type="submit"

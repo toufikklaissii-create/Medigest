@@ -1,4 +1,5 @@
 import json
+from datetime import time
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import logout
@@ -99,8 +100,65 @@ def _profile_from_data(profile, data):
     return errors
 
 
+PAYMENT_METHOD_LABELS = [("cash", "Espèces"), ("card", "Carte"), ("check", "Chèque"), ("transfer", "Virement")]
+CABINET_SETTINGS_FIELDS = [
+    "ville", "inpe", "ice", "modes_paiement", "paiement_partiel", "heure_ouverture", "heure_fermeture",
+    "heure_fermeture_samedi", "dimanche_ferme", "controle_gratuit_jours", "telephone_whatsapp",
+]
+
+
+def _parse_time(value):
+    try:
+        return time.fromisoformat(str(value or "").strip()[:5])
+    except ValueError:
+        return None
+
+
+def _cabinet_from_data(cabinet, data):
+    """Applique les réglages du cabinet (POST complet du formulaire) ; renvoie {champ: erreur}."""
+    errors = {}
+    cabinet.ville = data.get("ville", "").strip()[:80]
+    cabinet.inpe = data.get("inpe", "").strip()[:30]
+    cabinet.ice = data.get("ice", "").strip()[:30]
+    if "reglages_cabinet" not in data:
+        return errors  # ancien formulaire : seulement les mentions
+
+    modes = [value for value, _ in PAYMENT_METHOD_LABELS if value in data.getlist("modes_paiement")]
+    if modes:
+        cabinet.modes_paiement = modes
+    else:
+        errors["modes_paiement"] = "Activez au moins un mode de paiement."
+    cabinet.paiement_partiel = data.get("paiement_partiel") == "on"
+    cabinet.dimanche_ferme = data.get("dimanche_ferme") == "on"
+
+    for field in ("heure_ouverture", "heure_fermeture", "heure_fermeture_samedi"):
+        value = _parse_time(data.get(field))
+        if value is None:
+            errors["horaires"] = "Heure invalide : format attendu 09:00."
+        else:
+            setattr(cabinet, field, value)
+    if "horaires" not in errors and not (
+        cabinet.heure_ouverture < cabinet.heure_fermeture and cabinet.heure_ouverture < cabinet.heure_fermeture_samedi
+    ):
+        errors["horaires"] = "La fermeture doit être après l'ouverture."
+
+    try:
+        days = int(data.get("controle_gratuit_jours", ""))
+    except ValueError:
+        days = -1
+    if 0 <= days <= 365:
+        cabinet.controle_gratuit_jours = days
+    else:
+        errors["controle_gratuit_jours"] = "Entre 0 et 365 jours (0 : désactivé)."
+    cabinet.telephone_whatsapp = data.get("telephone_whatsapp", "").strip()[:30]
+    return errors
+
+
 def _settings_context(cabinet, profiles, errors=None, saved=False):
-    return {"cabinet": cabinet, "profiles": profiles, "errors": errors or {}, "saved": saved}
+    return {
+        "cabinet": cabinet, "profiles": profiles, "errors": errors or {}, "saved": saved,
+        "payment_method_labels": PAYMENT_METHOD_LABELS,
+    }
 
 
 @login_required
@@ -111,19 +169,16 @@ def cabinet_settings(request):
     if request.method != "POST":
         return render(request, "accounts/settings.html", _settings_context(cabinet, profiles))
 
-    errors = {}
+    errors = _cabinet_from_data(cabinet, request.POST)
     for profile in profiles:
         profile_errors = _profile_from_data(profile, request.POST)
         if profile_errors:
             errors[profile.document_type] = " ".join(profile_errors)
     if errors:
         response = render(request, "accounts/_settings_form.html", _settings_context(cabinet, profiles, errors))
-        return _toast(response, "Certains décalages sont invalides : corrigez les lignes signalées.", "error")
+        return _toast(response, "Certains réglages sont invalides : corrigez les champs signalés.", "error")
 
-    cabinet.ville = request.POST.get("ville", "").strip()[:80]
-    cabinet.inpe = request.POST.get("inpe", "").strip()[:30]
-    cabinet.ice = request.POST.get("ice", "").strip()[:30]
-    cabinet.save(update_fields=["ville", "inpe", "ice"])
+    cabinet.save(update_fields=CABINET_SETTINGS_FIELDS)
     for profile in profiles:
         profile.save()
     response = render(request, "accounts/_settings_form.html", _settings_context(cabinet, profiles, saved=True))

@@ -391,13 +391,20 @@
                                class="size-4 shrink-0 rounded border-border-strong accent-sauge-600 cursor-pointer">
                         <span class="min-w-0 flex-1 py-1.5 text-sm leading-snug text-text-main line-clamp-2 break-words" title="{{ act.name }}">{{ act.name }}</span>
                     </label>
-                    <span x-show="!selected.includes({{ act.id }})" class="shrink-0 pr-1 text-[13px] font-medium text-text-muted tabular-nums">{{ act.price|dh }}</span>
+                    <span x-show="!selected.includes({{ act.id }})" class="shrink-0 pr-1 text-[13px] font-medium text-text-muted tabular-nums">{% if act.prix_libre %}Prix libre{% else %}{{ act.price|dh }}{% endif %}</span>
                     <!-- Prix de la ligne : pré-rempli au tarif du catalogue, ajustable par la doctoresse -->
                     <label x-show="selected.includes({{ act.id }})" x-cloak class="relative shrink-0">
                         <span class="sr-only">Prix facturé pour {{ act.name }}</span>
+                        {% if act.prix_libre %}
+                        <input type="text" inputmode="decimal" name="price_{{ act.id }}" x-model="prices[{{ act.id }}]" @input="markDirty()"
+                               placeholder="Prix" aria-required="true"
+                               class="w-[92px] h-8 rounded-md border bg-surface pl-2 pr-7 text-right text-[13px] font-medium text-text-main tabular-nums focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint"
+                               :class="amount(prices[{{ act.id }}]) > 0 ? 'border-border-subtle' : 'border-amber-400'">
+                        {% else %}
                         <input type="text" inputmode="decimal" name="price_{{ act.id }}" x-model="prices[{{ act.id }}]" @input="markDirty()"
                                class="w-[92px] h-8 rounded-md border border-border-subtle bg-surface pl-2 pr-7 text-right text-[13px] font-medium text-text-main tabular-nums focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20"
                                :class="Number(String(prices[{{ act.id }}]).replace(',', '.')) !== {{ act.price|stringformat:'s' }} && 'border-sauge-400 text-sauge-700'">
+                        {% endif %}
                         <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-text-muted">DH</span>
                     </label>
                 </div>
@@ -413,6 +420,12 @@
             </div>
 
             <div class="shrink-0 mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
+                {% if free_control and not is_locked %}
+                <p class="mb-3 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12.5px] text-sky-800" role="status">
+                    <i data-lucide="calendar-check" class="mt-px w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
+                    <span>Contrôle gratuit possible : consultation du {{ free_control.date|date:"d/m" }} (il y a {{ free_control.days }} jour{{ free_control.days|pluralize }})</span>
+                </p>
+                {% endif %}
                 <fieldset class="grid gap-2.5" aria-label="Remise et gratuité" {% if is_locked %}disabled{% endif %}>
                     <div class="flex items-center justify-between gap-3" :class="free && 'opacity-50'">
                         <label for="billing-discount" class="text-[13px] text-text-soft">Remise</label>

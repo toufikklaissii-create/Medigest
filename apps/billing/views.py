@@ -17,12 +17,12 @@ from .models import Invoice, MedicalAct, Payment, PaymentMethod
 from .reports import is_day_closed, local_date
 from .services import (
     METHODS_WITH_REFERENCE,
-    PAYMENT_SHORTCUTS,
     BillingError,
     cancel_invoice,
     generate_invoice_pdf,
     generate_receipt_pdf,
     parse_amount,
+    payment_shortcuts,
     pending_invoices_queryset,
     record_payment,
     report_discrepancy,
@@ -136,14 +136,20 @@ def pending_invoices(request):
 # ── Encaissement ─────────────────────────────────────────────────────────────
 
 def _pay_modal(request, invoice, **extra):
-    method = extra.pop("method", None) or request.GET.get("method") or PaymentMethod.CASH
+    cabinet = invoice.cabinet
+    methods = payment_shortcuts(cabinet)
+    allowed = [value for value, _, _ in methods]
+    method = extra.pop("method", None) or request.GET.get("method") or allowed[0]
     return render(
         request,
         "billing/_pay_modal.html",
         {
             "invoice": invoice,
-            "method": method if method in PaymentMethod.values else PaymentMethod.CASH,
-            "methods": PAYMENT_SHORTCUTS,
+            "method": method if method in allowed else allowed[0],
+            "methods": methods,
+            # Un seul mode, pas de partiel : « Encaisser 300,00 DH en espèces », un seul bouton.
+            "simple": cabinet is not None and cabinet.cash_only_simple,
+            "allow_partial": cabinet is None or cabinet.paiement_partiel,
             "methods_with_reference_json": json.dumps(sorted(METHODS_WITH_REFERENCE)),
             # Saisie à la française : « 350,00 ».
             "amount": extra.pop("amount", None) or f"{invoice.balance_due:.2f}".replace(".", ","),
@@ -165,7 +171,7 @@ def pay_invoice(request, pk):
 
     raw_amount = request.POST.get("amount", "")
     amount = parse_amount(raw_amount)
-    method = request.POST.get("payment_method", PaymentMethod.CASH)
+    method = request.POST.get("payment_method") or (invoice.cabinet.payment_methods[0] if invoice.cabinet else PaymentMethod.CASH)
     reference = request.POST.get("reference", "")
     try:
         if raw_amount.strip() and amount is None:
@@ -279,7 +285,10 @@ def _act_from_post(request, act):
         errors["code"] = "Code obligatoire."
     if not act.name:
         errors["name"] = "Libellé obligatoire."
-    if price is None or price < 0:
+    act.prix_libre = request.POST.get("prix_libre") == "on"
+    if act.prix_libre and price is None:
+        act.price = 0  # saisi à chaque consultation
+    elif price is None or price < 0:
         errors["price"] = "Prix invalide."
     else:
         act.price = price

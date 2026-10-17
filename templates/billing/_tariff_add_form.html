@@ -19,7 +19,7 @@
     </div>
     <div>
         <label for="new-price" class="block text-[13px] font-medium text-text-soft mb-1.5">Prix (DH)</label>
-        <input id="new-price" name="price" value="{{ form.price|default:'' }}" required inputmode="decimal" autocomplete="off" placeholder="300"
+        <input id="new-price" name="price" value="{{ form.price|default:'' }}" inputmode="decimal" autocomplete="off" placeholder="300"
                {% if errors.price %}aria-invalid="true" aria-describedby="new-price-error"{% endif %}
                class="{{ input_cls }} text-right tabular-nums {% if errors.price %}border-rose-300{% else %}border-border-subtle{% endif %}">
         {% if errors.price %}<p id="new-price-error" class="mt-1 text-[13px] text-rose-600">{{ errors.price }}</p>{% endif %}
@@ -30,6 +30,9 @@
         </label>
         <label class="inline-flex items-center gap-2 text-[13px] text-text-soft cursor-pointer">
             <input type="checkbox" name="is_quick_exam" {% if form.is_quick_exam %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Examen rapide
+        </label>
+        <label class="inline-flex items-center gap-2 text-[13px] text-text-soft cursor-pointer">
+            <input type="checkbox" name="prix_libre" {% if form.prix_libre %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Prix libre
         </label>
     </div>
     <button type="submit"

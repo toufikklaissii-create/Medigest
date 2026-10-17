@@ -46,7 +46,7 @@ l'assistante saisit seulement le montant encaissé, borné au reste dû côté s
                         <i data-lucide="banknote" class="w-[18px] h-[18px]" stroke-width="1.75" aria-hidden="true"></i>
                     </span>
                     <div class="min-w-0">
-                        <h2 id="pay-title" class="text-[15px] font-semibold text-text-main">Encaisser</h2>
+                        <h2 id="pay-title" class="text-[15px] font-semibold text-text-main">{% if simple %}Encaisser {{ invoice.balance_due|dh }} en {{ methods.0.1|lower }}{% else %}Encaisser{% endif %}</h2>
                         <p class="mt-0.5 text-[13px] text-text-muted truncate">Mme {{ invoice.patient.first_name }} {{ invoice.patient.last_name }} · {{ invoice.invoice_number }}</p>
                     </div>
                 </div>
@@ -69,6 +69,10 @@ l'assistante saisit seulement le montant encaissé, borné au reste dû côté s
             </p>
             {% endif %}
 
+            {% if simple %}
+            <input type="hidden" name="payment_method" value="{{ method }}">
+            {% else %}
+            {% if methods|length > 1 %}
             <fieldset class="mt-5">
                 <legend class="block text-[13px] font-medium text-text-soft mb-1.5">Mode de paiement</legend>
                 <div class="grid grid-cols-4 gap-2">
@@ -82,18 +86,21 @@ l'assistante saisit seulement le montant encaissé, borné au reste dû côté s
                     {% endfor %}
                 </div>
             </fieldset>
+            {% else %}
+            <input type="hidden" name="payment_method" value="{{ method }}">
+            {% endif %}
 
             <div class="mt-5 grid gap-4" :class="needsRef && 'sm:grid-cols-2'">
                 <div>
                     <label for="pay-amount" class="block text-[13px] font-medium text-text-soft mb-1.5">Montant encaissé</label>
                     <div class="relative">
-                        <input id="pay-amount" name="amount" inputmode="decimal" autocomplete="off" required
+                        <input id="pay-amount" name="amount" inputmode="decimal" autocomplete="off" required {% if not allow_partial %}readonly{% endif %}
                                value="{{ amount }}"
                                aria-describedby="pay-amount-help"
                                class="w-full h-11 rounded-lg border {% if error %}border-rose-300{% else %}border-border-subtle{% endif %} bg-surface pl-3 pr-12 text-[15px] font-semibold text-text-main tabular-nums focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20">
                         <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-text-muted">DH</span>
                     </div>
-                    <p id="pay-amount-help" class="mt-1 text-[12px] text-text-muted">Paiement partiel possible, jamais au-delà du reste dû.</p>
+                    <p id="pay-amount-help" class="mt-1 text-[12px] text-text-muted">{% if allow_partial %}Paiement partiel possible, jamais au-delà du reste dû.{% else %}Le reste dû est encaissé en totalité.{% endif %}</p>
                 </div>
                 <div x-show="needsRef" x-cloak>
                     <label for="pay-reference" class="block text-[13px] font-medium text-text-soft mb-1.5">
@@ -105,6 +112,8 @@ l'assistante saisit seulement le montant encaissé, borné au reste dû côté s
                 </div>
             </div>
 
+            {% endif %}
+
             <div class="mt-6 flex items-center justify-between gap-2 border-t border-border-subtle pt-4"
                  x-data="{ report: false }">
                 <button type="button" @click="report = !report" :aria-expanded="report.toString()"
@@ -113,7 +122,7 @@ l'assistante saisit seulement le montant encaissé, borné au reste dû côté s
                 </button>
                 <button type="submit"
                         class="btn-tactile min-w-[140px] inline-flex items-center justify-center gap-1.5 h-10 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
-                    <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Encaisser
+                    <i data-lucide="check-circle-2" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> {% if simple %}Encaisser {{ invoice.balance_due|dh }}{% else %}Encaisser{% endif %}
                 </button>
 
                 <!-- Écart : la doctoresse reçoit une tâche, la facture reste inchangée -->

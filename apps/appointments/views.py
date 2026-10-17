@@ -11,9 +11,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import Profile
-from apps.billing.services import PAYMENT_SHORTCUTS, pending_invoices_queryset
+from apps.billing.services import payment_shortcuts, pending_invoices_queryset
 from apps.clinical.models import Consultation
 from apps.communications.views import _active_tasks_for
+from apps.patients.history import apply_history_post
 from apps.patients.models import Patient
 
 from .intake import clean_intake_vitals
@@ -67,6 +68,22 @@ STATUS_FILTERS = [
 
 def _toast_header(message, toast_type="success"):
     return json.dumps({"toast": {"message": message, "type": toast_type}})
+
+
+def hours_warning(cabinet, moment):
+    """Avertissement (non bloquant) pour un RDV hors des horaires du cabinet, sinon None."""
+    if cabinet is None:
+        return None
+    local = timezone.localtime(moment)
+    if cabinet.is_open_at(local):
+        return None
+    closing = cabinet.closing_time(local.date())
+    if closing is None:
+        return "Attention : le cabinet est fermé le dimanche."
+    return (
+        f"Attention : RDV hors des horaires du cabinet "
+        f"({cabinet.heure_ouverture:%H:%M}–{closing:%H:%M})."
+    )
 
 
 def _cabinet_doctor(cabinet):
@@ -227,6 +244,17 @@ def _day_slots(start_minutes=DAY_START_MINUTES, end_minutes=DAY_END_MINUTES):
     return slots
 
 
+def _opening_minutes(cabinet, day):
+    """(ouverture, fermeture) du jour en minutes ; jour fermé : horaires de semaine."""
+    if cabinet is None:
+        return DAY_START_MINUTES, DAY_END_MINUTES
+    opening = cabinet.heure_ouverture
+    closing = cabinet.closing_time(day) or cabinet.heure_fermeture
+    start = opening.hour * 60 + opening.minute
+    end = max(closing.hour * 60 + closing.minute, start + SLOT_MINUTES)
+    return start, end
+
+
 def _day_context(cabinet, current_date, status_filter="all"):
     appointments = (
         Appointment.objects.select_related("patient")
@@ -236,9 +264,9 @@ def _day_context(cabinet, current_date, status_filter="all"):
     if status_filter and status_filter != "all":
         appointments = appointments.filter(status=status_filter)
     appointments = list(appointments)
-    # Plage horaire de la grille : 08:30–18:30 par défaut, élargie à l'heure pleine pour
-    # afficher les RDV tôt le matin ou en soirée (sinon ils s'empilaient en bas de grille).
-    day_start, day_end = DAY_START_MINUTES, DAY_END_MINUTES
+    # Plage horaire de la grille : horaires du cabinet (fermeture du samedi comprise), élargie à
+    # l'heure pleine pour afficher les RDV tôt le matin ou en soirée.
+    day_start, day_end = _opening_minutes(cabinet, current_date)
     for appt in appointments:
         local_dt = timezone.localtime(appt.date)
         begin = local_dt.hour * 60 + local_dt.minute
@@ -365,7 +393,7 @@ def appointment_calendar(request):
     return render(request, "assistant/calendar.html", context)
 
 
-def _render_day_fragment(request, anchor_date, toast_message=None):
+def _render_day_fragment(request, anchor_date, toast_message=None, warning=None):
     cabinet = request.user.profile.cabinet
     context = {
         "view_mode": "day",
@@ -377,7 +405,10 @@ def _render_day_fragment(request, anchor_date, toast_message=None):
     response = render(request, "assistant/_calendar_body.html", context)
     events = {"refreshCalendar": True}
     if toast_message:
-        events["toast"] = {"message": toast_message, "type": "success"}
+        events["toast"] = (
+            {"message": f"{toast_message} {warning}", "type": "warning"} if warning
+            else {"message": toast_message, "type": "success"}
+        )
     response.headers["HX-Trigger"] = json.dumps(events)
     response.headers["HX-Push-Url"] = (
         f"{reverse('appointments:calendar')}?view=day&date={anchor_date.isoformat()}"
@@ -434,7 +465,7 @@ def intake_vitals_modal(request, pk):
     return render(
         request,
         "assistant/_intake_vitals_modal.html",
-        {"appointment": appointment, "consultation": consultation},
+        {"appointment": appointment, "consultation": consultation, "is_doctor": request.user.profile.is_doctor},
     )
 
 
@@ -487,15 +518,17 @@ def save_intake_vitals(request, pk):
                     "last_menstrual_period",
                 ]
             )
-            if "medical_history" in request.POST:
-                appointment.patient.medical_history = cleaned["medical_history"]
-                appointment.patient.save(update_fields=["medical_history"])
+            # Doctoresse : remplace ; assistante : ajout daté à la fin, jamais d'écrasement.
+            changed = apply_history_post(appointment.patient, request.POST, request.user.profile.is_doctor)
+            if changed:
+                appointment.patient.save(update_fields=changed)
             values = None
 
     response = render(
         request,
         "assistant/_intake_vitals_form.html",
-        {"appointment": appointment, "consultation": consultation, "errors": errors, "values": values},
+        {"appointment": appointment, "consultation": consultation, "errors": errors, "values": values,
+         "is_doctor": request.user.profile.is_doctor},
     )
     if error_message:
         response.headers["HX-Trigger"] = _toast_header(error_message, "error")
@@ -516,7 +549,7 @@ def create_appointment_ajax(request):
     patient_id = request.POST.get("patient")
     date_str = request.POST.get("date")
     time_str = request.POST.get("time")
-    toast_message = None
+    toast_message = warning = None
 
     if patient_id and date_str and time_str:
         patient = get_object_or_404(
@@ -534,8 +567,9 @@ def create_appointment_ajax(request):
         )
         anchor_date = parsed_date.date()
         toast_message = f"RDV créé pour {patient.full_name}."
+        warning = hours_warning(request.user.profile.cabinet, parsed_date)
 
-    return _render_day_fragment(request, anchor_date, toast_message)
+    return _render_day_fragment(request, anchor_date, toast_message, warning)
 
 
 @login_required
@@ -545,7 +579,7 @@ def update_appointment_ajax(request, pk):
         Appointment, pk=pk, cabinet=request.user.profile.cabinet
     )
     anchor_date = timezone.localtime(appointment.date).date()
-    toast_message = None
+    toast_message = warning = None
 
     if request.method == "POST":
         date_str = request.POST.get("date")
@@ -559,6 +593,7 @@ def update_appointment_ajax(request, pk):
             toast_message = (
                 f"{appointment.patient.full_name} — RDV reprogrammé au {anchor_date:%d/%m/%Y} à {time_str}."
             )
+            warning = hours_warning(request.user.profile.cabinet, parsed_date)
 
     if request.POST.get("source") == "whatsapp":
         # Depuis « À déplacer » (accueil) : le tiroir reste ouvert et propose d'envoyer le
@@ -575,10 +610,12 @@ def update_appointment_ajax(request, pk):
             },
         )
         if toast_message:
-            response.headers["HX-Trigger"] = _toast_header(toast_message)
+            response.headers["HX-Trigger"] = (
+                _toast_header(f"{toast_message} {warning}", "warning") if warning else _toast_header(toast_message)
+            )
         return response
 
-    return _render_day_fragment(request, anchor_date, toast_message)
+    return _render_day_fragment(request, anchor_date, toast_message, warning)
 
 
 @login_required
@@ -697,6 +734,9 @@ def create_appointment(request, patient_id=None):
                 reason=request.POST.get("reason", "").strip(),
             )
             messages.success(request, f"RDV créé pour {patient.full_name}.")
+            warning = hours_warning(cabinet, parsed_date)
+            if warning:
+                messages.warning(request, warning)
             return redirect("appointments:assistant_dashboard")
         messages.error(request, "La date du RDV est obligatoire.")
 
@@ -774,7 +814,7 @@ def reception_panel(request, pk):
             "consultation": consultation,
             "invoice": _invoice_for(appointment),
             "action_label": RECEPTION_ACTION_LABEL.get(appointment.status),
-            "payment_shortcuts": PAYMENT_SHORTCUTS,
+            "payment_shortcuts": payment_shortcuts(cabinet),
         },
     )
 

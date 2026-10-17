@@ -53,10 +53,12 @@ def _cabinet_name(cabinet):
 
 
 def reminder_message(first_name, cabinet, dt):
-    return (
+    message = (
         f"Bonjour {first_name}, {_cabinet_name(cabinet)} vous rappelle votre rendez-vous "
         f"du {format_rdv_datetime(dt)}. Merci de confirmer votre présence en répondant à ce message."
     )
+    phone = (getattr(cabinet, "telephone_whatsapp", "") or "").strip()
+    return f"{message}\nPour toute question : {phone}" if phone else message
 
 
 def confirmation_message(first_name, cabinet, dt):

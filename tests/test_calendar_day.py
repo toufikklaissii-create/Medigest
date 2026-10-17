@@ -16,7 +16,11 @@ class CalendarDayPositionTest(TestCase):
     """Locale fr : les pourcentages ne doivent jamais sortir avec une virgule dans le CSS."""
 
     def setUp(self):
-        self.cabinet = Cabinet.objects.create(nom="Cabinet Test", slug="cabinet-test")
+        # Grille 08:30–18:30 : horaires du cabinet.
+        self.cabinet = Cabinet.objects.create(
+            nom="Cabinet Test", slug="cabinet-test", heure_ouverture=time(8, 30), heure_fermeture=time(18, 30),
+            heure_fermeture_samedi=time(18, 30), dimanche_ferme=False,
+        )
         self.assistant = User.objects.create_user(username="assist_cal", password="testpass123")
         Profile.objects.update_or_create(
             user=self.assistant, defaults={"role": Profile.Role.ASSISTANT, "cabinet": self.cabinet}

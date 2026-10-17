@@ -25,6 +25,7 @@ from apps.clinical.documents import (
 )
 from apps.clinical.models import Consultation, PatientDocument
 
+from .history import apply_history_post
 from .models import Patient
 
 
@@ -88,14 +89,14 @@ def create_patient(request):
                 phone=request.POST.get("phone", "").strip(),
                 emergency_contact=request.POST.get("emergency_contact", "").strip(),
                 blood_group=request.POST.get("blood_group", "").strip(),
-                allergies=request.POST.get("allergies", "").strip(),
-                medical_history=request.POST.get("medical_history", "").strip(),
             )
+            if apply_history_post(patient, request.POST, request.user.profile.is_doctor):
+                patient.save(update_fields=["medical_history", "allergies"])
             messages.success(request, f"Patiente {patient.full_name} créée ({patient.patient_number}).")
             return redirect("appointments:create_appointment_for", patient_id=patient.pk)
         messages.error(request, "Nom et prénom sont obligatoires.")
 
-    return render(request, "patients/create.html")
+    return render(request, "patients/create.html", {"is_doctor": request.user.profile.is_doctor})
 
 
 @login_required
@@ -114,14 +115,13 @@ def edit_patient(request, pk):
             patient.phone = request.POST.get("phone", "").strip()
             patient.emergency_contact = request.POST.get("emergency_contact", "").strip()
             patient.blood_group = request.POST.get("blood_group", "").strip()
-            patient.allergies = request.POST.get("allergies", "").strip()
-            patient.medical_history = request.POST.get("medical_history", "").strip()
+            apply_history_post(patient, request.POST, request.user.profile.is_doctor)
             patient.save()
             messages.success(request, f"Dossier de {patient.full_name} mis à jour.")
             return redirect("patients:index")
         messages.error(request, "Nom et prénom sont obligatoires.")
 
-    return render(request, "patients/edit.html", {"patient": patient})
+    return render(request, "patients/edit.html", {"patient": patient, "is_doctor": request.user.profile.is_doctor})
 
 
 @login_required

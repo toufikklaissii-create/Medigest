@@ -1,8 +1,17 @@
+from datetime import time
+
 from django.conf import settings
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 
 from .branding import DEFAULT_PRIMARY
+
+# Valeurs de billing.models.PaymentMethod (pas d'import : billing dépend d'accounts).
+PAYMENT_METHOD_VALUES = ["cash", "card", "check", "transfer"]
+
+
+def all_payment_methods():
+    return list(PAYMENT_METHOD_VALUES)
 
 
 class Cabinet(models.Model):
@@ -26,6 +35,22 @@ class Cabinet(models.Model):
     identifiant_fiscal = models.CharField("Identifiant fiscal (IF)", max_length=30, blank=True)
     ice = models.CharField("ICE", max_length=30, blank=True)
     patente = models.CharField("Patente", max_length=30, blank=True)
+    # Encaissement : modes proposés à l'accueil et paiement partiel.
+    modes_paiement = models.JSONField("Modes de paiement", default=all_payment_methods)
+    paiement_partiel = models.BooleanField("Paiement partiel autorisé", default=True)
+    # Horaires : bornes du planning jour, avertissement pour un RDV hors plage.
+    heure_ouverture = models.TimeField("Ouverture", default=time(9, 0))
+    heure_fermeture = models.TimeField("Fermeture", default=time(17, 0))
+    heure_fermeture_samedi = models.TimeField("Fermeture le samedi", default=time(13, 0))
+    dimanche_ferme = models.BooleanField("Fermé le dimanche", default=True)
+    controle_gratuit_jours = models.PositiveSmallIntegerField(
+        "Contrôle gratuit (jours)", default=20, validators=[MaxValueValidator(365)],
+        help_text="Délai après une consultation facturée pendant lequel le contrôle est proposé gratuit.",
+    )
+    telephone_whatsapp = models.CharField(
+        "Téléphone (WhatsApp)", max_length=30, blank=True,
+        help_text="Ajouté à la fin des messages de rappel : « Pour toute question : … ».",
+    )
     actif = models.BooleanField(default=True)
 
     class Meta:
@@ -35,6 +60,28 @@ class Cabinet(models.Model):
 
     def __str__(self):
         return self.nom
+
+    @property
+    def payment_methods(self):
+        """Modes activés, dans l'ordre canonique ; espèces si la liste est vide ou invalide."""
+        enabled = [m for m in PAYMENT_METHOD_VALUES if m in (self.modes_paiement or [])]
+        return enabled or ["cash"]
+
+    @property
+    def cash_only_simple(self):
+        """Un seul mode et pas de partiel : encaissement en un clic."""
+        return len(self.payment_methods) == 1 and not self.paiement_partiel
+
+    def closing_time(self, day):
+        """Heure de fermeture du jour, ou None si le cabinet est fermé ce jour-là."""
+        if day.weekday() == 6 and self.dimanche_ferme:
+            return None
+        return self.heure_fermeture_samedi if day.weekday() == 5 else self.heure_fermeture
+
+    def is_open_at(self, moment):
+        """Le RDV (datetime local) tombe-t-il dans les horaires d'ouverture ?"""
+        closing = self.closing_time(moment.date())
+        return closing is not None and self.heure_ouverture <= moment.time() < closing
 
 
 class Profile(models.Model):

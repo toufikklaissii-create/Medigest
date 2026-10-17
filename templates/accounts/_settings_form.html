@@ -22,6 +22,66 @@
         </div>
     </section>
 
+    <input type="hidden" name="reglages_cabinet" value="1">
+    <div class="grid gap-6 lg:grid-cols-2">
+        <section class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6" aria-labelledby="payment-title">
+            <h2 id="payment-title" class="text-[15px] font-semibold text-text-main">Encaissement</h2>
+            <p class="mt-1 text-[13px] text-text-muted">Avec un seul mode et sans paiement partiel, l'accueil encaisse en un clic.</p>
+            <fieldset class="mt-4" {% if errors.modes_paiement %}aria-describedby="modes-error"{% endif %}>
+                <legend class="text-[13px] font-medium text-text-soft">Modes de paiement acceptés</legend>
+                <div class="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+                    {% for value, label in payment_method_labels %}
+                    <label class="inline-flex items-center gap-2 text-sm text-text-main cursor-pointer">
+                        <input type="checkbox" name="modes_paiement" value="{{ value }}" {% if value in cabinet.payment_methods %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if errors.modes_paiement %}<p id="modes-error" class="mt-1 text-[12.5px] text-rose-600">{{ errors.modes_paiement }}</p>{% endif %}
+            </fieldset>
+            <label class="mt-4 flex items-center gap-2 text-sm text-text-main cursor-pointer">
+                <input type="checkbox" name="paiement_partiel" {% if cabinet.paiement_partiel %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Autoriser le paiement partiel
+            </label>
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+                <label class="block">
+                    <span class="text-[13px] font-medium text-text-soft">Contrôle gratuit (jours)</span>
+                    <input name="controle_gratuit_jours" value="{{ cabinet.controle_gratuit_jours }}" inputmode="numeric"
+                           {% if errors.controle_gratuit_jours %}aria-invalid="true" aria-describedby="controle-error"{% endif %}
+                           class="mt-1.5 {{ input_cls }} tabular-nums {% if errors.controle_gratuit_jours %}border-rose-300{% else %}border-border-subtle{% endif %}">
+                    {% if errors.controle_gratuit_jours %}<span id="controle-error" class="mt-1 block text-[12.5px] text-rose-600">{{ errors.controle_gratuit_jours }}</span>{% endif %}
+                </label>
+                <label class="block">
+                    <span class="text-[13px] font-medium text-text-soft">Téléphone WhatsApp</span>
+                    <input name="telephone_whatsapp" value="{{ cabinet.telephone_whatsapp }}" maxlength="30" inputmode="tel" placeholder="06 66 54 69 54"
+                           class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+                </label>
+            </div>
+            <p class="mt-2 text-[12px] text-text-faint">Le téléphone termine les rappels : « Pour toute question : … ».</p>
+        </section>
+
+        <section class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6" aria-labelledby="hours-title">
+            <h2 id="hours-title" class="text-[15px] font-semibold text-text-main">Horaires</h2>
+            <p class="mt-1 text-[13px] text-text-muted">Bornes du planning jour. Un RDV en dehors reste possible, avec un avertissement.</p>
+            <div class="mt-4 grid gap-4 sm:grid-cols-3">
+                <label class="block">
+                    <span class="text-[13px] font-medium text-text-soft">Ouverture</span>
+                    <input type="time" name="heure_ouverture" value="{{ cabinet.heure_ouverture|time:'H:i' }}" class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+                </label>
+                <label class="block">
+                    <span class="text-[13px] font-medium text-text-soft">Fermeture</span>
+                    <input type="time" name="heure_fermeture" value="{{ cabinet.heure_fermeture|time:'H:i' }}" class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+                </label>
+                <label class="block">
+                    <span class="text-[13px] font-medium text-text-soft">Fermeture samedi</span>
+                    <input type="time" name="heure_fermeture_samedi" value="{{ cabinet.heure_fermeture_samedi|time:'H:i' }}" class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+                </label>
+            </div>
+            {% if errors.horaires %}<p class="mt-1 text-[12.5px] text-rose-600" role="alert">{{ errors.horaires }}</p>{% endif %}
+            <label class="mt-4 flex items-center gap-2 text-sm text-text-main cursor-pointer">
+                <input type="checkbox" name="dimanche_ferme" {% if cabinet.dimanche_ferme %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Fermé le dimanche
+            </label>
+        </section>
+    </div>
+
     <section class="bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden" aria-labelledby="print-title">
         <div class="px-6 pt-5 pb-4">
             <h2 id="print-title" class="text-[15px] font-semibold text-text-main">Impression sur papier pré-imprimé</h2>

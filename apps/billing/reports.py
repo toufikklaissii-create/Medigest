@@ -296,6 +296,16 @@ def _variation(current, previous):
     return float((Decimal(current) - Decimal(previous)) / Decimal(previous) * 100)
 
 
+def free_invoices_count(cabinet, period):
+    """Gratuités / contrôles de la période (factures à 0 DH non annulées, à leur date de création)."""
+    since, until = day_bounds(period.start, period.end)
+    return (
+        Invoice.objects.filter(cabinet=cabinet, is_free=True, created_at__gte=since, created_at__lt=until)
+        .exclude(status=Invoice.Status.CANCELLED)
+        .count()
+    )
+
+
 def outstanding_balance(cabinet):
     invoices = Invoice.objects.filter(
         cabinet=cabinet, status__in=[Invoice.Status.PENDING, Invoice.Status.PARTIAL]
@@ -335,6 +345,7 @@ def revenue_report(cabinet, period):
         "patients": current["patients"],
         "average": current["average"],
         "cancelled": current["cancelled"],
+        "free_count": free_invoices_count(cabinet, period),
         "outstanding": outstanding_balance(cabinet),
         "previous": {k: v for k, v in previous.items() if k != "payments"},
         "variations": {

@@ -22,6 +22,12 @@ METHOD_ICONS = {
 PAYMENT_SHORTCUTS = [(value, label, METHOD_ICONS[value]) for value, label in PaymentMethod.choices]
 
 
+def payment_shortcuts(cabinet):
+    """Raccourcis d'encaissement limités aux modes activés dans les réglages du cabinet."""
+    enabled = cabinet.payment_methods if cabinet is not None else PaymentMethod.values
+    return [shortcut for shortcut in PAYMENT_SHORTCUTS if shortcut[0] in enabled]
+
+
 class BillingError(ValueError):
     """Opération de facturation refusée : le message est affiché tel quel à l'utilisateur."""
 
@@ -53,6 +59,9 @@ def record_payment(invoice, amount, method, user, reference="", paid_at=None):
     """Enregistre un encaissement, total ou partiel, sans jamais dépasser le reste dû."""
     if method not in PaymentMethod.values:
         raise BillingError("Choisissez un mode de paiement.")
+    cabinet = invoice.cabinet
+    if cabinet is not None and method not in cabinet.payment_methods:
+        raise BillingError("Ce mode de paiement n'est pas activé pour le cabinet.")
     reference = (reference or "").strip()
     if method in METHODS_WITH_REFERENCE and not reference:
         label = "chèque" if method == PaymentMethod.CHECK else "virement"
@@ -72,6 +81,8 @@ def record_payment(invoice, amount, method, user, reference="", paid_at=None):
             raise BillingError("Le montant encaissé doit être supérieur à zéro.")
         if amount > balance:
             raise BillingError(f"Le montant dépasse le reste dû ({dh(balance)}).")
+        if amount < balance and cabinet is not None and not cabinet.paiement_partiel:
+            raise BillingError(f"Paiement partiel non activé : encaissez le reste dû ({dh(balance)}).")
         payment = Payment.objects.create(
             invoice=invoice,
             amount=amount,

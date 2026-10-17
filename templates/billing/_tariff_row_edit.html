@@ -19,12 +19,15 @@
     <td class="px-4 py-2.5">
         <label class="sr-only" for="price-{{ act.pk }}">Prix (DH)</label>
         <div class="relative">
-            <input id="price-{{ act.pk }}" name="price" value="{{ act.price|floatformat:2 }}" inputmode="decimal" required
+            <input id="price-{{ act.pk }}" name="price" value="{% if not act.prix_libre or act.price %}{{ act.price|floatformat:2 }}{% endif %}" inputmode="decimal"
                    class="{{ input_cls }} pr-10 text-right tabular-nums {% if errors.price %}border-rose-300{% else %}border-border-subtle{% endif %}"
                    {% if errors.price %}aria-invalid="true" aria-describedby="price-{{ act.pk }}-error"{% endif %}>
             <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[12px] text-text-muted">DH</span>
         </div>
         {% if errors.price %}<p id="price-{{ act.pk }}-error" class="mt-1 text-[12.5px] text-rose-600">{{ errors.price }}</p>{% endif %}
+        <label class="mt-1.5 flex items-center justify-end gap-1.5 text-[12.5px] text-text-soft cursor-pointer">
+            <input type="checkbox" name="prix_libre" {% if act.prix_libre %}checked{% endif %} class="size-4 rounded border-border-strong accent-sauge-600"> Prix libre
+        </label>
     </td>
     <td class="px-4 py-2.5 text-center">
         <label class="inline-flex h-10 items-center justify-center cursor-pointer">

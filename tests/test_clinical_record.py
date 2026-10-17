@@ -91,11 +91,12 @@ class ClinicalRecordFlowTest(TestCase):
         lmp = timezone.localdate() - timedelta(days=12 * 7 + 3)
         response = self._post_vitals(
             blood_pressure="12/8", weight_kg="64", height_cm="160",
-            last_menstrual_period=lmp.isoformat(), medical_history="Césarienne 2022",
+            last_menstrual_period=lmp.isoformat(), medical_history_add="Césarienne 2022",
         )
         self.assertEqual(response.status_code, 200)
         self.patient.refresh_from_db()
-        self.assertEqual(self.patient.medical_history, "Césarienne 2022")
+        # Assistante : ajout daté, jamais de remplacement.
+        self.assertEqual(self.patient.medical_history, f"[{timezone.localdate():%d/%m/%Y}] Césarienne 2022")
 
         html = self.doctor_client.get(
             reverse("clinical:consultation_detail", args=[self.appt.pk])

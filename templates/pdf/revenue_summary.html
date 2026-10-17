@@ -13,6 +13,7 @@
     <tr><th>Patientes distinctes</th><td class="right">{{ patients }}</td></tr>
     <tr><th>Panier moyen (par encaissement)</th><td class="right">{{ average|dh }}</td></tr>
     <tr><th>Impayés en cours (reste dû)</th><td class="right">{{ outstanding|dh }}</td></tr>
+    <tr><th>Gratuités / contrôles</th><td class="right">{{ free_count }}</td></tr>
     <tr><th>Factures annulées (exclues)</th><td class="right">{{ cancelled }}</td></tr>
 </table>
 
@@ -43,6 +44,28 @@
     {% endif %}{% empty %}{% endfor %}
     <tr><th>Total</th><th class="right">{{ count }}</th><th class="right">{{ total|dh }}</th></tr>
 </table>
+
+{% if period.kind == "mois" %}
+<pdf:nextpage/>
+<h2>Journal détaillé des encaissements</h2>
+<table class="grid journal">
+    <tr><th style="width: 11%;">Date</th><th style="width: 7%;">Heure</th><th style="width: 15%;">N° facture</th><th style="width: 18%;">Patiente</th><th>Actes</th><th style="width: 9%;">Mode</th><th class="right" style="width: 13%;">Montant</th></tr>
+    {% for payment in payments %}
+    <tr>
+        <td>{{ payment.paid_at|date:"d/m/Y" }}</td>
+        <td>{{ payment.paid_at|date:"H:i" }}</td>
+        <td>{{ payment.invoice.invoice_number }}</td>
+        <td>{{ payment.invoice.patient.first_name }} {{ payment.invoice.patient.last_name }}</td>
+        <td>{{ payment.acts_label|default:"—" }}</td>
+        <td>{{ payment.get_method_display }}</td>
+        <td class="right">{{ payment.amount|dh }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" class="muted">Aucun encaissement ce mois-ci.</td></tr>
+    {% endfor %}
+    <tr><th colspan="6">Total du mois ({{ count }} encaissement{{ count|pluralize }} · {{ free_count }} gratuité{{ free_count|pluralize }})</th><th class="right">{{ total|dh }}</th></tr>
+</table>
+{% endif %}
 
 <p class="legal">Recettes comptées à la date d'encaissement. Document comptable : aucune donnée médicale.</p>
 {% endblock %}

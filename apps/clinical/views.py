@@ -1,6 +1,7 @@
 import io
 import zipfile
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -25,6 +26,7 @@ from .services import (
     generate_letter_pdf,
     generate_patient_record_pdf,
     generate_prescription_pdf,
+    free_control_candidate,
     generate_report_pdf,
     mode_from_request,
 )
@@ -112,7 +114,10 @@ def doctor_queue(request):
 
 
 def _apply_consultation_post(request, consultation, cabinet):
-    """Copie les champs de la fiche (POST) sur la consultation, sans toucher au statut ni sauvegarder."""
+    """Copie les champs de la fiche (POST) sur la consultation, sans toucher au statut ni sauvegarder.
+
+    Renvoie les libellés des actes en prix libre sélectionnés sans prix (validation refusée).
+    """
     consultation.clinical_exam = request.POST.get("clinical_exam", "")
     consultation.clinical_notes = request.POST.get("clinical_notes", "")
     consultation.diagnostic = request.POST.get("diagnostic", "")
@@ -127,10 +132,15 @@ def _apply_consultation_post(request, consultation, cabinet):
 
     consultation.consultation_acts.exclude(act_id__in=act_ids).delete()
     lines = {line.act_id: line for line in consultation.consultation_acts.all()}
+    missing_prices = []
     for act in selected_acts:
         # Prix de la ligne fixé par la doctoresse, pré-rempli au tarif du catalogue.
         price = parse_amount(request.POST.get(f"price_{act.id}"))
-        if price is None or price < 0:
+        if act.prix_libre and (price is None or price <= 0):
+            # Prix libre : jamais de tarif par défaut. Ligne gardée à 0 (brouillon), validation refusée.
+            missing_prices.append(act.name)
+            price = Decimal("0")
+        elif price is None or price < 0:
             price = lines[act.id].price if act.id in lines else act.price
         if act.id not in lines:
             ConsultationAct.objects.create(consultation=consultation, act=act, price=price)
@@ -157,6 +167,14 @@ def _apply_consultation_post(request, consultation, cabinet):
             document_type=LETTER_DOCUMENT_TYPES[letter_type],
             defaults={"content": letter_content},
         )
+    return missing_prices
+
+
+def _line_price(act, line_prices):
+    if act.id in line_prices:
+        price = line_prices[act.id]
+        return "" if act.prix_libre and not price else float(price)
+    return "" if act.prix_libre else float(act.price)
 
 
 @login_required
@@ -179,7 +197,11 @@ def consultation_detail(request, appointment_id):
             messages.error(request, "Consultation validée : déverrouillez-la avant de la modifier.")
             return redirect("clinical:consultation_detail", appointment_id=appointment.pk)
         action = request.POST.get("action")
-        _apply_consultation_post(request, consultation, cabinet)
+        missing_prices = _apply_consultation_post(request, consultation, cabinet)
+        if action == "validate" and missing_prices:
+            consultation.save()
+            messages.error(request, f"Indiquez le prix de : {', '.join(missing_prices)}")
+            return redirect("clinical:consultation_detail", appointment_id=appointment.pk)
 
         consultation.status = (
             Consultation.Status.VALIDATED if action == "validate" else Consultation.Status.DRAFT
@@ -207,15 +229,21 @@ def consultation_detail(request, appointment_id):
             "code": act.code,
             "name": act.name,
             "price": float(act.price),
-            # Prix déjà saisi sur la ligne de cette consultation (sinon tarif catalogue).
-            "line_price": float(line_prices.get(act.id, act.price)),
+            # Prix déjà saisi sur la ligne de cette consultation (sinon tarif catalogue ;
+            # vide pour un acte en prix libre tant que la doctoresse ne l'a pas saisi).
+            "line_price": _line_price(act, line_prices),
             "is_quick_exam": act.is_quick_exam,
+            "prix_libre": act.prix_libre,
         }
         for act in all_acts
     ]
+    free_control = free_control_candidate(consultation)
     billing_json = {
         "discount": float(consultation.billing_discount or 0),
-        "free": consultation.billing_free,
+        # Contrôle gratuit possible : case pré-cochée tant que la fiche n'a pas d'actes enregistrés.
+        "free": consultation.billing_free or bool(
+            free_control and consultation.status == Consultation.Status.DRAFT and not line_prices
+        ),
     }
     prescription_doc = consultation.documents.filter(
         document_type=Document.DocumentType.PRESCRIPTION
@@ -267,6 +295,7 @@ def consultation_detail(request, appointment_id):
             "patient_documents": patient_documents,
             "document_type_choices": PatientDocument.DocumentType.choices,
             "previous_consultations": previous_consultations,
+            "free_control": free_control,
         },
     )
 

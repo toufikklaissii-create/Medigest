@@ -334,10 +334,10 @@
              x-transition:leave-start="opacity-100"
              x-transition:leave-end="opacity-0 translate-x-2"
              class="min-w-[280px] max-w-sm rounded-xl shadow-popover px-4 py-3.5 flex items-start gap-2.5 text-white"
-             :class="toast.type === 'error' ? 'bg-rose-600' : 'bg-sauge-900'">
-            <i :data-lucide="toast.type === 'error' ? 'alert-circle' : 'check-circle-2'"
+             :class="toast.type === 'error' ? 'bg-rose-600' : (toast.type === 'warning' ? 'bg-amber-700' : 'bg-sauge-900')">
+            <i :data-lucide="toast.type === 'error' ? 'alert-circle' : (toast.type === 'warning' ? 'triangle-alert' : 'check-circle-2')"
                class="w-[18px] h-[18px] mt-0.5 shrink-0"
-               :class="toast.type === 'error' ? 'text-white' : 'text-sauge-400'"></i>
+               :class="toast.type === 'sauge' || toast.type === 'success' || !toast.type ? 'text-sauge-400' : 'text-white'"></i>
             <p class="text-sm leading-snug" x-text="toast.message"></p>
         </div>
     </template>

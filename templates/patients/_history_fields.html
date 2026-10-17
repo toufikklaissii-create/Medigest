@@ -1,0 +1,32 @@
+{% comment %}
+Antécédents et allergies dans les formulaires patiente.
+Doctoresse : champs complets. Assistante : jamais le contenu existant, seulement un état
+(« renseignés ✓ ») et un champ d'ajout — le serveur ajoute à la fin, daté, sans écraser.
+Paramètre : patient (absent à la création) ; le rôle est lu sur request.user.
+{% endcomment %}
+{% with area="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint" %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% if request.user.profile.is_doctor %}
+    <div>
+        <label for="pf-history" class="block text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux / chirurgicaux</label>
+        <textarea id="pf-history" name="medical_history" rows="3" placeholder="Ex : diabète, césarienne en 2020…" class="{{ area }}">{{ patient.medical_history }}</textarea>
+    </div>
+    <div>
+        <label for="pf-allergies" class="block text-[13px] font-medium text-text-soft mb-1.5">Allergies connues</label>
+        <textarea id="pf-allergies" name="allergies" rows="3" placeholder="Ex : pénicilline, iode…" class="{{ area }}">{{ patient.allergies }}</textarea>
+    </div>
+    {% else %}
+    <div>
+        <label for="pf-history-add" class="block text-[13px] font-medium text-text-soft mb-1.5">Ajouter un antécédent</label>
+        {% include "patients/_history_state.html" with filled=patient.medical_history yes="Antécédents renseignés" no="Aucun antécédent saisi" %}
+        <textarea id="pf-history-add" name="medical_history_add" rows="2" maxlength="1000" placeholder="Ex : césarienne en 2020" class="mt-1.5 {{ area }}"></textarea>
+    </div>
+    <div>
+        <label for="pf-allergies-add" class="block text-[13px] font-medium text-text-soft mb-1.5">Ajouter une allergie</label>
+        {% include "patients/_history_state.html" with filled=patient.allergies yes="Allergies renseignées" no="Aucune allergie saisie" %}
+        <textarea id="pf-allergies-add" name="allergies_add" rows="2" maxlength="1000" placeholder="Ex : pénicilline" class="mt-1.5 {{ area }}"></textarea>
+    </div>
+    <p class="sm:col-span-2 text-[12px] text-text-faint">Le texte saisi est ajouté au dossier, daté du jour. Seule la doctoresse peut le consulter ou le modifier.</p>
+    {% endif %}
+</div>
+{% endwith %}

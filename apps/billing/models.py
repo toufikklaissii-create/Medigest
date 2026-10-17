@@ -20,6 +20,8 @@ class MedicalAct(models.Model):
     is_quick_exam = models.BooleanField(
         "Examen complémentaire rapide", default=False
     )
+    # Prix libre : saisi par la doctoresse à chaque consultation (champ vide, obligatoire).
+    prix_libre = models.BooleanField("Prix libre", default=False)
 
     class Meta:
         verbose_name = "Acte médical"

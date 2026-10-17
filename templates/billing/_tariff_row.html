@@ -2,7 +2,7 @@
 <tr id="tariff-{{ act.pk }}" class="h-14 hover:bg-sauge-25 transition-colors duration-150 {% if flash %}animate-slide-in motion-reduce:animate-none{% endif %} {% if not act.is_active %}text-text-muted{% endif %}">
     <td class="px-5 font-medium tabular-nums {% if act.is_active %}text-text-soft{% endif %}">{{ act.code }}</td>
     <td class="px-4 {% if act.is_active %}text-text-main{% endif %}">{{ act.name }}</td>
-    <td class="px-4 text-right font-semibold tabular-nums whitespace-nowrap {% if act.is_active %}text-text-main{% endif %}">{{ act.price|dh }}</td>
+    <td class="px-4 text-right font-semibold tabular-nums whitespace-nowrap {% if act.is_active %}text-text-main{% endif %}">{% if act.prix_libre %}<span class="text-[13px] font-medium text-text-soft">Prix libre</span>{% else %}{{ act.price|dh }}{% endif %}</td>
     <td class="px-4 text-center">
         {% if act.is_active %}{% include "_status_badge.html" with tone="emerald" label="Actif" %}{% else %}{% include "_status_badge.html" with tone="slate" label="Inactif" %}{% endif %}
     </td>

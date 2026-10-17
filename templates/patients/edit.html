@@ -99,18 +99,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux / chirurgicaux</label>
-                    <textarea name="medical_history" rows="3" placeholder="Ex: Diabète, césarienne en 2020..."
-                              class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ patient.medical_history }}</textarea>
-                </div>
-                <div>
-                    <label class="block text-[13px] font-medium text-text-soft mb-1.5">Allergies connues</label>
-                    <textarea name="allergies" rows="3" placeholder="Ex: Pénicilline, iode..."
-                              class="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">{{ patient.allergies }}</textarea>
-                </div>
-            </div>
+            {% include "patients/_history_fields.html" %}
         </div>
 
         <button type="submit" class="btn-tactile w-full h-10 bg-sauge-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2">

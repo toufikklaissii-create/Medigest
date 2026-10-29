@@ -120,29 +120,19 @@
 
             <!-- Historique -->
             <div class="min-w-0 xl:border-t xl:border-border-subtle xl:pt-5">
-                <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Dernières consultations</h2>
+                <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Historique{% if previous_consultations %} · {{ previous_consultations|length }} visite{{ previous_consultations|length|pluralize }}{% endif %}</h2>
                 {% if previous_consultations %}
                 <ul class="mt-2 -mx-2 space-y-0.5">
                     {% for past in previous_consultations %}
-                    <li x-data="{ open: false }">
-                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-controls="past-{{ past.pk }}"
+                    <li>
+                        <button type="button" @click="showVisit({{ past.pk }})"
                                 class="btn-tactile w-full flex items-center justify-between gap-2 rounded-lg px-2 min-h-[40px] text-left hover:bg-sauge-25">
                             <span class="min-w-0">
-                                <span class="block text-[13px] font-semibold text-text-main tabular-nums">{{ past.appointment.date|date:"j F Y" }}</span>
-                                <span class="block text-[12px] text-text-muted truncate">{{ past.appointment.reason|default:"Consultation" }}{% if past.gestational_age_weeks %} · {{ past.gestational_age_weeks }} SA{% endif %}</span>
+                                <span class="block text-[13px] font-semibold text-text-main tabular-nums">Consultation {{ past.number }} · {{ past.appointment.date|date:"j M Y" }}</span>
+                                <span class="block text-[12px] text-text-muted truncate">{{ past.appointment.reason|default:"Consultation" }}{% if past.term %} · {{ past.term.weeks }} SA + {{ past.term.days }} j{% endif %}</span>
                             </span>
-                            <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 text-text-faint transition-transform duration-150 motion-reduce:transition-none" :class="open && 'rotate-180'" stroke-width="1.75" aria-hidden="true"></i>
+                            <i data-lucide="chevron-right" class="w-4 h-4 shrink-0 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
                         </button>
-                        <div id="past-{{ past.pk }}" x-show="open" x-cloak x-transition.opacity.duration.150ms class="px-2 pb-2.5 pt-1 text-[13px] leading-relaxed text-text-soft space-y-1.5">
-                            {% if past.diagnostic %}<p><span class="font-medium text-text-main">Synthèse :</span> {{ past.diagnostic|linebreaksbr }}</p>{% endif %}
-                            {% if past.clinical_notes %}<p><span class="font-medium text-text-main">Observations :</span> {{ past.clinical_notes|truncatechars:220 }}</p>{% endif %}
-                            {% if past.blood_pressure or past.weight_kg %}<p class="tabular-nums text-text-muted">{% if past.blood_pressure %}TA {{ past.blood_pressure }}{% endif %}{% if past.blood_pressure and past.weight_kg %} · {% endif %}{% if past.weight_kg %}{{ past.weight_kg|floatformat:"-1" }} kg{% endif %}</p>{% endif %}
-                            {% if not past.diagnostic and not past.clinical_notes %}<p class="text-text-faint">Aucune note saisie lors de cette visite.</p>{% endif %}
-                            <a href="{% url 'clinical:patient_file' patient.pk %}#visite-{{ past.pk }}"
-                               class="inline-flex items-center gap-1 font-medium text-sauge-600 hover:text-sauge-700 hover:underline">
-                                Voir la visite dans le dossier <i data-lucide="arrow-up-right" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>
-                            </a>
-                        </div>
                     </li>
                     {% endfor %}
                 </ul>
@@ -201,7 +191,7 @@
                 <p class="text-[13px]"><span class="font-semibold">Consultation validée, en lecture seule.</span> Utilisez « Modifier la consultation » pour la rouvrir.</p>
             </div>
             {% endif %}
-            <fieldset class="min-w-0 p-5 sm:p-6" {% if is_locked %}disabled aria-describedby="locked-note"{% endif %}>
+            <fieldset class="min-w-0 p-5 sm:p-6" x-show="tab !== 'historique'" {% if is_locked %}disabled aria-describedby="locked-note"{% endif %}>
                 <!-- 1. Clinique -->
                 <div role="tabpanel" id="panel-clinique" aria-labelledby="tab-clinique" x-show="tab === 'clinique'" tabindex="0">
                     <h2 class="text-[15px] font-semibold text-text-main">Examen clinique</h2>
@@ -416,6 +406,20 @@
                     </div>
                 </div>
             </fieldset>
+
+            {% if previous_consultations %}
+            <!-- 5. Historique : visites précédentes, en lecture seule -->
+            <div role="tabpanel" id="panel-historique" aria-labelledby="tab-historique" x-show="tab === 'historique'" x-cloak tabindex="0" class="p-5 sm:p-6">
+                <p class="text-[13px] text-text-muted">Visites précédentes de {{ patient.first_name }}, de la plus récente à la plus ancienne. Cliquez sur une visite pour la déplier.</p>
+                {% with label_cls="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint" %}
+                <ol class="relative mt-4 space-y-4 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-px before:bg-border-subtle" aria-label="Consultations précédentes, de la plus récente à la plus ancienne">
+                    {% for c in previous_consultations %}
+                    {% include "doctor/_visit_card.html" with c=c open=forloop.first %}
+                    {% endfor %}
+                </ol>
+                {% endwith %}
+            </div>
+            {% endif %}
         </section>
 
         <!-- ═══ Colonne droite : actes, total, validation ═══ -->
@@ -638,6 +642,7 @@
                 { key: "echo", label: "Écho" },
                 { key: "complementaires", label: "Examens" },
                 { key: "conclusion", label: "Conclusion" },
+                {% if previous_consultations %}{ key: "historique", label: "Historique ({{ previous_consultations|length }})" },{% endif %}
             ],
             tab: "clinique",
             filled: { clinique: false, echo: false, complementaires: false, conclusion: false },
@@ -679,6 +684,14 @@
                 // Saisie pas encore autosauvée (fenêtre de 2 s) : on prévient avant de quitter la page.
                 window.addEventListener("beforeunload", (event) => {
                     if ((this.dirty || this.saving) && !this.submitting) event.preventDefault();
+                });
+            },
+            showVisit(pk) {
+                this.setTab("historique");
+                this.$dispatch("open-visit", pk);
+                this.$nextTick(() => {
+                    const visit = document.getElementById("visite-" + pk);
+                    if (visit) visit.scrollIntoView({ behavior: "smooth", block: "start" });
                 });
             },
             setTab(key) {

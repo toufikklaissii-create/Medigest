@@ -314,12 +314,14 @@ def consultation_detail(request, appointment_id):
     patient_documents = PatientDocument.objects.filter(
         cabinet=cabinet, patient=appointment.patient
     )
-    previous_consultations = (
+    # Historique complet : toutes les autres visites de la patiente, la plus récente d'abord.
+    previous_consultations = enrich_visits(list(
         Consultation.objects.filter(cabinet=cabinet, patient=appointment.patient)
         .exclude(pk=consultation.pk)
-        .select_related("appointment")
-        .order_by("-appointment__date")[:3]
-    )
+        .select_related("appointment", "invoice")
+        .prefetch_related("consultation_acts__act", "documents")
+        .order_by("-appointment__date", "-pk")
+    ))
     return render(
         request,
         "doctor/consultation.html",
@@ -374,19 +376,22 @@ def autosave_consultation(request, appointment_id):
 LETTER_LABELS = {t["key"]: (t["key"], t["label"]) for t in COURRIER_TYPES}
 
 
-@login_required
-@role_required("doctor")
-def patient_file(request, patient_id):
-    """Dossier patiente (lecture seule) : historique des visites, évolution, documents, factures."""
-    cabinet = request.user.profile.cabinet
-    patient = get_object_or_404(Patient, pk=patient_id, cabinet=cabinet)
+def enrich_visits(consultations):
+    """Prépare des consultations (avec appointment, actes et documents préchargés) pour
+    l'affichage de l'historique : ordonnances, courriers, actes, terme et numéro de visite.
 
-    consultations = list(
-        Consultation.objects.filter(cabinet=cabinet, patient=patient)
-        .select_related("appointment", "invoice")
-        .prefetch_related("consultation_acts__act", "documents")
-        .order_by("-appointment__date", "-pk")
+    Le numéro (« Consultation 1, 2, 3… ») suit l'ordre chronologique de TOUTES les
+    consultations de la patiente, pas seulement celles affichées.
+    """
+    if not consultations:
+        return consultations
+    first = consultations[0]
+    ordered_ids = list(
+        Consultation.objects.filter(cabinet_id=first.cabinet_id, patient_id=first.patient_id)
+        .order_by("appointment__date", "pk")
+        .values_list("pk", flat=True)
     )
+    numbers = {pk: index for index, pk in enumerate(ordered_ids, start=1)}
     for consultation in consultations:
         documents = {doc.document_type: doc for doc in consultation.documents.all()}
         prescription = documents.get(Document.DocumentType.PRESCRIPTION)
@@ -406,6 +411,25 @@ def patient_file(request, patient_id):
         consultation.quick_exams = [ca for ca in consultation.act_lines if ca.act.is_quick_exam]
         consultation.acts_total = sum((ca.price for ca in consultation.act_lines), 0)
         consultation.term = consultation.pregnancy
+        consultation.number = numbers.get(consultation.pk)
+
+    return consultations
+
+
+@login_required
+@role_required("doctor")
+def patient_file(request, patient_id):
+    """Dossier patiente (lecture seule) : historique des visites, évolution, documents, factures."""
+    cabinet = request.user.profile.cabinet
+    patient = get_object_or_404(Patient, pk=patient_id, cabinet=cabinet)
+
+    consultations = list(
+        Consultation.objects.filter(cabinet=cabinet, patient=patient)
+        .select_related("appointment", "invoice")
+        .prefetch_related("consultation_acts__act", "documents")
+        .order_by("-appointment__date", "-pk")
+    )
+    enrich_visits(consultations)
 
     # Bandeau grossesse : DDR la plus récente, terme recalculé à aujourd'hui (None si hors grossesse).
     latest_lmp = next((c.last_menstrual_period for c in consultations if c.last_menstrual_period), None)

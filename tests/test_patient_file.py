@@ -102,7 +102,9 @@ class PatientFileTest(TestCase):
         current = Appointment.objects.create(cabinet=self.cabinet, patient=self.patient, date=timezone.now())
         cockpit = self.doctor_client.get(reverse("clinical:consultation_detail", args=[current.pk])).content.decode()
         self.assertIn("Voir le dossier complet", cockpit)
-        self.assertIn(f"{self.url}#visite-{visit.pk}", cockpit)
+        # Les visites précédentes s'ouvrent dans l'onglet Historique de la consultation.
+        self.assertIn(f"showVisit({visit.pk})", cockpit)
+        self.assertIn(f'id="visite-{visit.pk}"', cockpit)
 
     def test_upload_from_file_returns_to_documents_tab(self):
         media = tempfile.mkdtemp()

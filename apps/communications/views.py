@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.accounts.decorators import role_required
-from apps.accounts.models import Profile
+from apps.accounts.models import CLINICIAN_ROLES, Profile
 from apps.patients.models import Patient
 
 from .models import Task
@@ -55,7 +55,7 @@ def toggle_task(request, pk):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def create_task(request):
     if request.method == "POST":
         cabinet = request.user.profile.cabinet

@@ -53,6 +53,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "apps.accounts.middleware.ClinicalAccessMiddleware",
+    "apps.accounts.middleware.MoneyAccessMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

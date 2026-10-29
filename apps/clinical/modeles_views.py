@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
+from apps.accounts.models import CLINICIAN_ROLES
 
 from .courriers import CHAMPS, COURRIER_TYPES, COURRIER_TYPES_BY_KEY
 from .models import ModeleCourrier, ModeleOrdonnance
@@ -47,13 +48,13 @@ def _modele_from_post(request, modele):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def modeles_ordonnance(request):
     return render(request, "doctor/modeles_ordonnance.html", {"modeles": _cabinet_modeles(request)})
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def modele_add(request):
     modele = ModeleOrdonnance(cabinet=request.user.profile.cabinet)
@@ -73,7 +74,7 @@ def modele_add(request):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def modele_card(request, pk):
     """GET : carte en lecture (?edit=1 : en édition). POST : enregistre la carte."""
     modele = get_object_or_404(_cabinet_modeles(request), pk=pk)
@@ -93,7 +94,7 @@ def modele_card(request, pk):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def modele_duplicate(request, pk):
     source = get_object_or_404(_cabinet_modeles(request), pk=pk)
@@ -111,7 +112,7 @@ def modele_duplicate(request, pk):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def modele_delete(request, pk):
     modele = get_object_or_404(_cabinet_modeles(request), pk=pk)
@@ -159,14 +160,14 @@ def _courrier_groups(modeles):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def modeles_courrier(request):
     return render(request, "doctor/modeles_courrier.html",
                   _courrier_context(groups=_courrier_groups(_cabinet_courriers(request))))
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def courrier_add(request):
     modele = ModeleCourrier(cabinet=request.user.profile.cabinet)
@@ -189,7 +190,7 @@ def courrier_add(request):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def courrier_card(request, pk):
     """GET : carte en lecture (?edit=1 : en édition). POST : enregistre la carte."""
     modele = get_object_or_404(_cabinet_courriers(request), pk=pk)
@@ -213,7 +214,7 @@ def courrier_card(request, pk):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def courrier_duplicate(request, pk):
     source = get_object_or_404(_cabinet_courriers(request), pk=pk)
@@ -231,7 +232,7 @@ def courrier_duplicate(request, pk):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def courrier_delete(request, pk):
     modele = get_object_or_404(_cabinet_courriers(request), pk=pk)

@@ -46,7 +46,7 @@
             {% if errors.last_menstrual_period %}<p id="iv-lmp-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.last_menstrual_period }}</p>{% endif %}
         </div>
         <div class="col-span-2">
-            {% if request.user.profile.is_doctor %}
+            {% if request.user.profile.is_clinician %}
             <label for="iv-atcd-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Antécédents</label>
             <textarea id="iv-atcd-{{ appointment.pk }}" name="medical_history" rows="2" placeholder="Ex. G2P1, césarienne 2022, HTA…"
                       {% if errors.medical_history %}aria-invalid="true" aria-describedby="iv-atcd-err-{{ appointment.pk }}"{% endif %}
@@ -64,7 +64,7 @@
             {% if errors.medical_history %}<p id="iv-atcd-err-{{ appointment.pk }}" class="mt-1 text-[11px] text-rose-600">{{ errors.medical_history }}</p>{% endif %}
         </div>
         <div class="col-span-2">
-            {% if request.user.profile.is_doctor %}
+            {% if request.user.profile.is_clinician %}
             <label for="iv-allergy-{{ appointment.pk }}" class="block text-[11px] font-medium text-text-muted mb-1">Allergies</label>
             <textarea id="iv-allergy-{{ appointment.pk }}" name="allergies" rows="2" placeholder="Ex. pénicilline, iode…"
                       {% if errors.allergies %}aria-invalid="true" aria-describedby="iv-allergy-err-{{ appointment.pk }}"{% endif %}

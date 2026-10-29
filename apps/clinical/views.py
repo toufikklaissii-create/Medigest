@@ -13,6 +13,7 @@ from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_POST
 
 from apps.accounts.decorators import role_required
+from apps.accounts.models import CLINICIAN_ROLES
 from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, MedicalAct
 from apps.billing.services import parse_amount
@@ -108,13 +109,13 @@ def _doctor_dashboard_context(request):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def doctor_dashboard(request):
     return render(request, "doctor/dashboard.html", _doctor_dashboard_context(request))
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def doctor_queue(request):
     """GET (HTMX, toutes les 15 s) : file d'attente + compteurs et prochaine patiente en hx-swap-oob."""
     return render(request, "doctor/_queue.html", _doctor_dashboard_context(request))
@@ -131,18 +132,26 @@ def _apply_consultation_post(request, consultation, cabinet):
     pregnancy = consultation.pregnancy
     consultation.gestational_age_weeks = pregnancy["weeks"] if pregnancy else None
     consultation.ultrasound_notes = request.POST.get("ultrasound_notes", "")
-    if not consultation.doctor_id:
+    sees_money = request.user.profile.sees_money
+    if not consultation.doctor_id or (
+        request.user.profile.is_remplacant and consultation.status == Consultation.Status.DRAFT
+    ):
+        # Le remplaçant qui consulte signe les documents de cette consultation.
         consultation.doctor = request.user
 
     act_ids = [int(v) for v in request.POST.getlist("acts") if v]
     selected_acts = MedicalAct.objects.filter(cabinet=cabinet, id__in=act_ids)
 
+    had_lines = consultation.consultation_acts.exists()
     consultation.consultation_acts.exclude(act_id__in=act_ids).delete()
     lines = {line.act_id: line for line in consultation.consultation_acts.all()}
     missing_prices = []
     for act in selected_acts:
         # Prix de la ligne fixé par la doctoresse, pré-rempli au tarif du catalogue.
         price = parse_amount(request.POST.get(f"price_{act.id}"))
+        if not sees_money and not act.prix_libre:
+            # Remplaçant : aucun prix modifiable, sauf le montant d'un acte en prix libre.
+            price = None
         if act.prix_libre and (price is None or price <= 0):
             # Prix libre : jamais de tarif par défaut. Ligne gardée à 0 (brouillon), validation refusée.
             missing_prices.append(act.name)
@@ -154,9 +163,14 @@ def _apply_consultation_post(request, consultation, cabinet):
         elif lines[act.id].price != price:
             ConsultationAct.objects.filter(pk=lines[act.id].pk).update(price=price)
 
-    discount = parse_amount(request.POST.get("billing_discount"))
-    consultation.billing_discount = discount if discount and discount > 0 else 0
-    consultation.billing_free = request.POST.get("billing_free") == "on"
+    if sees_money:
+        discount = parse_amount(request.POST.get("billing_discount"))
+        consultation.billing_discount = discount if discount and discount > 0 else 0
+        consultation.billing_free = request.POST.get("billing_free") == "on"
+    elif not had_lines and not consultation.billing_free and consultation.status == Consultation.Status.DRAFT:
+        # Remplaçant : remise et gratuité ne sont pas modifiables ; le contrôle gratuit
+        # s'applique comme la case pré-cochée qu'aurait vue la doctoresse.
+        consultation.billing_free = bool(free_control_candidate(consultation))
 
     for part, document_type in PART_DOCUMENT_TYPES.items():
         field = PRESCRIPTION_PARTS[part]["field"]
@@ -213,7 +227,7 @@ def _line_price(act, line_prices):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def consultation_detail(request, appointment_id):
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(
@@ -246,10 +260,13 @@ def consultation_detail(request, appointment_id):
         if action == "validate":
             appointment.status = Appointment.Status.COMPLETED
             appointment.save(update_fields=["status"])
-            messages.success(
-                request,
-                f"Consultation validée et facture {consultation.invoice.invoice_number} transmise.",
-            )
+            if request.user.profile.sees_money:
+                messages.success(
+                    request,
+                    f"Consultation validée et facture {consultation.invoice.invoice_number} transmise.",
+                )
+            else:
+                messages.success(request, "Consultation validée et transmise à l'assistante pour l'encaissement.")
             return redirect("clinical:doctor_dashboard")
 
         messages.success(request, "Brouillon enregistré.")
@@ -258,15 +275,17 @@ def consultation_detail(request, appointment_id):
     all_acts = MedicalAct.objects.filter(cabinet=cabinet, is_active=True)
     line_prices = dict(consultation.consultation_acts.values_list("act_id", "price"))
     selected_act_ids = list(line_prices)
+    sees_money = request.user.profile.sees_money
     acts_json = [
         {
             "id": act.id,
             "code": act.code,
             "name": act.name,
-            "price": float(act.price),
+            # Remplaçant : aucun tarif dans la page (seul le montant d'un prix libre qu'il a saisi).
+            "price": float(act.price) if sees_money else 0,
             # Prix déjà saisi sur la ligne de cette consultation (sinon tarif catalogue ;
             # vide pour un acte en prix libre tant que la doctoresse ne l'a pas saisi).
-            "line_price": _line_price(act, line_prices),
+            "line_price": _line_price(act, line_prices) if sees_money or act.prix_libre else "",
             "is_quick_exam": act.is_quick_exam,
             "prix_libre": act.prix_libre,
         }
@@ -274,7 +293,7 @@ def consultation_detail(request, appointment_id):
     ]
     free_control = free_control_candidate(consultation)
     billing_json = {
-        "discount": float(consultation.billing_discount or 0),
+        "discount": float(consultation.billing_discount or 0) if sees_money else 0,
         # Contrôle gratuit possible : case pré-cochée tant que la fiche n'a pas d'actes enregistrés.
         "free": consultation.billing_free or bool(
             free_control and consultation.status == Consultation.Status.DRAFT and not line_prices
@@ -344,13 +363,14 @@ def consultation_detail(request, appointment_id):
             "patient_documents": patient_documents,
             "document_type_choices": PatientDocument.DocumentType.choices,
             "previous_consultations": previous_consultations,
-            "free_control": free_control,
+            "free_control": free_control if sees_money else None,
+            "sees_money": sees_money,
         },
     )
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def autosave_consultation(request, appointment_id):
     """Sauvegarde silencieuse (HTMX) de la fiche : ne change jamais le statut de la consultation."""
@@ -417,7 +437,7 @@ def enrich_visits(consultations):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def patient_file(request, patient_id):
     """Dossier patiente (lecture seule) : historique des visites, évolution, documents, factures."""
     cabinet = request.user.profile.cabinet
@@ -443,14 +463,17 @@ def patient_file(request, patient_id):
             "consultations": consultations,
             "pregnancy": pregnancy,
             **documents_context(request, patient),
+            # Remplaçant : aucune facture, ni dans la page ni dans son code source.
             "invoices": Invoice.objects.filter(cabinet=cabinet, patient=patient)
-            .prefetch_related("payments").order_by("-created_at"),
+            .prefetch_related("payments").order_by("-created_at")
+            if request.user.profile.sees_money else Invoice.objects.none(),
+            "sees_money": request.user.profile.sees_money,
         },
     )
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @require_POST
 def unlock_consultation(request, appointment_id):
     """Repasse une consultation validée en brouillon pour la modifier.
@@ -470,7 +493,7 @@ def unlock_consultation(request, appointment_id):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def upload_patient_document(request, appointment_id):
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(Appointment, pk=appointment_id, cabinet=cabinet)
@@ -495,7 +518,7 @@ def upload_patient_document(request, appointment_id):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 @xframe_options_sameorigin
 def serve_patient_document(request, pk):
     """Ouvre un document joint (médecin uniquement, cabinet de l'utilisateur) — jamais via /media/ public."""
@@ -517,7 +540,7 @@ def serve_patient_document(request, pk):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def download_patient_record_pdf(request, appointment_id):
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(
@@ -532,7 +555,7 @@ def download_patient_record_pdf(request, appointment_id):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def download_full_patient_archive(request, patient_id):
     """ZIP contenant le PDF récapitulatif du dossier + tous les documents joints (radios/bilans)."""
     cabinet = request.user.profile.cabinet
@@ -569,7 +592,7 @@ def download_full_patient_archive(request, patient_id):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def download_prescription_pdf(request, appointment_id, part="medicaments"):
     """Ordonnance d'une partie : médicaments (URL historique), bilan biologique ou radiologie."""
     if part not in PART_DOCUMENT_TYPES:
@@ -586,7 +609,7 @@ def download_prescription_pdf(request, appointment_id, part="medicaments"):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def download_letter_pdf(request, appointment_id, letter_type):
     if letter_type not in LETTER_DOCUMENT_TYPES:
         raise Http404("Type de document inconnu.")
@@ -606,7 +629,7 @@ def download_letter_pdf(request, appointment_id, letter_type):
 
 
 @login_required
-@role_required("doctor")
+@role_required(*CLINICIAN_ROLES)
 def download_report_pdf(request, appointment_id):
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(Appointment, pk=appointment_id, cabinet=cabinet)

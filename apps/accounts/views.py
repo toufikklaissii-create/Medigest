@@ -62,7 +62,7 @@ class AccountLogoutView(LogoutView):
 @login_required
 def post_login_redirect(request):
     profile = getattr(request.user, "profile", None)
-    if profile and profile.role == Profile.Role.DOCTOR:
+    if profile and profile.is_clinician:
         return redirect("clinical:doctor_dashboard")
     return redirect("appointments:assistant_dashboard")
 

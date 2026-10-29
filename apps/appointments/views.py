@@ -465,7 +465,7 @@ def intake_vitals_modal(request, pk):
     return render(
         request,
         "assistant/_intake_vitals_modal.html",
-        {"appointment": appointment, "consultation": consultation, "is_doctor": request.user.profile.is_doctor},
+        {"appointment": appointment, "consultation": consultation, "is_doctor": request.user.profile.is_clinician},
     )
 
 
@@ -519,7 +519,7 @@ def save_intake_vitals(request, pk):
                 ]
             )
             # Doctoresse : remplace ; assistante : ajout daté à la fin, jamais d'écrasement.
-            changed = apply_history_post(appointment.patient, request.POST, request.user.profile.is_doctor)
+            changed = apply_history_post(appointment.patient, request.POST, request.user.profile.is_clinician)
             if changed:
                 appointment.patient.save(update_fields=changed)
             values = None
@@ -528,7 +528,7 @@ def save_intake_vitals(request, pk):
         request,
         "assistant/_intake_vitals_form.html",
         {"appointment": appointment, "consultation": consultation, "errors": errors, "values": values,
-         "is_doctor": request.user.profile.is_doctor},
+         "is_doctor": request.user.profile.is_clinician},
     )
     if error_message:
         response.headers["HX-Trigger"] = _toast_header(error_message, "error")

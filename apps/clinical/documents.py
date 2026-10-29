@@ -129,6 +129,6 @@ def documents_context(request, patient):
         "document_type_choices": PatientDocument.DocumentType.choices,
         "document_consultations": consultations,
         # L'assistante voit la liste mais n'ouvre jamais un document (contenu clinique).
-        "can_open_documents": request.user.profile.role == "doctor",
+        "can_open_documents": request.user.profile.is_clinician,
         "today": timezone.localdate(),
     }

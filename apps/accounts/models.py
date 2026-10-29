@@ -88,6 +88,8 @@ class Profile(models.Model):
     class Role(models.TextChoices):
         DOCTOR = "doctor", "Médecin"
         ASSISTANT = "assistant", "Assistante"
+        # Remplace la doctoresse : tout le clinique, rien de ce qui touche à l'argent.
+        REMPLACANT = "remplacant", "Médecin remplaçant"
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
@@ -111,6 +113,20 @@ class Profile(models.Model):
     @property
     def is_assistant(self):
         return self.role == self.Role.ASSISTANT
+
+    @property
+    def is_remplacant(self):
+        return self.role == self.Role.REMPLACANT
+
+    @property
+    def is_clinician(self):
+        """Doctoresse ou remplaçant : accès au dossier médical et aux consultations."""
+        return self.role in CLINICIAN_ROLES
+
+    @property
+    def sees_money(self):
+        """Facturation, caisse, recettes, montants : tout le monde sauf le remplaçant."""
+        return self.role != self.Role.REMPLACANT
 
 
 class PrintProfile(models.Model):
@@ -164,3 +180,7 @@ class PrintProfile(models.Model):
             if value not in existing:
                 existing[value] = cls.objects.create(cabinet=cabinet, document_type=value)
         return [existing[value] for value in cls.DocumentType.values]
+
+
+# Rôles qui consultent (accès clinique). Le remplaçant n'a jamais accès à l'argent.
+CLINICIAN_ROLES = (Profile.Role.DOCTOR, Profile.Role.REMPLACANT)

@@ -426,7 +426,7 @@
         <aside aria-label="Facturation et validation"
                class="lg:self-start lg:sticky lg:top-[88px] lg:max-h-[calc(100dvh-112px)] flex flex-col bg-surface rounded-2xl border border-border-subtle shadow-card">
             <div class="flex items-center justify-between gap-2 px-5 pt-5">
-                <h2 class="text-[15px] font-semibold text-text-main">Facturation et actes</h2>
+                <h2 class="text-[15px] font-semibold text-text-main">{% if sees_money %}Facturation et actes{% else %}Actes réalisés{% endif %}</h2>
                 {% if consultation.status == "validated" %}
                 <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700"><span class="size-1.5 rounded-full bg-emerald-400"></span>Validée</span>
                 {% else %}
@@ -445,7 +445,12 @@
                                class="size-4 shrink-0 rounded border-border-strong accent-sauge-600 cursor-pointer">
                         <span class="min-w-0 flex-1 py-1.5 text-sm leading-snug text-text-main line-clamp-2 break-words" title="{{ act.name }}">{{ act.name }}</span>
                     </label>
+                    {% if sees_money %}
                     <span x-show="!selected.includes({{ act.id }})" class="shrink-0 pr-1 text-[13px] font-medium text-text-muted tabular-nums">{% if act.prix_libre %}Prix libre{% else %}{{ act.price|dh }}{% endif %}</span>
+                    {% elif act.prix_libre %}
+                    <span x-show="!selected.includes({{ act.id }})" class="shrink-0 pr-1 text-[13px] font-medium text-text-muted">Prix libre</span>
+                    {% endif %}
+                    {% if sees_money or act.prix_libre %}
                     <!-- Prix de la ligne : pré-rempli au tarif du catalogue, ajustable par la doctoresse -->
                     <label x-show="selected.includes({{ act.id }})" x-cloak class="relative shrink-0">
                         <span class="sr-only">Prix facturé pour {{ act.name }}</span>
@@ -461,6 +466,7 @@
                         {% endif %}
                         <span class="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[11px] text-text-muted">DH</span>
                     </label>
+                    {% endif %}
                 </div>
                 {% empty %}
                 <div class="flex flex-col items-center py-8 text-center">
@@ -474,6 +480,7 @@
             </div>
 
             <div class="shrink-0 mt-2 border-t border-border-subtle px-5 pt-4 pb-5">
+                {% if sees_money %}
                 {% if free_control and not is_locked %}
                 <p class="mb-3 flex items-start gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[12.5px] text-sky-800" role="status">
                     <i data-lucide="calendar-check" class="mt-px w-4 h-4 shrink-0" stroke-width="1.75" aria-hidden="true"></i>
@@ -505,6 +512,12 @@
                 </div>
                 {% if consultation.invoice and consultation.invoice.is_locked %}
                 <p class="mt-2 text-[12px] text-text-muted">Facture {{ consultation.invoice.invoice_number }} déjà encaissée ou annulée : ses montants ne changeront plus.</p>
+                {% endif %}
+                {% else %}
+                {# Remplaçant : nombre d'actes seulement, aucun montant. La facture est faite par l'assistante. #}
+                <p class="text-[13px] text-text-muted">
+                    <span x-text="selected.length">{{ selected_act_ids|length }}</span> acte<span x-show="selected.length > 1">s</span> sélectionné<span x-show="selected.length > 1">s</span>
+                </p>
                 {% endif %}
 
                 {% if is_locked %}
@@ -607,7 +620,8 @@
                 <h2 id="unlock-title" class="text-[15px] font-semibold text-text-main">Modifier une consultation validée ?</h2>
                 <p class="mt-1.5 text-[13px] leading-relaxed text-text-soft">
                     La consultation repasse en brouillon jusqu'à sa nouvelle validation.
-                    {% if consultation.invoice and consultation.invoice.status == "paid" %}
+                    {% if not sees_money %}
+                    {% elif consultation.invoice and consultation.invoice.status == "paid" %}
                     La facture {{ consultation.invoice.invoice_number }}, déjà encaissée, ne sera pas modifiée.
                     {% elif consultation.invoice %}
                     La facture {{ consultation.invoice.invoice_number }} sera recalculée à la nouvelle validation.

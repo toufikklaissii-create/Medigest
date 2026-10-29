@@ -40,8 +40,11 @@ def media_file(request, path):
     if not request.user.is_authenticated:
         return redirect_to_login(request.get_full_path())
     profile = getattr(request.user, "profile", None)
-    if profile is None or profile.role != "doctor":
+    if profile is None or not profile.is_clinician:
         return HttpResponseForbidden("Accès refusé : documents réservés au médecin.")
+    if not profile.sees_money and posixpath.basename(path).startswith(("facture", "recu")):
+        # Copies archivées des factures et reçus : jamais pour le remplaçant.
+        return HttpResponseForbidden("Accès refusé : documents de facturation.")
     if not _is_allowed(profile.cabinet, path):
         raise Http404
 

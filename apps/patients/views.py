@@ -80,7 +80,7 @@ def index(request):
             "view_filter": view_filter,
             "completed_count": len(last_completed_by_patient),
             "a_verifier_count": a_verifier.count(),
-            "is_doctor": request.user.profile.role == "doctor",
+            "is_doctor": request.user.profile.is_clinician,
         },
     )
 
@@ -104,14 +104,14 @@ def create_patient(request):
                 emergency_contact=request.POST.get("emergency_contact", "").strip(),
                 blood_group=request.POST.get("blood_group", "").strip(),
             )
-            if apply_history_post(patient, request.POST, request.user.profile.is_doctor):
+            if apply_history_post(patient, request.POST, request.user.profile.is_clinician):
                 patient.save(update_fields=["medical_history", "allergies"])
             messages.success(request, f"Patiente {patient.full_name} créée ({patient.patient_number}).")
             return redirect("appointments:create_appointment_for", patient_id=patient.pk)
         messages.error(request, "Nom et prénom sont obligatoires.")
 
     return render(request, "patients/create.html", {
-        "is_doctor": request.user.profile.is_doctor, "couverture_choices": COUVERTURE_CHOICES,
+        "is_doctor": request.user.profile.is_clinician, "couverture_choices": COUVERTURE_CHOICES,
     })
 
 
@@ -132,14 +132,14 @@ def edit_patient(request, pk):
             patient.phone = request.POST.get("phone", "").strip()
             patient.emergency_contact = request.POST.get("emergency_contact", "").strip()
             patient.blood_group = request.POST.get("blood_group", "").strip()
-            apply_history_post(patient, request.POST, request.user.profile.is_doctor)
+            apply_history_post(patient, request.POST, request.user.profile.is_clinician)
             patient.save()
             messages.success(request, f"Dossier de {patient.full_name} mis à jour.")
             return redirect("patients:index")
         messages.error(request, "Nom et prénom sont obligatoires.")
 
     return render(request, "patients/edit.html", {
-        "patient": patient, "is_doctor": request.user.profile.is_doctor, "couverture_choices": COUVERTURE_CHOICES,
+        "patient": patient, "is_doctor": request.user.profile.is_clinician, "couverture_choices": COUVERTURE_CHOICES,
     })
 
 

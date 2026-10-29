@@ -83,7 +83,12 @@ def doctor_display_name(user):
     if user is None:
         return ""
     name = user.get_full_name().strip() or user.username
-    return name if name.lower().startswith("dr") else f"Dr {name}"
+    name = name if name.lower().startswith("dr") else f"Dr {name}"
+    profile = getattr(user, "profile", None)
+    if profile is not None and profile.is_remplacant:
+        # Le remplaçant signe en son nom sur le papier du cabinet.
+        return f"{name} (remplaçant)"
+    return name
 
 
 def letterhead_context(patient, doc_date, doctor=None):

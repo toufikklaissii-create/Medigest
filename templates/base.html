@@ -85,7 +85,7 @@
 {% url 'accounts:login' as login_url %}
 {% if request.user.is_authenticated and request.path != login_url %}
 {% with role=request.user.profile.role %}
-{% if role == 'doctor' %}{% url 'clinical:doctor_dashboard' as dash_url %}{% else %}{% url 'appointments:assistant_dashboard' as dash_url %}{% endif %}
+{% if role == 'doctor' or role == 'remplacant' %}{% url 'clinical:doctor_dashboard' as dash_url %}{% else %}{% url 'appointments:assistant_dashboard' as dash_url %}{% endif %}
 {% url 'patients:index' as patients_url %}
 {% url 'billing:index' as billing_url %}
 {% url 'communications:index' as comms_url %}
@@ -145,6 +145,7 @@
             <i data-lucide="users" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Patientes</span>
         </a>
+        {% if role != 'remplacant' %}
         <a href="{{ billing_url }}"
            class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
                {% if request.path == billing_url %}bg-white/10 text-white font-semibold border-sauge-400{% else %}text-white/65 hover:bg-white/5 hover:text-white/90 border-transparent{% endif %}">
@@ -166,7 +167,7 @@
             <i data-lucide="chart-column" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Rapports</span>
         </a>
-        {% else %}
+        {% elif role == 'assistant' %}
         {% url 'billing:cash_register' as cash_url %}
         <a href="{{ cash_url }}"
            class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]
@@ -174,6 +175,7 @@
             <i data-lucide="wallet" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Caisse</span>
         </a>
+        {% endif %}
         {% endif %}
         {% if role == 'doctor' %}
         {% url 'billing:tariffs' as tariffs_url %}
@@ -183,6 +185,8 @@
             <i data-lucide="tags" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Tarifs</span>
         </a>
+        {% endif %}
+        {% if role == 'doctor' or role == 'remplacant' %}
         {% url 'clinical:modeles_ordonnance' as modeles_url %}
         {% url 'clinical:modeles_courrier' as modeles_courrier_url %}
         <a href="{{ modeles_url }}"
@@ -191,6 +195,8 @@
             <i data-lucide="clipboard-list" class="w-[18px] h-[18px] shrink-0" stroke-width="1.75"></i>
             <span class="truncate inline md:hidden lg:inline">Modèles</span>
         </a>
+        {% endif %}
+        {% if role == 'doctor' %}
         {% url 'accounts:settings' as settings_url %}
         <a href="{{ settings_url }}"
            class="btn-tactile flex items-center gap-2.5 rounded-lg border-l-[3px] pl-2.5 pr-3 py-2.5 min-h-[40px] md:justify-center lg:justify-start font-medium text-[13.5px]

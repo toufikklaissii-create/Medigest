@@ -6,7 +6,7 @@ Paramètre : patient (absent à la création) ; le rôle est lu sur request.user
 {% endcomment %}
 {% with area="w-full rounded-lg border border-border-subtle px-3.5 py-2.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint" %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% if request.user.profile.is_doctor %}
+    {% if request.user.profile.is_clinician %}
     <div>
         <label for="pf-history" class="block text-[13px] font-medium text-text-soft mb-1.5">Antécédents médicaux / chirurgicaux</label>
         <textarea id="pf-history" name="medical_history" rows="3" placeholder="Ex : diabète, césarienne en 2020…" class="{{ area }}">{{ patient.medical_history }}</textarea>

@@ -166,6 +166,7 @@
                 <div id="phone-qr-slot"></div>
             </div>
 
+            {% if sees_money %}
             <!-- 4. Factures -->
             <div role="tabpanel" id="panel-factures" aria-labelledby="tab-factures" x-show="tab === 'factures'" x-cloak tabindex="0">
                 {% if invoices %}
@@ -203,6 +204,7 @@
                 <p class="py-12 text-center text-sm text-text-muted">Aucune facture pour cette patiente.</p>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
     </section>
 </div>
@@ -215,7 +217,7 @@
                 { key: "historique", label: "Historique", count: {{ consultations|length }} },
                 { key: "evolution", label: "Évolution", count: {{ consultations|length }} },
                 { key: "documents", label: "Documents", count: {{ documents|length }} },
-                { key: "factures", label: "Factures", count: {{ invoices|length }} },
+                {% if sees_money %}{ key: "factures", label: "Factures", count: {{ invoices|length }} },{% endif %}
             ],
             tab: "historique",
             init() {

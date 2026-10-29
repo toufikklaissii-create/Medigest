@@ -133,7 +133,7 @@ class PrintProfileDefaultsTest(PrintBase):
 
 
 class PrintModeTest(PrintBase):
-    def test_print_has_no_background_and_no_title_for_all_five_types(self):
+    def test_print_has_no_background_and_no_preprinted_title_for_all_five_types(self):
         for document_type, url, body in self.document_urls():
             with self.subTest(document=document_type):
                 response = self.doctor_client.get(url, {"mode": "impression"})
@@ -142,8 +142,13 @@ class PrintModeTest(PrintBase):
                 text = pdf_text(response.content)
                 for marker in LETTERHEAD_MARKERS:
                     self.assertNotIn(marker, text)  # aucun fond
-                for title in ("ORDONNANCE", "COMPTE RENDU", "CERTIFICAT", "FACTURE", "REÇU DE PAIEMENT", "Khemisset, le"):
+                for title in ("ORDONNANCE", "COMPTE RENDU", "FACTURE", "REÇU DE PAIEMENT", "Khemisset, le"):
                     self.assertNotIn(title, text)  # déjà imprimés sur la feuille
+                if document_type == "lettre":
+                    # La feuille ne dit pas de quel courrier il s'agit : son titre est imprimé avec le texte.
+                    self.assertIn("CERTIFICAT MÉDICAL", text)
+                else:
+                    self.assertNotIn("CERTIFICAT", text)
                 self.assertIn(body, text)
                 self.assertIn("Bennani", text)
                 self.assertEqual(page_size(response.content), A4)
@@ -179,7 +184,10 @@ class PrintModeTest(PrintBase):
         self.set_profile("compte_rendu", format="A5")
         a5_x, a5_y = text_origin(self.doctor_client.get(url, {"mode": "impression"}).content, "Patiente")
         self.assertAlmostEqual(a5_x, a4_x * 0.7071, delta=0.5)
-        self.assertAlmostEqual(a5_y, a4_y * 0.7071, delta=0.5)
+        # En A5 le texte est agrandi (lisibilité) : sa ligne de base descend de quelques points
+        # dans le même cadre, qui lui reste exactement réduit.
+        self.assertAlmostEqual(a5_y, a4_y * 0.7071, delta=4)
+        self.assertLessEqual(a5_y, a4_y * 0.7071)
 
     def test_offset_is_applied_to_print_only(self):
         url = reverse("billing:invoice_pdf", args=[self.invoice.pk])

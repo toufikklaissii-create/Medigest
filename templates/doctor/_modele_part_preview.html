@@ -1,0 +1,17 @@
+{% load medigest_format %}
+<div class="min-w-0 rounded-xl bg-slate-50/60 px-4 py-3">
+    <p class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">
+        <i data-lucide="{{ icon }}" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i> {{ label }}
+    </p>
+    {% with lines=content|lignes_ordonnance %}
+    {% if lines %}
+    <ol class="mt-2 space-y-1 text-[13px] leading-relaxed text-text-main">
+        {% for line in lines %}
+        <li class="flex gap-1.5 break-words"><span class="shrink-0 tabular-nums text-text-muted">{{ forloop.counter }}-</span><span class="min-w-0">{{ line }}</span></li>
+        {% endfor %}
+    </ol>
+    {% else %}
+    <p class="mt-2 text-[13px] text-text-faint">Rien à prescrire.</p>
+    {% endif %}
+    {% endwith %}
+</div>

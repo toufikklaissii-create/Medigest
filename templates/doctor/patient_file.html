@@ -162,6 +162,10 @@
                                     <div class="min-w-0">
                                         <h4 class="{{ label_cls }}">Ordonnance</h4>
                                         <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words {% if c.prescription %}text-text-main{% else %}text-text-faint{% endif %}">{{ c.prescription|default:"Aucune ordonnance." }}</p>
+                                        {% for key, label, content in c.extra_prescriptions %}
+                                        <h4 class="{{ label_cls }} mt-3">{{ label }}</h4>
+                                        <p class="mt-1 text-sm leading-relaxed whitespace-pre-line break-words text-text-main">{{ content }}</p>
+                                        {% endfor %}
                                     </div>
                                 </div>
 
@@ -191,6 +195,9 @@
                                     {% if c.prescription %}
                                     {% url 'clinical:prescription_pdf' c.appointment_id as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label="Ordonnance" icon="pill" %}
                                     {% endif %}
+                                    {% for key, label, content in c.extra_prescriptions %}
+                                    {% url 'clinical:prescription_part_pdf' c.appointment_id key as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label=label icon="file-plus" %}
+                                    {% endfor %}
                                     {% url 'clinical:report_pdf' c.appointment_id as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label="Compte rendu" icon="file-text" %}
                                     {% for key, label in c.letters %}
                                     {% url 'clinical:letter_pdf' c.appointment_id key as doc_url %}{% include "_print_actions.html" with variant="inline" url=doc_url label=label icon="mail" %}

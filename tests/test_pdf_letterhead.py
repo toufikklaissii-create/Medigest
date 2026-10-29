@@ -88,9 +88,11 @@ class LetterheadPdfTest(TestCase):
         self.assertIn("Frottis cervico-vaginal", text)
 
     def test_letters(self):
-        for key, template in services.LETTER_TEMPLATES.items():
-            pdf = services.generate_letter_pdf(self.consultation, key, "Chère consœur,\nJe vous adresse ma patiente.", save_copy=False)
-            self.assert_letterhead(pdf, template["label"].upper())
+        from apps.clinical.courriers import COURRIER_TYPES
+
+        for courrier in COURRIER_TYPES:
+            pdf = services.generate_letter_pdf(self.consultation, courrier["key"], "Chère consœur,\nJe vous adresse ma patiente.", save_copy=False)
+            self.assert_letterhead(pdf, courrier["title"].upper())
 
     def test_long_letter_spans_pages_with_letterhead_on_each(self):
         content = "Je vous adresse ma patiente pour avis. " * 400

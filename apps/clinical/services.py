@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 
 from django.utils import timezone
@@ -5,33 +6,19 @@ from django.utils import timezone
 from apps.accounts.models import PrintProfile
 from apps.common.pdf import render_pdf, save_pdf_copy
 
-PRESCRIPTION_TEMPLATES = {
-    "grossesse_t1_t2": {
-        "label": "Suivi Grossesse T1/T2",
-        "text": (
-            "Acide folique 0,4 mg — 1 comprimé par jour\n"
-            "Supplémentation vitamino-calcique — 1 comprimé par jour pendant 1 mois\n"
-            "Repos relatif, hydratation abondante\n"
-            "Échographie de datation/morphologique à programmer selon le terme"
-        ),
+from .courriers import COURRIER_TYPES_BY_KEY
+
+# Les trois parties de l'ordonnance : clé d'URL → (champ du formulaire, sous-titre imprimé, nom de fichier).
+# Le type de document (Document.DocumentType) est résolu dans views.py pour éviter l'import circulaire.
+PRESCRIPTION_PARTS = {
+    "medicaments": {"field": "prescription_content", "label": "Médicaments", "subtitle": "", "file": "ordonnance"},
+    "bilan": {
+        "field": "bilan_content", "label": "Bilan biologique",
+        "subtitle": "Bilan biologique", "file": "ordonnance_bilan",
     },
-    "infection_gyneco": {
-        "label": "Infection gynécologique",
-        "text": (
-            "Ovules antifongiques — 1 ovule au coucher pendant 3 jours\n"
-            "Toilette intime avec savon à pH neutre, 2 fois par jour\n"
-            "Éviter les rapports pendant le traitement\n"
-            "Consultation de contrôle dans 2 semaines si persistance des symptômes"
-        ),
-    },
-    "bilan_preconceptionnel": {
-        "label": "Bilan préconceptionnel",
-        "text": (
-            "NFS, glycémie à jeun, groupe sanguin et rhésus\n"
-            "Sérologies : toxoplasmose, rubéole, syphilis, VIH, hépatites B et C\n"
-            "TSH, frottis cervico-vaginal si non à jour\n"
-            "Acide folique 0,4 mg — 1 comprimé par jour dès le désir de grossesse"
-        ),
+    "radiologie": {
+        "field": "radiologie_content", "label": "Radiologie",
+        "subtitle": "Examens radiologiques", "file": "ordonnance_radiologie",
     },
 }
 
@@ -45,40 +32,8 @@ MODE_PRINT = "impression"
 MODE_LETTERHEAD = "entete"
 PRINT_BASE = "pdf/_print_base.html"
 LETTERHEAD_BASE = "pdf/_letterhead_base.html"
-# Lettre, certificat et pré-anesthésie partagent le profil « lettre ».
+# Certificats, lettres, arrêts, hospitalisation et pré-anesthésie partagent le profil « lettre ».
 LETTER_PRINT_PROFILE = PrintProfile.DocumentType.LETTRE
-
-
-LETTER_TEMPLATES = {
-    "letter": {
-        "label": "Lettre à un confrère",
-        "text": (
-            "Cher confrère, chère consœur,\n\n"
-            "Je vous adresse Madame [Nom de la patiente] pour avis complémentaire concernant sa prise en charge gynécologique/obstétricale.\n\n"
-            "Éléments cliniques : [à compléter]\n\n"
-            "Je reste à votre disposition pour tout échange complémentaire.\n\n"
-            "Confraternellement,\nDr ERRMILI Khadija"
-        ),
-    },
-    "certificate": {
-        "label": "Certificat de prise en charge",
-        "text": (
-            "Je soussignée, Dr ERRMILI Khadija, certifie que Madame [Nom de la patiente] est prise en charge "
-            "dans le cadre d'un suivi gynécologique/obstétrical au sein de ce cabinet.\n\n"
-            "Ce certificat est délivré à la patiente pour faire valoir ce que de droit."
-        ),
-    },
-    "preanesthesia": {
-        "label": "Consultation pré-anesthésie",
-        "text": (
-            "Compte rendu à l'attention du médecin anesthésiste dans le cadre d'une consultation pré-anesthésique.\n\n"
-            "Antécédents médicaux : [à compléter]\n"
-            "Allergies connues : [à compléter]\n"
-            "Traitement en cours : [à compléter]\n\n"
-            "Intervention prévue : [à compléter]"
-        ),
-    },
-}
 
 
 def free_control_candidate(consultation):
@@ -113,8 +68,14 @@ def free_control_candidate(consultation):
     return {"date": day, "days": (reference - day).days}
 
 
+# Numéro ou puce déjà tapé par la doctoresse (« 1- », « 2. », « 3) », « - », « • ») : l'ordonnance
+# numérote elle-même les lignes, on l'enlève pour ne pas imprimer « 1- 1- Acide folique ».
+_LEADING_MARK = re.compile(r"^(?:\d{1,2}\s*[-.)]|[-•*])\s*")
+
+
 def prescription_lines(content):
-    return [line.strip() for line in (content or "").splitlines() if line.strip()]
+    lines = (_LEADING_MARK.sub("", line.strip()) for line in (content or "").splitlines())
+    return [line for line in lines if line]
 
 
 def doctor_display_name(user):
@@ -148,6 +109,8 @@ def render_document(template_name, context, *, cabinet, document_type, mode=MODE
     En-tête : rendu habituel avec fond, réduit en A5 si le profil est en A5.
     """
     profile = PrintProfile.for_document(cabinet, document_type)
+    # A5 : la page A4 est réduite de 30 % ; les gabarits grossissent leur texte pour rester lisibles.
+    context = {**context, "a5": profile.format == PrintProfile.Format.A5}
     if mode == MODE_PRINT:
         return render_pdf(
             template_name, {**context, "pdf_base": PRINT_BASE, "print_mode": True},
@@ -159,26 +122,29 @@ def render_document(template_name, context, *, cabinet, document_type, mode=MODE
     )
 
 
-def generate_prescription_pdf(consultation, content, save_copy=True, mode=MODE_LETTERHEAD):
+def generate_prescription_pdf(consultation, content, save_copy=True, mode=MODE_LETTERHEAD, part="medicaments"):
+    """Ordonnance d'une des trois parties (médicaments, bilan biologique, radiologie), lignes numérotées."""
     patient = consultation.patient
+    part_info = PRESCRIPTION_PARTS[part]
     pdf_bytes = render_document(
         "pdf/prescription.html",
         {
             "patient": patient,
             "doc_date": consultation.updated_at,
             "prescription_lines": prescription_lines(content),
+            "subtitle": part_info["subtitle"],
         },
         cabinet=consultation.cabinet, document_type=PrintProfile.DocumentType.ORDONNANCE, mode=mode,
         background=PRESCRIPTION_LETTERHEAD,
     )
     if save_copy:
-        save_pdf_copy(patient, "ordonnance", pdf_bytes, reference=consultation.pk)
+        save_pdf_copy(patient, part_info["file"], pdf_bytes, reference=consultation.pk)
     return pdf_bytes
 
 
 def generate_letter_pdf(consultation, document_type, content, save_copy=True, mode=MODE_LETTERHEAD):
     patient = consultation.patient
-    doc_title = LETTER_TEMPLATES.get(document_type, {}).get("label", "Document")
+    doc_title = COURRIER_TYPES_BY_KEY.get(document_type, {}).get("title", "Document")
     pdf_bytes = render_document(
         "pdf/letter.html",
         {

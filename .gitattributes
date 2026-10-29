@@ -1,0 +1,8 @@
+# Scripts Windows : CRLF obligatoire, y compris dans le ZIP téléchargé depuis GitHub au cabinet.
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+# Fichiers binaires servis tels quels.
+*.woff2 binary
+*.pdf binary
+*.jpg binary
+*.png binary

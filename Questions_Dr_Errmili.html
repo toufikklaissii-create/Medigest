@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Réunion Dr Errmili</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<style>
+/* Layout : une colonne de fiches à cocher, une note par question, barre de progression collante. */
+:root {
+  --bg: #FBF7F8; --surface: #FFFFFF; --fg: #2A1A21; --muted: #7A6670; --line: #EBDDE2;
+  --accent: #B84A6E; --accent-soft: #F6E4EA; --done: #2F7D5B; --done-soft: #E3F2EA;
+  --display: "Fraunces", Georgia, serif; --body: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1A1215; --surface: #241A1E; --fg: #F3E9EC; --muted: #B39CA5; --line: #3A2B31;
+  --accent: #E58AA8; --accent-soft: #3A2129; --done: #6CC79B; --done-soft: #1E3328; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1A1215; --surface: #241A1E; --fg: #F3E9EC; --muted: #B39CA5; --line: #3A2B31;
+  --accent: #E58AA8; --accent-soft: #3A2129; --done: #6CC79B; --done-soft: #1E3328; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 24px 64px; display: flex; flex-direction: column; gap: 22px; }
+header h1 { font-family: var(--display); font-weight: 600; font-size: 1.75rem; line-height: 1.15; margin: 0; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.track { flex: 1 1 160px; height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--accent); transition: width .25s; }
+.count { font-variant-numeric: tabular-nums; font-weight: 600; font-size: .9rem; white-space: nowrap; }
+.filters { display: flex; gap: 6px; }
+button { font: inherit; cursor: pointer; }
+.chip { border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 99px; padding: 5px 12px; font-size: .85rem; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.chip:focus-visible, .q input:focus-visible, textarea:focus-visible, .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 0 0 8px; }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; }
+.q.done { background: var(--done-soft); border-color: transparent; }
+.q input[type=checkbox] { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--done); }
+.q label { font-weight: 500; min-width: 0; }
+.q.done label { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--done); }
+.star { color: var(--accent); font-weight: 700; margin-right: 4px; }
+.num { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 4px; }
+textarea { grid-column: 2; width: 100%; box-sizing: border-box; min-height: 38px; resize: vertical; font: inherit; font-size: .9rem;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+.q.done textarea { background: var(--surface); }
+.hidden-by-filter { display: none; }
+
+.end { background: var(--accent-soft); border-radius: 12px; padding: 14px 16px; }
+.end p { margin: 0; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.copy { background: var(--accent); color: var(--surface); border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 600; }
+.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; }
+.status { color: var(--muted); font-size: .9rem; }
+#fallback { width: 100%; min-height: 160px; }
+@media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Réunion avec Dr Errmili</h1>
+    <p>Démo Medigest, vendredi 16 octobre. Coche chaque question posée et note sa réponse. ★ = indispensable avant l'installation de samedi.</p>
+  </header>
+
+  <div class="bar" role="region" aria-label="Avancement">
+    <div class="track" aria-hidden="true"><div class="fill" id="fill"></div></div>
+    <span class="count" id="count">0 / 20</span>
+    <div class="filters">
+      <button class="chip" id="f-all" aria-pressed="true">Toutes</button>
+      <button class="chip" id="f-todo" aria-pressed="false">À poser</button>
+      <button class="chip" id="f-star" aria-pressed="false">★ seulement</button>
+    </div>
+  </div>
+
+  <div id="sections"></div>
+
+  <div class="end">
+    <p><strong>Pour finir :</strong> « Qu'est-ce qui vous ferait gagner le plus de temps au quotidien ? »</p>
+  </div>
+
+  <div class="actions">
+    <button class="copy" id="copy">Copier mes réponses</button>
+    <button class="ghost" id="reset">Tout décocher</button>
+    <span class="status" id="status" role="status"></span>
+  </div>
+  <textarea id="fallback" hidden readonly aria-label="Réponses à copier"></textarea>
+</div>
+
+<script>
+const DATA = [
+  ["Tarifs et facturation", [
+    [true,  "Vos tarifs : consultation, contrôle, chaque type d'échographie, frottis, autres actes ?"],
+    [false, "Le contrôle est-il gratuit ? Dans quel délai après la consultation ?"],
+    [false, "Paiement en plusieurs fois accepté (suivi de grossesse, accouchement) ?"],
+    [false, "Modes de paiement : espèces, carte (terminal de paiement ?), chèque, virement ?"],
+    [true,  "Identifiants à mettre sur les factures : INPE, IF, ICE, patente ?"],
+    [false, "Avez-vous un comptable ? Format voulu (Excel ou PDF) et fréquence (mois, trimestre) ?"],
+    [false, "Remplissez-vous des feuilles de soins (CNSS, CNOPS) ? Combien par jour ?"]
+  ]],
+  ["Organisation du cabinet", [
+    [true,  "Combien d'assistantes ? Un compte pour chacune."],
+    [false, "L'assistante peut-elle voir les antécédents et allergies, ou seulement les saisir ?"],
+    [false, "Durée d'un RDV, horaires d'ouverture, jours de fermeture ?"],
+    [false, "Voir les recettes du jour sur votre écran d'accueil, ou seulement dans les rapports ?"]
+  ]],
+  ["Documents et WhatsApp", [
+    [false, "Vos 5 ou 6 ordonnances les plus fréquentes, à préenregistrer ?"],
+    [true,  "Numéro WhatsApp du cabinet ? WhatsApp Business déjà installé ?"],
+    [false, "Rappel de RDV : la veille ou 2 jours avant ?"],
+    [false, "Les patientes envoient-elles déjà leurs résultats par WhatsApp ?"]
+  ]],
+  ["Installation de samedi", [
+    [true,  "Combien de PC ? Quel Windows ? Même box, en Wi-Fi ou en câble ?"],
+    [true,  "Quelle imprimante ? Partagée entre plusieurs postes ?"],
+    [false, "Anciens dossiers : papier, Excel ou autre logiciel ? À reprendre ?"],
+    [true,  "À quelle heure venir samedi sans gêner les consultations ?"],
+    [false, "Qui sera présent pour la formation de l'assistante ?"]
+  ]]
+];
+const KEY = "errmili-reunion-v1";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { state = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+const root = document.getElementById("sections");
+let n = 0, filter = "all";
+DATA.forEach(([title, qs]) => {
+  const sec = document.createElement("section");
+  sec.innerHTML = `<h2>${title}</h2><div class="list"></div>`;
+  const list = sec.querySelector(".list");
+  qs.forEach(([star, text]) => {
+    n += 1; const id = "q" + n; const s = state[id] || {};
+    const el = document.createElement("div");
+    el.className = "q" + (s.done ? " done" : ""); el.dataset.star = star ? "1" : "";
+    el.innerHTML = `<input type="checkbox" id="${id}" ${s.done ? "checked" : ""}>
+      <label for="${id}">${star ? '<span class="star" aria-label="indispensable">★</span>' : ""}<span class="num">${n}.</span>${text}</label>
+      <textarea id="${id}-note" rows="1" placeholder="Réponse…" aria-label="Réponse à la question ${n}"></textarea>`;
+    el.querySelector("textarea").value = s.note || "";
+    el.querySelector("input").addEventListener("change", e => {
+      state[id] = { ...(state[id] || {}), done: e.target.checked }; el.classList.toggle("done", e.target.checked); save(); refresh();
+    });
+    el.querySelector("textarea").addEventListener("input", e => {
+      state[id] = { ...(state[id] || {}), note: e.target.value }; save();
+    });
+    el.dataset.text = text;
+    list.appendChild(el);
+  });
+  root.appendChild(sec);
+});
+const total = n;
+
+function refresh() {
+  const items = [...document.querySelectorAll(".q")];
+  const done = items.filter(q => q.querySelector("input").checked).length;
+  document.getElementById("count").textContent = `${done} / ${total}`;
+  document.getElementById("fill").style.width = (done / total * 100) + "%";
+  items.forEach(q => {
+    const checked = q.querySelector("input").checked;
+    const hide = (filter === "todo" && checked) || (filter === "star" && !q.dataset.star);
+    q.classList.toggle("hidden-by-filter", hide);
+  });
+}
+const chips = { all: "f-all", todo: "f-todo", star: "f-star" };
+Object.entries(chips).forEach(([k, id]) => document.getElementById(id).addEventListener("click", () => {
+  filter = k; Object.values(chips).forEach(c => document.getElementById(c).setAttribute("aria-pressed", String(c === id))); refresh();
+}));
+
+function summary() {
+  let out = "Réunion Dr Errmili — réponses\n";
+  let i = 0;
+  DATA.forEach(([title, qs]) => {
+    out += `\n${title.toUpperCase()}\n`;
+    qs.forEach(([star, text]) => {
+      i += 1; const s = state["q" + i] || {};
+      out += `${s.done ? "[x]" : "[ ]"} ${i}. ${text}\n    → ${(s.note || "").trim() || "(pas de réponse)"}\n`;
+    });
+  });
+  return out;
+}
+const status = document.getElementById("status");
+document.getElementById("copy").addEventListener("click", () => {
+  const text = summary(); const fb = document.getElementById("fallback");
+  const showFallback = () => { fb.hidden = false; fb.value = text; fb.focus(); fb.select(); status.textContent = "Sélectionne le texte ci-dessous et copie-le."; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => { status.textContent = "Réponses copiées."; }, showFallback);
+  } else { showFallback(); }
+});
+let armed = false;
+document.getElementById("reset").addEventListener("click", e => {
+  if (!armed) { armed = true; e.target.textContent = "Confirmer ?"; setTimeout(() => { armed = false; e.target.textContent = "Tout décocher"; }, 3000); return; }
+  document.querySelectorAll(".q input").forEach(c => { c.checked = false; c.closest(".q").classList.remove("done"); });
+  Object.keys(state).forEach(k => { state[k] = { ...state[k], done: false }; }); save(); refresh();
+  armed = false; e.target.textContent = "Tout décocher"; status.textContent = "Coches retirées, réponses gardées.";
+});
+refresh();
+</script>
+</body>
+</html>

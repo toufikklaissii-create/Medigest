@@ -10,35 +10,36 @@
        sont appliqués après coup par apps/common/pdf.fit_pages. */
     @page {
         size: A4;
-        @frame date_frame { left: 284pt; width: 110pt; top: 180pt; height: 22pt; }
-        @frame body_frame { left: 62pt; width: 471pt; top: 214pt; height: 528pt; }
+        @frame date_frame { left: 284pt; width: 170pt; top: 178pt; height: 28pt; }
+        @frame body_frame { left: 62pt; width: 471pt; top: 214pt; height: 500pt; }
     }
     @page suite {
         size: A4;
         /* Pages suivantes : le texte démarre sous la bande d'en-tête. */
-        @frame body_frame { left: 62pt; width: 471pt; top: 146pt; height: 596pt; }
+        @frame body_frame { left: 62pt; width: 471pt; top: 146pt; height: 568pt; }
     }
 
-    body { font-family: Times-Roman, serif; color: #111827; font-size: 11.5pt; line-height: 1.35; }
+    body { font-family: Times-Roman, serif; color: #111827; font-size: {% if a5 %}15pt{% else %}11.5pt{% endif %}; line-height: 1.35; }
     p { margin: 0; }
-    .date { font-size: 12pt; }
+    .date { font-size: {% if a5 %}15pt{% else %}12pt{% endif %}; }
 
-    .patient { font-size: 12pt; padding-bottom: 6pt; margin-bottom: 12pt; }
-    .patient .meta { color: #4B5563; font-size: 10.5pt; }
+    .patient { font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; padding-bottom: 6pt; margin-bottom: 12pt; }
+    .patient .meta { color: #4B5563; font-size: {% if a5 %}14pt{% else %}10.5pt{% endif %}; }
 
-    h2 { font-family: Times-Bold; font-size: 12pt; color: #111827; margin: 12pt 0 3pt 0; padding: 0; }
+    h2 { font-family: Times-Bold; font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; color: #111827; margin: 12pt 0 3pt 0; padding: 0; }
     .text { white-space: pre-line; }
+    .doc-title { font-family: Times-Bold; font-size: {% if a5 %}16.5pt{% else %}12.5pt{% endif %}; text-align: center; text-decoration: underline; margin-bottom: 8pt; }
     .muted { color: #6B7280; font-style: italic; }
 
     table.grid { width: 100%; border: 0.6pt solid #9CA3AF; }
-    table.grid td, table.grid th { padding: 4pt 7pt; font-size: 10.5pt; vertical-align: top; text-align: left; border: 0.6pt solid #9CA3AF; }
+    table.grid td, table.grid th { padding: 4pt 7pt; font-size: {% if a5 %}14pt{% else %}10.5pt{% endif %}; vertical-align: top; text-align: left; border: 0.6pt solid #9CA3AF; }
     table.grid th { font-family: Times-Bold; }
     .right { text-align: right; }
 
-    .stamp { font-family: Times-Bold; font-size: 15pt; color: #15803D; border: 1.6pt solid #15803D; padding: 4pt 10pt; letter-spacing: 2pt; }
-    .legal { margin-top: 14pt; font-size: 8.5pt; color: #4B5563; text-align: center; }
+    .stamp { font-family: Times-Bold; font-size: {% if a5 %}18pt{% else %}15pt{% endif %}; color: #15803D; border: 1.6pt solid #15803D; padding: 4pt 10pt; letter-spacing: 2pt; }
+    .legal { margin-top: 14pt; font-size: {% if a5 %}11pt{% else %}8.5pt{% endif %}; color: #4B5563; text-align: center; }
 
-    .signature { text-align: right; font-size: 11pt; padding-top: 24pt; }
+    .signature { text-align: right; font-size: {% if a5 %}14.5pt{% else %}11pt{% endif %}; padding-top: 24pt; }
     .signature .name { font-family: Times-Bold; }
 </style>
 </head>

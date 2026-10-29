@@ -10,9 +10,9 @@
 </table>
 
 <h2>Antécédents</h2>
-<p class="text">{{ patient.medical_history|default:"Aucun antécédent renseigné." }}</p>
+<p class="text">{{ patient.medical_history|default:"Aucun antécédent renseigné."|linebreaksbr }}</p>
 <h2>Allergies</h2>
-<p class="text">{{ patient.allergies|default:"Aucune allergie connue." }}</p>
+<p class="text">{{ patient.allergies|default:"Aucune allergie connue."|linebreaksbr }}</p>
 
 <h2>Historique des consultations</h2>
 <table class="grid">
@@ -21,7 +21,7 @@
     <tr>
         <td>{{ consultation.appointment.date|date:"d/m/Y" }}</td>
         <td>{{ consultation.appointment.reason|default:"—" }}</td>
-        <td class="text">{{ consultation.diagnostic|default:"—" }}</td>
+        <td class="text">{{ consultation.diagnostic|default:"—"|linebreaksbr }}</td>
     </tr>
     {% empty %}
     <tr><td colspan="3" class="muted">Aucune consultation enregistrée.</td></tr>

@@ -11,6 +11,8 @@ from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, InvoiceItem, MedicalAct
 from apps.patients.models import Patient
 
+from .courriers import COURRIER_TYPE_CHOICES
+
 
 GESTATION_DAYS = 280
 
@@ -172,9 +174,14 @@ class ConsultationAct(models.Model):
 class Document(models.Model):
     class DocumentType(models.TextChoices):
         PRESCRIPTION = "prescription", "Ordonnance"
+        BILAN_BIOLOGIQUE = "bilan_biologique", "Ordonnance bilan biologique"
+        RADIOLOGIE = "radiologie", "Ordonnance radiologie"
         REPORT = "report", "Compte-rendu"
         LETTER = "letter", "Lettre à un confrère"
-        CERTIFICATE = "certificate", "Certificat de prise en charge"
+        CERTIFICATE = "certificate", "Certificat médical"
+        CERT_GROSSESSE = "cert_grossesse", "Certificat de grossesse"
+        ARRET_TRAVAIL = "arret_travail", "Arrêt de travail"
+        HOSPITALISATION = "hospitalisation", "Demande d'hospitalisation"
         PREANESTHESIA = "preanesthesia", "Consultation pré-anesthésie"
 
     consultation = models.ForeignKey(
@@ -242,3 +249,64 @@ class PatientDocument(models.Model):
     @property
     def is_pdf(self):
         return self.content_type == "application/pdf"
+
+
+class ModeleOrdonnance(models.Model):
+    """Modèle d'ordonnance par symptomatologie, rédigé par la doctoresse (Réglages).
+
+    En consultation, choisir un modèle ajoute ses lignes aux trois parties de l'ordonnance :
+    médicaments, bilan biologique, radiologie (chacune facultative). Une ligne = un élément.
+    """
+
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name="modeles_ordonnance")
+    nom = models.CharField("Symptomatologie", max_length=120)
+    medicaments = models.TextField("Médicaments", blank=True)
+    bilan_biologique = models.TextField("Bilan biologique", blank=True)
+    radiologie = models.TextField("Radiologie", blank=True)
+    actif = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Modèle d'ordonnance"
+        verbose_name_plural = "Modèles d'ordonnance"
+        ordering = ["nom"]
+        constraints = [
+            models.UniqueConstraint(fields=["cabinet", "nom"], name="unique_modele_ordonnance_par_cabinet"),
+        ]
+
+    def __str__(self):
+        return self.nom
+
+    @property
+    def is_empty(self):
+        return not (self.medicaments.strip() or self.bilan_biologique.strip() or self.radiologie.strip())
+
+
+class ModeleCourrier(models.Model):
+    """Modèle de certificat ou de courrier, rédigé par la doctoresse (Réglages → Modèles).
+
+    Le texte peut contenir des champs remplis automatiquement en consultation : {patiente},
+    {age}, {ddr}, {terme}, {dpa}… (voir apps/clinical/courriers.py).
+    """
+
+    cabinet = models.ForeignKey(Cabinet, on_delete=models.CASCADE, related_name="modeles_courrier")
+    type_document = models.CharField("Type de document", max_length=20, choices=COURRIER_TYPE_CHOICES)
+    nom = models.CharField("Nom du modèle", max_length=120)
+    contenu = models.TextField("Texte")
+    actif = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Modèle de courrier"
+        verbose_name_plural = "Modèles de courrier"
+        ordering = ["type_document", "nom"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cabinet", "type_document", "nom"], name="unique_modele_courrier_par_type",
+            ),
+        ]
+
+    def __str__(self):
+        return self.nom

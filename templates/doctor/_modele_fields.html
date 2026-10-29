@@ -1,0 +1,38 @@
+{% comment %}
+Champs d'un modèle d'ordonnance (ajout et modification).
+Contexte : prefix (identifiants uniques), values (modèle ou POST), errors.
+{% endcomment %}
+{% with input_cls="w-full h-10 rounded-lg border bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" area_cls="w-full rounded-lg border border-border-subtle bg-surface px-3 py-2.5 text-sm leading-relaxed text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" %}
+<div>
+    <label for="{{ prefix }}{{ pk|default:"" }}-nom" class="block text-[13px] font-medium text-text-soft mb-1.5">Symptomatologie</label>
+    <input id="{{ prefix }}{{ pk|default:"" }}-nom" name="nom" value="{{ values.nom|default:'' }}" required maxlength="120" autocomplete="off"
+           placeholder="Ex. Mycose vaginale, Suivi grossesse T3…"
+           {% if errors.nom %}aria-invalid="true" aria-describedby="{{ prefix }}{{ pk|default:"" }}-nom-error"{% endif %}
+           class="{{ input_cls }} {% if errors.nom %}border-rose-300{% else %}border-border-subtle{% endif %}">
+    {% if errors.nom %}<p id="{{ prefix }}{{ pk|default:"" }}-nom-error" class="mt-1 text-[13px] text-rose-600">{{ errors.nom }}</p>{% endif %}
+</div>
+<div class="grid gap-4 md:grid-cols-3">
+    <div>
+        <label for="{{ prefix }}{{ pk|default:"" }}-medicaments" class="flex items-center gap-1.5 text-[13px] font-medium text-text-soft mb-1.5">
+            <i data-lucide="pill" class="w-3.5 h-3.5 text-text-faint" stroke-width="1.75" aria-hidden="true"></i> Médicaments
+        </label>
+        <textarea id="{{ prefix }}{{ pk|default:"" }}-medicaments" name="medicaments" rows="6" maxlength="4000"
+                  placeholder="Ovules antifongiques — 1 ovule au coucher pendant 3 jours" class="{{ area_cls }}">{{ values.medicaments|default:'' }}</textarea>
+    </div>
+    <div>
+        <label for="{{ prefix }}{{ pk|default:"" }}-bilan" class="flex items-center gap-1.5 text-[13px] font-medium text-text-soft mb-1.5">
+            <i data-lucide="test-tube" class="w-3.5 h-3.5 text-text-faint" stroke-width="1.75" aria-hidden="true"></i> Bilan biologique
+        </label>
+        <textarea id="{{ prefix }}{{ pk|default:"" }}-bilan" name="bilan_biologique" rows="6" maxlength="4000"
+                  placeholder="NFS, CRP" class="{{ area_cls }}">{{ values.bilan_biologique|default:'' }}</textarea>
+    </div>
+    <div>
+        <label for="{{ prefix }}{{ pk|default:"" }}-radiologie" class="flex items-center gap-1.5 text-[13px] font-medium text-text-soft mb-1.5">
+            <i data-lucide="scan-line" class="w-3.5 h-3.5 text-text-faint" stroke-width="1.75" aria-hidden="true"></i> Radiologie
+        </label>
+        <textarea id="{{ prefix }}{{ pk|default:"" }}-radiologie" name="radiologie" rows="6" maxlength="4000"
+                  placeholder="Échographie pelvienne" class="{{ area_cls }}">{{ values.radiologie|default:'' }}</textarea>
+    </div>
+</div>
+{% if errors.parties %}<p class="text-[13px] text-rose-600">{{ errors.parties }}</p>{% endif %}
+{% endwith %}

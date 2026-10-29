@@ -23,3 +23,11 @@ def dh(value):
     if value in (None, ""):
         return ""
     return f"{value:,.2f}".replace(",", " ").replace(".", ",") + " DH"
+
+
+@register.filter
+def lignes_ordonnance(value):
+    """Lignes d'une partie d'ordonnance, sans numéro ni puce déjà tapés (mêmes règles qu'à l'impression)."""
+    from apps.clinical.services import prescription_lines
+
+    return prescription_lines(value)

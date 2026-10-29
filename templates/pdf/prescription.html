@@ -11,33 +11,39 @@
         size: A4;
         /* Page 1 : la date sur les pointillés de « Khemisset, le … », puis le corps. */
         @frame date_frame {
-            left: 284pt; width: 110pt; top: 180pt; height: 22pt;
+            left: 284pt; width: 170pt; top: 178pt; height: 28pt;
         }
         @frame body_frame {
-            left: 62pt; width: 471pt; top: 214pt; height: 528pt;
+            left: 62pt; width: 471pt; top: 214pt; height: 500pt;
         }
     }
     @page suite {
         size: A4;
         /* Pages suivantes : le modèle porte encore « Khemisset, le … », on démarre dessous. */
         @frame body_frame {
-            left: 62pt; width: 471pt; top: 214pt; height: 528pt;
+            left: 62pt; width: 471pt; top: 214pt; height: 500pt;
         }
     }
 
     body {
         font-family: Times-Roman, serif;
         color: #111827;
-        font-size: 12pt;
+        /* A5 : la page est réduite de 30 % ; le texte est agrandi d'autant (16 pt → ~11,3 pt imprimé). */
+        font-size: {% if a5 %}16pt{% else %}12pt{% endif %};
         line-height: 1.35;
     }
     p { margin: 0; }
-    .date { font-size: 12pt; }
-    .patient { font-size: 12pt; margin-top: 6pt; margin-bottom: 18pt; }
-    ul.meds { margin: 0; padding-left: 16pt; }
-    ul.meds li { margin-bottom: 11pt; }
+    .date { font-size: {% if a5 %}15pt{% else %}12pt{% endif %}; }
+    .patient { font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; margin-top: 6pt; margin-bottom: {% if a5 %}20pt{% else %}18pt{% endif %}; }
+    /* Bilan biologique / radiologie : la feuille porte déjà « ORDONNANCE », on précise la partie. */
+    .subtitle { font-family: Times-Bold; font-size: {% if a5 %}16.5pt{% else %}12.5pt{% endif %}; text-align: center; text-decoration: underline; margin-bottom: 6pt; }
+    /* Lignes numérotées « 1- », « 2- »… : tableau pour que le texte d'une ligne longue
+       reste aligné après le numéro (xhtml2pdf gère mal les retraits négatifs). */
+    table.meds { width: 100%; }
+    table.meds td { vertical-align: top; padding: 0 0 {% if a5 %}14pt{% else %}11pt{% endif %} 0; }
+    table.meds td.num { width: {% if a5 %}30pt{% else %}22pt{% endif %}; }
     .empty { color: #6B7280; font-style: italic; }
-    .signature { text-align: right; font-size: 11pt; margin-top: 30pt; }
+    .signature { text-align: right; font-size: {% if a5 %}14.5pt{% else %}11pt{% endif %}; margin-top: 30pt; }
 </style>
 </head>
 <body>
@@ -46,14 +52,15 @@
     <pdf:nexttemplate name="suite"/>
     <pdf:nextframe/>
 
+    {% if subtitle %}<p class="subtitle">{{ subtitle }}</p>{% endif %}
     <p class="patient"><b>Patiente :</b> Mme {{ patient.first_name }} {{ patient.last_name }}{% if patient.age %} — {{ patient.age }} ans{% endif %}</p>
 
     {% if prescription_lines %}
-    <ul class="meds">
+    <table class="meds">
         {% for line in prescription_lines %}
-        <li>{{ line }}</li>
+        <tr><td class="num">{{ forloop.counter }}-</td><td>{{ line }}</td></tr>
         {% endfor %}
-    </ul>
+    </table>
     {% else %}
     <p class="empty">Aucune prescription renseignée.</p>
     {% endif %}

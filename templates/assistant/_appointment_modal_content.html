@@ -21,7 +21,7 @@
 
         <form hx-post="{% url 'appointments:create_appointment_ajax' %}"
               hx-target="#calendar-body" hx-swap="outerHTML"
-              @htmx:after-request="if (event.detail.successful) open = false"
+              @htmx:after-request="if (event.detail.successful && event.detail.requestConfig.path === $el.getAttribute('hx-post')) open = false"
               class="space-y-3.5">
             {% csrf_token %}
 

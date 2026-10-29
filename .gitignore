@@ -39,3 +39,6 @@ htmlcov/
 
 # Impeccable skill runtime state (pas du code produit)
 .impeccable/
+
+# Journaux du serveur au cabinet
+logs/

@@ -1,0 +1,44 @@
+{% comment %}
+Champs d'un modèle de certificat / courrier (ajout et modification).
+Contexte : prefix + pk (identifiants uniques), values (modèle ou POST), errors, courrier_types, champs.
+Les boutons de champs insèrent {champ} à l'endroit du curseur dans le texte.
+{% endcomment %}
+{% with input_cls="w-full h-10 rounded-lg border bg-surface px-3 text-sm text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint" %}
+<div class="grid gap-4 md:grid-cols-[260px_minmax(0,1fr)]">
+    <div>
+        <label for="{{ prefix }}{{ pk|default:"" }}-type" class="block text-[13px] font-medium text-text-soft mb-1.5">Type de document</label>
+        <select id="{{ prefix }}{{ pk|default:"" }}-type" name="type_document" required
+                {% if errors.type_document %}aria-invalid="true" aria-describedby="{{ prefix }}{{ pk|default:"" }}-type-error"{% endif %}
+                class="{{ input_cls }} {% if errors.type_document %}border-rose-300{% else %}border-border-subtle{% endif %}">
+            {% for t in courrier_types %}
+            <option value="{{ t.key }}" {% if values.type_document == t.key %}selected{% endif %}>{{ t.label }}</option>
+            {% endfor %}
+        </select>
+        {% if errors.type_document %}<p id="{{ prefix }}{{ pk|default:"" }}-type-error" class="mt-1 text-[13px] text-rose-600">{{ errors.type_document }}</p>{% endif %}
+    </div>
+    <div>
+        <label for="{{ prefix }}{{ pk|default:"" }}-nom" class="block text-[13px] font-medium text-text-soft mb-1.5">Nom du modèle</label>
+        <input id="{{ prefix }}{{ pk|default:"" }}-nom" name="nom" value="{{ values.nom|default:'' }}" required maxlength="120" autocomplete="off"
+               placeholder="Ex. Arrêt de travail 7 jours, Certificat prénuptial…"
+               {% if errors.nom %}aria-invalid="true" aria-describedby="{{ prefix }}{{ pk|default:"" }}-nom-error"{% endif %}
+               class="{{ input_cls }} {% if errors.nom %}border-rose-300{% else %}border-border-subtle{% endif %}">
+        {% if errors.nom %}<p id="{{ prefix }}{{ pk|default:"" }}-nom-error" class="mt-1 text-[13px] text-rose-600">{{ errors.nom }}</p>{% endif %}
+    </div>
+</div>
+<div>
+    <label for="{{ prefix }}{{ pk|default:"" }}-contenu" class="block text-[13px] font-medium text-text-soft mb-1.5">Texte</label>
+    <textarea id="{{ prefix }}{{ pk|default:"" }}-contenu" name="contenu" rows="9" maxlength="8000" x-ref="contenu" required
+              placeholder="Je soussignée, {docteur}, certifie avoir examiné ce jour {patiente}…"
+              {% if errors.contenu %}aria-invalid="true" aria-describedby="{{ prefix }}{{ pk|default:"" }}-contenu-error"{% endif %}
+              class="w-full rounded-lg border bg-surface px-3 py-2.5 text-sm leading-relaxed text-text-main hover:border-sauge-200 focus:outline-none focus:border-sauge-500 focus:ring-2 focus:ring-sauge-600/20 placeholder:text-text-faint {% if errors.contenu %}border-rose-300{% else %}border-border-subtle{% endif %}">{{ values.contenu|default:'' }}</textarea>
+    {% if errors.contenu %}<p id="{{ prefix }}{{ pk|default:"" }}-contenu-error" class="mt-1 text-[13px] text-rose-600">{{ errors.contenu }}</p>{% endif %}
+    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+        <span class="text-[12px] text-text-muted mr-1">Insérer un champ automatique :</span>
+        {% for name, help in champs %}
+        <button type="button" title="{{ help }}" aria-label="Insérer le champ {{ help }}"
+                @click="insertChamp('{{ name }}')"
+                class="btn-tactile inline-flex items-center h-7 rounded-md border border-border-subtle bg-surface px-2 text-[12px] font-medium text-text-soft hover:border-sauge-200 hover:bg-sauge-25 hover:text-sauge-600 tabular-nums">{{ "{" }}{{ name }}{{ "}" }}</button>
+        {% endfor %}
+    </div>
+</div>
+{% endwith %}

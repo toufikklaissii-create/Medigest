@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import modeles_views, views
 
 app_name = "clinical"
 
@@ -24,6 +24,21 @@ urlpatterns = [
         views.download_prescription_pdf,
         name="prescription_pdf",
     ),
+    path(
+        "consultation/<int:appointment_id>/pdf/prescription/<str:part>/",
+        views.download_prescription_pdf,
+        name="prescription_part_pdf",
+    ),
+    path("modeles-ordonnance/", modeles_views.modeles_ordonnance, name="modeles_ordonnance"),
+    path("modeles-ordonnance/ajouter/", modeles_views.modele_add, name="modele_add"),
+    path("modeles-ordonnance/<int:pk>/", modeles_views.modele_card, name="modele_card"),
+    path("modeles-ordonnance/<int:pk>/dupliquer/", modeles_views.modele_duplicate, name="modele_duplicate"),
+    path("modeles-ordonnance/<int:pk>/supprimer/", modeles_views.modele_delete, name="modele_delete"),
+    path("modeles-courrier/", modeles_views.modeles_courrier, name="modeles_courrier"),
+    path("modeles-courrier/ajouter/", modeles_views.courrier_add, name="courrier_add"),
+    path("modeles-courrier/<int:pk>/", modeles_views.courrier_card, name="courrier_card"),
+    path("modeles-courrier/<int:pk>/dupliquer/", modeles_views.courrier_duplicate, name="courrier_duplicate"),
+    path("modeles-courrier/<int:pk>/supprimer/", modeles_views.courrier_delete, name="courrier_delete"),
     path(
         "consultation/<int:appointment_id>/pdf/report/",
         views.download_report_pdf,

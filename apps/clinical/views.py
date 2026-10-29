@@ -18,11 +18,14 @@ from apps.billing.models import Invoice, MedicalAct
 from apps.billing.services import parse_amount
 from apps.patients.models import Patient
 
+from .courriers import COURRIER_TYPES, remplir, valeurs_champs
 from .documents import documents_context, parse_exam_date, save_documents
-from .models import Consultation, ConsultationAct, Document, PatientDocument, pregnancy_dates
+from .models import (
+    Consultation, ConsultationAct, Document, ModeleCourrier, ModeleOrdonnance, PatientDocument, pregnancy_dates,
+)
 from .services import (
-    LETTER_TEMPLATES,
-    PRESCRIPTION_TEMPLATES,
+    PRESCRIPTION_PARTS,
+    doctor_display_name,
     generate_letter_pdf,
     generate_patient_record_pdf,
     generate_prescription_pdf,
@@ -31,10 +34,14 @@ from .services import (
     mode_from_request,
 )
 
-LETTER_DOCUMENT_TYPES = {
-    "letter": Document.DocumentType.LETTER,
-    "certificate": Document.DocumentType.CERTIFICATE,
-    "preanesthesia": Document.DocumentType.PREANESTHESIA,
+# Certificats et courriers : la clé d'URL est aussi le type de document en base (voir courriers.py).
+LETTER_DOCUMENT_TYPES = {t["key"]: t["key"] for t in COURRIER_TYPES}
+
+# Les trois parties de l'ordonnance et leur document en base (l'ancienne ordonnance = médicaments).
+PART_DOCUMENT_TYPES = {
+    "medicaments": Document.DocumentType.PRESCRIPTION,
+    "bilan": Document.DocumentType.BILAN_BIOLOGIQUE,
+    "radiologie": Document.DocumentType.RADIOLOGIE,
 }
 
 ACTIVE_QUEUE_STATUSES = [
@@ -151,14 +158,33 @@ def _apply_consultation_post(request, consultation, cabinet):
     consultation.billing_discount = discount if discount and discount > 0 else 0
     consultation.billing_free = request.POST.get("billing_free") == "on"
 
-    prescription_content = request.POST.get("prescription_content", "").strip()
-    if prescription_content:
-        Document.objects.update_or_create(
-            consultation=consultation,
-            document_type=Document.DocumentType.PRESCRIPTION,
-            defaults={"content": prescription_content},
-        )
+    for part, document_type in PART_DOCUMENT_TYPES.items():
+        field = PRESCRIPTION_PARTS[part]["field"]
+        if field not in request.POST:
+            continue
+        content = request.POST.get(field, "").strip()
+        if content:
+            Document.objects.update_or_create(
+                consultation=consultation, document_type=document_type, defaults={"content": content},
+            )
+        else:
+            # Partie vidée par la doctoresse : on garde la ligne mais sans contenu (rien à imprimer).
+            consultation.documents.filter(document_type=document_type).update(content="")
 
+    # Fiche de consultation : les 6 certificats/courriers arrivent ensemble (champs courrier_<type>).
+    for key, document_type in LETTER_DOCUMENT_TYPES.items():
+        field = f"courrier_{key}"
+        if field not in request.POST:
+            continue
+        content = request.POST.get(field, "").strip()
+        if content:
+            Document.objects.update_or_create(
+                consultation=consultation, document_type=document_type, defaults={"content": content},
+            )
+        else:
+            consultation.documents.filter(document_type=document_type).update(content="")
+
+    # Ancien envoi (un seul courrier à la fois) : toujours accepté.
     letter_type = request.POST.get("letter_type", "")
     letter_content = request.POST.get("letter_content", "").strip()
     if letter_content and letter_type in LETTER_DOCUMENT_TYPES:
@@ -168,6 +194,15 @@ def _apply_consultation_post(request, consultation, cabinet):
             defaults={"content": letter_content},
         )
     return missing_prices
+
+
+def _prescription_contents(consultation):
+    """{"medicaments": texte, "bilan": texte, "radiologie": texte} de la consultation."""
+    by_type = dict(
+        consultation.documents.filter(document_type__in=PART_DOCUMENT_TYPES.values())
+        .values_list("document_type", "content")
+    )
+    return {part: by_type.get(document_type, "") for part, document_type in PART_DOCUMENT_TYPES.items()}
 
 
 def _line_price(act, line_prices):
@@ -245,16 +280,26 @@ def consultation_detail(request, appointment_id):
             free_control and consultation.status == Consultation.Status.DRAFT and not line_prices
         ),
     }
-    prescription_doc = consultation.documents.filter(
-        document_type=Document.DocumentType.PRESCRIPTION
-    ).first()
-    prescription_templates_json = [
-        {"key": key, "label": tpl["label"], "text": tpl["text"]}
-        for key, tpl in PRESCRIPTION_TEMPLATES.items()
+    part_contents = _prescription_contents(consultation)
+    prescription_parts_json = [
+        {"key": part, "label": info["label"], "field": info["field"], "content": part_contents[part]}
+        for part, info in PRESCRIPTION_PARTS.items()
     ]
-    letter_templates_json = [
-        {"key": key, "label": tpl["label"], "text": tpl["text"]}
-        for key, tpl in LETTER_TEMPLATES.items()
+    modeles_ordonnance_json = [
+        {"id": m.pk, "nom": m.nom, "medicaments": m.medicaments, "bilan": m.bilan_biologique,
+         "radiologie": m.radiologie}
+        for m in ModeleOrdonnance.objects.filter(cabinet=cabinet, actif=True)
+    ]
+    # Modèles de courrier déjà remplis pour cette patiente ({patiente}, {ddr}, {terme}…).
+    valeurs = valeurs_champs(
+        appointment.patient, consultation,
+        doctor_name=doctor_display_name(consultation.doctor if consultation.doctor_id else request.user),
+        ville=getattr(cabinet, "ville", ""),
+    )
+    courrier_types_json = [{"key": t["key"], "label": t["label"]} for t in COURRIER_TYPES]
+    courrier_modeles_json = [
+        {"id": m.pk, "type": m.type_document, "nom": m.nom, "texte": remplir(m.contenu, valeurs)}
+        for m in ModeleCourrier.objects.filter(cabinet=cabinet, actif=True)
     ]
     letters_by_type = {
         doc.document_type: doc.content
@@ -288,9 +333,11 @@ def consultation_detail(request, appointment_id):
             "selected_act_ids": selected_act_ids,
             "acts_json": acts_json,
             "billing_json": billing_json,
-            "prescription_content": prescription_doc.content if prescription_doc else "",
-            "prescription_templates_json": prescription_templates_json,
-            "letter_templates_json": letter_templates_json,
+            "prescription_parts_json": prescription_parts_json,
+            "modeles_ordonnance_json": modeles_ordonnance_json,
+            "courrier_types_json": courrier_types_json,
+            "courrier_types": COURRIER_TYPES,
+            "courrier_modeles_json": courrier_modeles_json,
             "letters_json": letters_json,
             "patient_documents": patient_documents,
             "document_type_choices": PatientDocument.DocumentType.choices,
@@ -324,11 +371,7 @@ def autosave_consultation(request, appointment_id):
     return HttpResponse(status=204)
 
 
-LETTER_LABELS = {
-    Document.DocumentType.LETTER: ("letter", "Lettre à un confrère"),
-    Document.DocumentType.CERTIFICATE: ("certificate", "Certificat de prise en charge"),
-    Document.DocumentType.PREANESTHESIA: ("preanesthesia", "Consultation pré-anesthésie"),
-}
+LETTER_LABELS = {t["key"]: (t["key"], t["label"]) for t in COURRIER_TYPES}
 
 
 @login_required
@@ -348,6 +391,12 @@ def patient_file(request, patient_id):
         documents = {doc.document_type: doc for doc in consultation.documents.all()}
         prescription = documents.get(Document.DocumentType.PRESCRIPTION)
         consultation.prescription = prescription.content if prescription else ""
+        # Bilan biologique et radiologie : affichés et imprimables seulement s'ils ont du contenu.
+        consultation.extra_prescriptions = [
+            (part, PRESCRIPTION_PARTS[part]["label"], documents[doc_type].content)
+            for part, doc_type in PART_DOCUMENT_TYPES.items()
+            if part != "medicaments" and doc_type in documents and documents[doc_type].content
+        ]
         consultation.letters = [
             (key, label) for doc_type, (key, label) in LETTER_LABELS.items()
             if doc_type in documents and documents[doc_type].content
@@ -497,17 +546,18 @@ def download_full_patient_archive(request, patient_id):
 
 @login_required
 @role_required("doctor")
-def download_prescription_pdf(request, appointment_id):
+def download_prescription_pdf(request, appointment_id, part="medicaments"):
+    """Ordonnance d'une partie : médicaments (URL historique), bilan biologique ou radiologie."""
+    if part not in PART_DOCUMENT_TYPES:
+        raise Http404("Partie d'ordonnance inconnue.")
     cabinet = request.user.profile.cabinet
     appointment = get_object_or_404(Appointment, pk=appointment_id, cabinet=cabinet)
     consultation = get_object_or_404(Consultation, appointment=appointment, cabinet=cabinet)
-    prescription_doc = consultation.documents.filter(
-        document_type=Document.DocumentType.PRESCRIPTION
-    ).first()
-    content = prescription_doc.content if prescription_doc else ""
-    pdf_bytes = generate_prescription_pdf(consultation, content, mode=mode_from_request(request))
+    content = _prescription_contents(consultation)[part]
+    pdf_bytes = generate_prescription_pdf(consultation, content, mode=mode_from_request(request), part=part)
     response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="ordonnance_{consultation.patient.patient_number}.pdf"'
+    filename = PRESCRIPTION_PARTS[part]["file"]
+    response["Content-Disposition"] = f'inline; filename="{filename}_{consultation.patient.patient_number}.pdf"'
     return response
 
 

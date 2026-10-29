@@ -1,0 +1,17 @@
+{% comment %}En-tête commun des pages « Modèles » : titre + onglets Ordonnances / Certificats & courriers.{% endcomment %}
+<div>
+    <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Modèles</h1>
+    <p class="text-sm text-text-muted mt-1">{{ subtitle }}</p>
+</div>
+<nav class="mt-5 inline-flex flex-wrap gap-1 rounded-xl bg-slate-100/70 p-1" aria-label="Types de modèles">
+    {% url 'clinical:modeles_ordonnance' as ordo_url %}
+    {% url 'clinical:modeles_courrier' as courrier_url %}
+    <a href="{{ ordo_url }}" {% if active == "ordonnances" %}aria-current="page"{% endif %}
+       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3.5 text-[13px] font-medium transition-all duration-150 {% if active == 'ordonnances' %}bg-surface text-text-main shadow-sm{% else %}text-text-muted hover:text-text-main{% endif %}">
+        <i data-lucide="pill" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ordonnances
+    </a>
+    <a href="{{ courrier_url }}" {% if active == "courriers" %}aria-current="page"{% endif %}
+       class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3.5 text-[13px] font-medium transition-all duration-150 {% if active == 'courriers' %}bg-surface text-text-main shadow-sm{% else %}text-text-muted hover:text-text-main{% endif %}">
+        <i data-lucide="file-signature" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Certificats &amp; courriers
+    </a>
+</nav>

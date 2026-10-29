@@ -1,0 +1,14 @@
+<form id="courrier-add-form" hx-post="{% url 'clinical:courrier_add' %}" hx-swap="afterbegin"
+      hx-disabled-elt="find button[type=submit]"
+      x-data="champsInserter()" @courrier-added.window="$el.reset(); $el.querySelector('[name=nom]').focus()"
+      class="space-y-4 px-6 pb-6 pt-4">
+    {% csrf_token %}
+    <input type="hidden" name="actif" value="on">
+    {% include "doctor/_courrier_fields.html" with prefix="new" values=form %}
+    <div class="flex justify-end">
+        <button type="submit"
+                class="btn-tactile h-10 inline-flex items-center justify-center gap-1.5 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700 active:scale-[0.98] transition-all duration-150 disabled:opacity-60">
+            <i data-lucide="plus" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Ajouter le modèle
+        </button>
+    </div>
+</form>

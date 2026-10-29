@@ -1,5 +1,7 @@
 {% extends pdf_base|default:"pdf/_letterhead_base.html" %}
 {% block title %}{{ doc_title|upper }}{% endblock %}
+{# Papier pré-imprimé : l'en-tête ne porte pas le nom du document, on l'écrit au-dessus de la patiente. #}
+{% block patient %}{% if print_mode %}<p class="doc-title">{{ doc_title|upper }}</p>{% endif %}{{ block.super }}{% endblock %}
 {% block body %}
-{% if content %}<p class="text">{{ content }}</p>{% else %}<p class="muted">Document vide.</p>{% endif %}
+{% if content %}<p class="text">{{ content|linebreaksbr }}</p>{% else %}<p class="muted">Document vide.</p>{% endif %}
 {% endblock %}

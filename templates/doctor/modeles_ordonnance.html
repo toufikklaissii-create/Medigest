@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Modèles d'ordonnance · Medigest{% endblock %}
+{% block content %}
+<div class="max-w-[1100px] mx-auto px-4 sm:px-8 py-8">
+    {% include "doctor/_modeles_tabs.html" with active="ordonnances" subtitle="Un modèle d'ordonnance par symptomatologie. En consultation, il remplit en un clic les trois ordonnances : médicaments, bilan biologique et radiologie." %}
+
+    <section class="mt-7 bg-surface rounded-2xl border border-border-subtle shadow-card" aria-labelledby="add-modele-title">
+        <h2 id="add-modele-title" class="px-6 pt-5 text-[15px] font-semibold text-text-main">Nouveau modèle</h2>
+        <p class="px-6 mt-1 text-[13px] text-text-muted">Une ligne par élément : la numérotation « 1- », « 2- »… est ajoutée à l'impression.</p>
+        {% include "doctor/_modele_add_form.html" %}
+    </section>
+
+    <section class="mt-6" aria-label="Modèles enregistrés"
+             x-data="{ empty: {{ modeles|yesno:'false,true' }} }"
+             @modele-added.window="empty = false" @modeles-vides.window="empty = true">
+        <div id="modeles-list" class="space-y-4">
+            {% for modele in modeles %}
+            {% include "doctor/_modele_card.html" %}
+            {% endfor %}
+        </div>
+        <div x-show="empty" x-cloak class="bg-surface rounded-2xl border border-border-subtle shadow-card flex flex-col items-center justify-center gap-2 py-14 text-center">
+            <span class="size-10 rounded-lg bg-slate-100 text-text-muted grid place-items-center">
+                <i data-lucide="clipboard-list" class="w-5 h-5" stroke-width="1.75" aria-hidden="true"></i>
+            </span>
+            <p class="text-sm text-text-muted">Aucun modèle pour le moment. Créez votre premier modèle ci-dessus.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -5,9 +5,9 @@
 {{ acts_json|json_script:"acts-data" }}
 {{ selected_act_ids|json_script:"selected-acts-data" }}
 {{ billing_json|json_script:"billing-data" }}
-{{ prescription_templates_json|json_script:"prescription-templates-data" }}
-{{ prescription_content|default:""|json_script:"prescription-content-data" }}
-{{ letter_templates_json|json_script:"letter-templates-data" }}
+{{ prescription_parts_json|json_script:"prescription-parts-data" }}
+{{ modeles_ordonnance_json|json_script:"modeles-ordonnance-data" }}
+{{ courrier_modeles_json|json_script:"courrier-modeles-data" }}
 {{ letters_json|json_script:"letters-data" }}
 
 {% with is_locked=consultation.is_validated %}
@@ -325,44 +325,94 @@
                     <div class="mt-8 border-t border-border-subtle pt-6">
                         <h3 class="text-[15px] font-semibold text-text-main">Ordonnances &amp; courriers</h3>
 
-                        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
-                            <label for="prescription-content" class="text-[13px] font-medium text-text-soft">Ordonnance</label>
-                            <span class="text-[12px] text-text-muted">Modèles en 1 clic</span>
+                        <!-- Modèles par symptomatologie : ajoutent leurs lignes aux trois ordonnances. -->
+                        <div class="mt-4 rounded-xl bg-slate-50/60 p-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <label for="modele-search" class="text-[13px] font-medium text-text-soft">Modèle par symptomatologie</label>
+                                <a href="{% url 'clinical:modeles_ordonnance' %}" target="_blank" rel="noopener"
+                                   class="inline-flex items-center gap-1 text-[12.5px] font-medium text-sauge-600 hover:underline">
+                                    Gérer les modèles <i data-lucide="external-link" class="w-3 h-3" stroke-width="1.75" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                            <div x-show="modeles.length">
+                                    <div class="relative mt-2">
+                                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-faint" stroke-width="1.75" aria-hidden="true"></i>
+                                        <input id="modele-search" type="search" x-model="modeleQuery" autocomplete="off" @input.stop @change.stop @keydown.enter.prevent
+                                               placeholder="Rechercher : mycose, grossesse, bilan…" class="{{ input_cls }} pl-9">
+                                    </div>
+                                    <div class="mt-2.5 flex flex-wrap gap-2 max-h-[132px] overflow-y-auto">
+                                        <template x-for="m in filteredModeles" :key="m.id">
+                                            <button type="button" @click="applyModele(m.id)" :title="'Ajouter le modèle ' + m.nom + ' aux ordonnances'"
+                                                    class="{{ chip_cls }} border-sauge-100 bg-sauge-50 text-sauge-600 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
+                                                <span aria-hidden="true" class="text-[15px] leading-none">+</span><span x-text="m.nom"></span>
+                                            </button>
+                                        </template>
+                                        <p x-show="!filteredModeles.length" class="text-[13px] text-text-muted py-1.5">Aucun modèle ne correspond à « <span x-text="modeleQuery"></span> ».</p>
+                                    </div>
+                            </div>
+                            <p x-show="!modeles.length" class="mt-1.5 text-[13px] text-text-muted">Aucun modèle pour le moment : créez-les dans « Gérer les modèles ».</p>
                         </div>
-                        <div class="mt-2 mb-3 flex flex-wrap gap-2">
-                            {% for tpl in prescription_templates_json %}
-                            <button type="button" @click="insertTemplate('{{ tpl.key|escapejs }}')"
-                                    class="{{ chip_cls }} border-sauge-100 bg-sauge-50 text-sauge-600 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
-                                <i data-lucide="plus" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>{{ tpl.label }}
-                            </button>
-                            {% endfor %}
-                        </div>
-                        <textarea id="prescription-content" name="prescription_content" rows="6" x-model="prescriptionContent"
-                                  placeholder="Choisissez un modèle ou rédigez la prescription…"
-                                  class="{{ field_cls }}"></textarea>
 
-                        <div class="mt-6 grid gap-3 sm:grid-cols-[minmax(0,240px)_minmax(0,1fr)] sm:items-end">
-                            <div>
-                                <label for="letter-type" class="{{ label_cls }}">Type de courrier</label>
-                                <select id="letter-type" x-model="letterType" @change="onLetterTypeChange" class="{{ input_cls }}">
-                                    {% for tpl in letter_templates_json %}
-                                    <option value="{{ tpl.key }}">{{ tpl.label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button type="button" @click="insertLetterTemplate()"
-                                        class="{{ chip_cls }} border-sauge-100 bg-sauge-50 text-sauge-600 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
-                                    <i data-lucide="plus" class="w-3.5 h-3.5" stroke-width="1.75" aria-hidden="true"></i>
-                                    Insérer le modèle
+                        <!-- Les trois ordonnances : chacune s'imprime sur sa propre feuille. -->
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                            <div role="tablist" aria-label="Parties de l'ordonnance" class="inline-flex flex-wrap gap-1 rounded-xl bg-slate-100/70 p-1">
+                                {% for part in prescription_parts_json %}
+                                <button type="button" role="tab" id="rx-tab-{{ part.key }}" aria-controls="rx-panel-{{ part.key }}"
+                                        :aria-selected="(rxPart === '{{ part.key }}').toString()" @click="rxPart = '{{ part.key }}'"
+                                        :class="rxPart === '{{ part.key }}' ? 'bg-surface text-text-main shadow-sm' : 'text-text-muted hover:text-text-main'"
+                                        class="btn-tactile inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[13px] font-medium transition-all duration-150">
+                                    {{ part.label }}
+                                    <span x-show="rxCount('{{ part.key }}')" x-text="rxCount('{{ part.key }}')"
+                                          class="min-w-[20px] rounded-full bg-sauge-50 px-1.5 text-[11px] font-semibold text-sauge-600 tabular-nums"></span>
                                 </button>
+                                {% endfor %}
                             </div>
+                            <span class="text-[12px] text-text-muted">Une ligne par élément · numérotation automatique à l'impression</span>
                         </div>
-                        <label for="letter-content" class="sr-only">Contenu du courrier</label>
-                        <textarea id="letter-content" name="letter_content" rows="6" x-model="letterContent"
-                                  placeholder="Insérez le modèle du courrier choisi ou rédigez librement…"
+                        {% for part in prescription_parts_json %}
+                        <div role="tabpanel" id="rx-panel-{{ part.key }}" aria-labelledby="rx-tab-{{ part.key }}" x-show="locked || rxPart === '{{ part.key }}'" {% if not forloop.first %}x-cloak{% endif %} class="mt-3">
+                            <p x-show="locked" x-cloak class="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-text-faint">{{ part.label }}</p>
+                            <label for="rx-{{ part.key }}" class="sr-only">Ordonnance — {{ part.label }}</label>
+                            <textarea id="rx-{{ part.key }}" name="{{ part.field }}" rows="6" x-model="rx.{{ part.key }}"
+                                      placeholder="{% if part.key == 'medicaments' %}Choisissez un modèle ou rédigez les médicaments…{% elif part.key == 'bilan' %}Ex. NFS, CRP, glycémie à jeun…{% else %}Ex. Échographie pelvienne…{% endif %}"
+                                      class="{{ field_cls }}"></textarea>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Certificats & courriers : un document par type, modèles déjà remplis pour la patiente. -->
+                        <div class="mt-8 flex flex-wrap items-center justify-between gap-2">
+                            <h4 class="text-[13px] font-medium text-text-soft">Certificats &amp; courriers</h4>
+                            <a href="{% url 'clinical:modeles_courrier' %}" target="_blank" rel="noopener"
+                               class="inline-flex items-center gap-1 text-[12.5px] font-medium text-sauge-600 hover:underline">
+                                Gérer les modèles <i data-lucide="external-link" class="w-3 h-3" stroke-width="1.75" aria-hidden="true"></i>
+                            </a>
+                        </div>
+                        <div class="mt-2 rounded-xl bg-slate-50/60 p-4">
+                            <label for="letter-type" class="{{ label_cls }}">Type de document</label>
+                            <select id="letter-type" x-model="letterType" @change.stop="onLetterTypeChange()" class="{{ input_cls }} sm:max-w-[320px]">
+                                {% for t in courrier_types_json %}
+                                <option value="{{ t.key }}">{{ t.label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-3 flex flex-wrap gap-2" x-show="modelesCourrier.length">
+                                <template x-for="m in modelesCourrier" :key="m.id">
+                                    <button type="button" @click="applyCourrier(m)" :title="'Insérer le modèle ' + m.nom"
+                                            class="{{ chip_cls }} border-sauge-100 bg-sauge-50 text-sauge-600 hover:bg-sauge-600 hover:text-white hover:border-sauge-600">
+                                        <span aria-hidden="true" class="text-[15px] leading-none">+</span><span x-text="m.nom"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <p x-show="!modelesCourrier.length" class="mt-2 text-[13px] text-text-muted">Aucun modèle pour ce type : rédigez librement ou créez-en un dans « Gérer les modèles ».</p>
+                        </div>
+                        <label for="letter-content" class="sr-only">Texte du document</label>
+                        <textarea id="letter-content" rows="9" x-model="letterContent"
+                                  placeholder="Choisissez un modèle ci-dessus ou rédigez librement…"
                                   class="{{ field_cls }} mt-3"></textarea>
-                        <input type="hidden" name="letter_type" :value="letterType">
+                        <p class="mt-1.5 text-[12px] text-text-muted">Les textes entre crochets [ ] sont à compléter avant d'imprimer.</p>
+                        {# Les 6 documents partent à chaque sauvegarde : changer de type ne perd jamais un texte. #}
+                        {% for t in courrier_types_json %}
+                        <input type="hidden" name="courrier_{{ t.key }}" :value="letters['{{ t.key }}'] || ''">
+                        {% endfor %}
                     </div>
                 </div>
             </fieldset>
@@ -484,11 +534,15 @@
                              x-transition:leave="transition ease-in duration-100" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
                              class="absolute bottom-full left-0 z-30 mb-2 w-[min(400px,calc(100vw-2rem))] rounded-xl border border-border-subtle bg-surface p-1.5 shadow-popover">
                             <p class="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-faint">Documents de la consultation</p>
-                            {% url 'clinical:prescription_pdf' appointment.pk as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Ordonnance" icon="pill" %}
+                            {% url 'clinical:prescription_pdf' appointment.pk as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Ordonnance médicaments" icon="pill" %}
+                            {# Bilan et radiologie : proposés seulement quand la partie est remplie (autosauvée). #}
+                            <div x-show="rx.bilan.trim()" x-cloak>{% url 'clinical:prescription_part_pdf' appointment.pk 'bilan' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Ordonnance bilan biologique" icon="test-tube" %}</div>
+                            <div x-show="rx.radiologie.trim()" x-cloak>{% url 'clinical:prescription_part_pdf' appointment.pk 'radiologie' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Ordonnance radiologie" icon="scan-line" %}</div>
                             {% url 'clinical:report_pdf' appointment.pk as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Compte rendu" icon="file-text" %}
-                            {% url 'clinical:letter_pdf' appointment.pk 'letter' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Lettre à un confrère" icon="mail" %}
-                            {% url 'clinical:letter_pdf' appointment.pk 'certificate' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Certificat" icon="badge-check" %}
-                            {% url 'clinical:letter_pdf' appointment.pk 'preanesthesia' as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label="Pré-anesthésie" icon="syringe" %}
+                            {# Certificats et courriers : proposés dès qu'ils sont rédigés (autosauvés). #}
+                            {% for t in courrier_types %}
+                            <div x-show="(letters['{{ t.key }}'] || '').trim()" x-cloak>{% url 'clinical:letter_pdf' appointment.pk t.key as doc_url %}{% include "_print_actions.html" with variant="menu" url=doc_url label=t.label icon=t.icon %}</div>
+                            {% endfor %}
                             <div class="my-1.5 h-px bg-border-subtle" role="separator"></div>
                             <a role="menuitem" href="{% url 'clinical:patient_record_pdf' appointment.pk %}" @click="menu = false"
                                class="flex items-center gap-2.5 rounded-lg px-2.5 h-9 text-sm text-text-soft hover:bg-sauge-25">
@@ -593,12 +647,15 @@
             prices: Object.fromEntries(read("acts-data").map((a) => [a.id, a.line_price])),
             discount: read("billing-data").discount || "",
             free: read("billing-data").free,
-            prescriptionTemplates: read("prescription-templates-data"),
-            prescriptionContent: read("prescription-content-data"),
-            letterTemplates: read("letter-templates-data"),
+            modeles: read("modeles-ordonnance-data"),
+            modeleQuery: "",
+            rx: Object.fromEntries(read("prescription-parts-data").map((p) => [p.key, p.content || ""])),
+            rxPart: "medicaments",
+            courrierModeles: read("courrier-modeles-data"),
             letters: letters,
-            letterType: "letter",
-            letterContent: letters.letter || "",
+            // Premier document déjà rédigé, sinon le certificat médical.
+            letterType: Object.keys(letters).find((k) => (letters[k] || "").trim()) || "certificate",
+            letterContent: "",
             // Autosave
             savedAt: savedAtEpoch ? savedAtEpoch * 1000 : null,
             now: Date.now(),
@@ -610,6 +667,9 @@
             confirmUnlock: false,
 
             init() {
+                this.letterContent = this.letters[this.letterType] || "";
+                // Le texte affiché est toujours recopié dans son type : les champs cachés courrier_* le transmettent.
+                this.$watch("letterContent", (value) => { this.letters[this.letterType] = value; });
                 try {
                     const stored = sessionStorage.getItem(storageKey);
                     if (stored && this.tabs.some((t) => t.key === stored)) this.tab = stored;
@@ -637,7 +697,7 @@
                     clinique: has("clinicalExam"),
                     echo: has("ultrasound"),
                     complementaires: this.quickExamActs.some((a) => this.selected.includes(a.id)) || documentCount > 0,
-                    conclusion: has("notes") || has("diagnostic") || !!this.prescriptionContent.trim(),
+                    conclusion: has("notes") || has("diagnostic") || Object.values(this.rx).some((v) => v.trim()),
                 };
             },
             markDirty() {
@@ -678,17 +738,41 @@
                 const saved = new Date(this.savedAt);
                 return `Enregistré à ${saved.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
             },
-            insertTemplate(key) {
-                const tpl = this.prescriptionTemplates.find((t) => t.key === key);
-                if (!tpl) return;
-                this.prescriptionContent = this.prescriptionContent ? this.prescriptionContent + "\n" + tpl.text : tpl.text;
-                this.markDirty();
+            get filteredModeles() {
+                const fold = (v) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+                const query = fold(this.modeleQuery.trim());
+                return query ? this.modeles.filter((m) => fold(m.nom).includes(query)) : this.modeles;
             },
-            insertLetterTemplate() {
-                const tpl = this.letterTemplates.find((t) => t.key === this.letterType);
-                if (!tpl) return;
-                this.letterContent = this.letterContent ? this.letterContent + "\n" + tpl.text : tpl.text;
+            rxCount(part) {
+                return (this.rx[part] || "").split("\n").filter((line) => line.trim()).length;
+            },
+            applyModele(id) {
+                // Ajoute les lignes du modèle à chaque partie, sans effacer ce qui est déjà saisi.
+                const modele = this.modeles.find((m) => m.id === id);
+                if (!modele || this.locked) return;
+                const added = [];
+                for (const part of ["medicaments", "bilan", "radiologie"]) {
+                    const text = (modele[part] || "").trim();
+                    if (!text) continue;
+                    const current = this.rx[part].replace(/\s+$/, "");
+                    this.rx[part] = current ? current + "\n" + text : text;
+                    added.push(part);
+                }
+                if (added.length && !added.includes(this.rxPart)) this.rxPart = added[0];
                 this.markDirty();
+                this.$dispatch("toast", { message: `Modèle « ${modele.nom} » ajouté à l'ordonnance.`, type: "success" });
+            },
+            get modelesCourrier() {
+                return this.courrierModeles.filter((m) => m.type === this.letterType);
+            },
+            applyCourrier(modele) {
+                // Texte vide : le modèle le remplace ; sinon il s'ajoute après une ligne vide.
+                if (this.locked) return;
+                const current = this.letterContent.replace(/\s+$/, "");
+                this.letterContent = current ? current + "\n\n" + modele.texte : modele.texte;
+                this.letters[this.letterType] = this.letterContent;
+                this.markDirty();
+                this.$dispatch("toast", { message: `Modèle « ${modele.nom} » inséré.`, type: "success" });
             },
             onLetterTypeChange() {
                 this.letterContent = this.letters[this.letterType] || "";

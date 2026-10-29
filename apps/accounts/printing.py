@@ -8,9 +8,9 @@ from apps.common.pdf import fit_pages
 
 # Zones de static/pdf/ordonnance_modele.pdf, en pt depuis le haut de la page A4
 # (mêmes valeurs que templates/pdf/_print_base.html).
-BODY_ZONE = {"left": 62, "top": 214, "width": 471, "height": 528}
-DATE_ZONE = {"left": 284, "top": 180, "width": 110, "height": 22}
-DATE_BASELINE = 196  # ligne d'écriture de la date (12 pt) dans DATE_ZONE
+BODY_ZONE = {"left": 62, "top": 214, "width": 471, "height": 500}
+DATE_ZONE = {"left": 284, "top": 178, "width": 170, "height": 28}
+DATE_BASELINE = 195  # ligne d'écriture de la date dans DATE_ZONE
 MARK = 14  # longueur des branches des repères (pt)
 
 SAMPLE_LINES = [

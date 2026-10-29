@@ -1,7 +1,7 @@
 {% extends pdf_base|default:"pdf/_letterhead_base.html" %}
 {% block title %}COMPTE RENDU DE CONSULTATION{% endblock %}
 {% block body %}
-{% if reason %}<h2>Motif</h2><p class="text">{{ reason }}</p>{% endif %}
+{% if reason %}<h2>Motif</h2><p class="text">{{ reason|linebreaksbr }}</p>{% endif %}
 
 {% if blood_pressure or weight or height %}
 <h2>Constantes</h2>
@@ -13,11 +13,11 @@
 <p>DDR : <b>{{ last_menstrual_period|date:"j F Y" }}</b>{% if gestational_age %} — Terme : <b>{{ gestational_age }}</b>{% endif %}{% if due_date %} — DPA : <b>{{ due_date|date:"j F Y" }}</b>{% endif %}</p>
 {% endif %}
 
-{% if clinical_exam %}<h2>Examen clinique</h2><p class="text">{{ clinical_exam }}</p>{% endif %}
-{% if ultrasound_notes %}<h2>Échographie</h2><p class="text">{{ ultrasound_notes }}</p>{% endif %}
+{% if clinical_exam %}<h2>Examen clinique</h2><p class="text">{{ clinical_exam|linebreaksbr }}</p>{% endif %}
+{% if ultrasound_notes %}<h2>Échographie</h2><p class="text">{{ ultrasound_notes|linebreaksbr }}</p>{% endif %}
 {% if quick_exams %}<h2>Examens complémentaires</h2><p>{{ quick_exams|join:", " }}</p>{% endif %}
-{% if clinical_notes %}<h2>Observations</h2><p class="text">{{ clinical_notes }}</p>{% endif %}
+{% if clinical_notes %}<h2>Observations</h2><p class="text">{{ clinical_notes|linebreaksbr }}</p>{% endif %}
 
 <h2>Conclusion</h2>
-{% if diagnostic %}<p class="text">{{ diagnostic }}</p>{% else %}<p class="muted">Aucune conclusion renseignée.</p>{% endif %}
+{% if diagnostic %}<p class="text">{{ diagnostic|linebreaksbr }}</p>{% else %}<p class="muted">Aucune conclusion renseignée.</p>{% endif %}
 {% endblock %}

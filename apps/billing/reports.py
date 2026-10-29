@@ -14,6 +14,10 @@ from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from apps.patients.couverture import AUCUNE as COVERAGE_NONE, CNOPS as COVERAGE_CNOPS, CNSS as COVERAGE_CNSS
+from apps.patients.couverture import GROUPES as COVERAGE_GROUPS
+from apps.patients.couverture import libelle as coverage_label, libelle_court as coverage_short
+
 from .models import CashClosing, Invoice, Payment, PaymentMethod
 from .services import BillingError
 
@@ -237,6 +241,32 @@ def period_from_params(params):
 
 # ── Rapport ──────────────────────────────────────────────────────────────────
 
+def totals_by_coverage(payments):
+    """Recettes par couverture de la patiente (CNOPS, CNSS, sans couverture…), pour le comptable.
+
+    Chaque groupe garde ses encaissements ; l'ordre est fixe et les groupes vides sont omis,
+    sauf CNOPS / CNSS / sans couverture, toujours présents (0 DH) pour un tableau stable.
+    """
+    groups = OrderedDict(
+        (code, {"code": code, "label": coverage_label(code), "short": coverage_short(code),
+                "amount": ZERO, "count": 0, "patient_ids": set(), "payments": []})
+        for code in COVERAGE_GROUPS
+    )
+    for payment in payments:
+        code = payment.invoice.patient.couverture or ""
+        group = groups.get(code, groups[""])
+        group["amount"] += payment.amount
+        group["count"] += 1
+        group["patient_ids"].add(payment.invoice.patient_id)
+        group["payments"].append(payment)
+    rows = []
+    for code, group in groups.items():
+        if group["count"] or code in (COVERAGE_CNOPS, COVERAGE_CNSS, COVERAGE_NONE):
+            group["patients"] = len(group.pop("patient_ids"))
+            rows.append(group)
+    return rows
+
+
 def _act_breakdown(payments):
     """Recettes par acte : chaque paiement est réparti au prorata des lignes de sa facture.
 
@@ -353,6 +383,7 @@ def revenue_report(cabinet, period):
         },
         "by_method": totals_by_method(payments),
         "by_act": _act_breakdown(payments),
+        "by_coverage": totals_by_coverage(payments),
         "by_day": days,
         "peak": peak,
         "chart_width": len(days) * 100,

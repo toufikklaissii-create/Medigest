@@ -26,6 +26,15 @@
     <tr><th>Total</th><th class="right">{{ total|dh }}</th></tr>
 </table>
 
+<h2>Par couverture</h2>
+<table class="grid">
+    <tr><th>Couverture</th><th class="right" style="width: 18%;">Encaissements</th><th class="right" style="width: 30%;">Montant</th></tr>
+    {% for row in by_coverage %}
+    <tr><td>{{ row.label }}</td><td class="right">{{ row.count }}</td><td class="right">{{ row.amount|dh }}</td></tr>
+    {% endfor %}
+    <tr><th>Total</th><th class="right">{{ count }}</th><th class="right">{{ total|dh }}</th></tr>
+</table>
+
 <h2>Par acte</h2>
 <table class="grid">
     <tr><th>Acte</th><th class="right" style="width: 15%;">Quantité</th><th class="right" style="width: 30%;">Montant</th></tr>
@@ -49,21 +58,22 @@
 <pdf:nextpage/>
 <h2>Journal détaillé des encaissements</h2>
 <table class="grid journal">
-    <tr><th style="width: 11%;">Date</th><th style="width: 7%;">Heure</th><th style="width: 15%;">N° facture</th><th style="width: 18%;">Patiente</th><th>Actes</th><th style="width: 9%;">Mode</th><th class="right" style="width: 13%;">Montant</th></tr>
+    <tr><th style="width: 11%;">Date</th><th style="width: 7%;">Heure</th><th style="width: 15%;">N° facture</th><th style="width: 18%;">Patiente</th><th style="width: 9%;">Couv.</th><th>Actes</th><th style="width: 9%;">Mode</th><th class="right" style="width: 13%;">Montant</th></tr>
     {% for payment in payments %}
     <tr>
         <td>{{ payment.paid_at|date:"d/m/Y" }}</td>
         <td>{{ payment.paid_at|date:"H:i" }}</td>
         <td>{{ payment.invoice.invoice_number }}</td>
         <td>{{ payment.invoice.patient.first_name }} {{ payment.invoice.patient.last_name }}</td>
+        <td>{% if payment.invoice.patient.couverture == "autre" %}Autre{% elif payment.invoice.patient.couverture == "aucune" %}Sans{% elif payment.invoice.patient.couverture %}{{ payment.invoice.patient.get_couverture_display }}{% else %}?{% endif %}</td>
         <td>{{ payment.acts_label|default:"—" }}</td>
         <td>{{ payment.get_method_display }}</td>
         <td class="right">{{ payment.amount|dh }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="7" class="muted">Aucun encaissement ce mois-ci.</td></tr>
+    <tr><td colspan="8" class="muted">Aucun encaissement ce mois-ci.</td></tr>
     {% endfor %}
-    <tr><th colspan="6">Total du mois ({{ count }} encaissement{{ count|pluralize }} · {{ free_count }} gratuité{{ free_count|pluralize }})</th><th class="right">{{ total|dh }}</th></tr>
+    <tr><th colspan="7">Total du mois ({{ count }} encaissement{{ count|pluralize }} · {{ free_count }} gratuité{{ free_count|pluralize }})</th><th class="right">{{ total|dh }}</th></tr>
 </table>
 {% endif %}
 

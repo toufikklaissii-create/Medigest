@@ -6,7 +6,7 @@
     <tr><th>Téléphone</th><td>{{ patient.phone|default:"—" }}</td></tr>
     <tr><th>Groupe sanguin</th><td>{{ patient.blood_group|default:"—" }}</td></tr>
     <tr><th>N° Sécurité sociale</th><td>{{ patient.social_security_number|default:"—" }}</td></tr>
-    <tr><th>Organisme / Assurance</th><td>{{ patient.organisme_social|default:"—" }}</td></tr>
+    <tr><th>Couverture</th><td>{{ patient.couverture_label }}{% if patient.organisme_social %} · {{ patient.organisme_social }}{% endif %}</td></tr>
 </table>
 
 <h2>Antécédents</h2>

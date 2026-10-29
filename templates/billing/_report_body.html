@@ -140,6 +140,38 @@
         </section>
     </div>
 
+    <!-- Par couverture (pour le comptable) -->
+    <section class="mt-6 bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden" aria-labelledby="by-coverage-title">
+        <div class="flex flex-wrap items-baseline justify-between gap-2 px-6 pt-5 pb-3">
+            <h3 id="by-coverage-title" class="text-[15px] font-semibold text-text-main">Par couverture</h3>
+            <p class="text-[12px] text-text-faint">Couverture actuelle de chaque patiente · détail par onglet dans l'export Excel</p>
+        </div>
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50/50">
+                <tr class="text-[11px] uppercase tracking-[0.08em] text-text-faint">
+                    <th scope="col" class="text-left font-semibold px-6 py-3">Couverture</th>
+                    <th scope="col" class="text-right font-semibold px-3 py-3">Encaissements</th>
+                    <th scope="col" class="text-right font-semibold px-3 py-3">Patientes</th>
+                    <th scope="col" class="text-right font-semibold px-6 py-3">Montant</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-border-subtle">
+                {% for row in by_coverage %}
+                <tr class="h-12">
+                    <td class="px-6 {% if row.code %}text-text-main{% else %}text-amber-700{% endif %}">
+                        {{ row.label }}
+                        {% if not row.code %}<a href="{% url 'patients:index' %}?view=a_verifier" class="ml-1.5 text-[12px] font-medium text-amber-700 underline hover:text-amber-800">à compléter</a>{% endif %}
+                    </td>
+                    <td class="px-3 text-right tabular-nums text-text-soft">{{ row.count }}</td>
+                    <td class="px-3 text-right tabular-nums text-text-soft">{{ row.patients }}</td>
+                    <td class="px-6 text-right tabular-nums font-medium {% if row.amount %}text-text-main{% else %}text-text-faint{% endif %}">{{ row.amount|dh }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot><tr class="border-t border-border-strong"><th scope="row" class="px-6 py-3 text-left font-semibold text-text-main">Total</th><td class="px-3 py-3 text-right tabular-nums font-semibold text-text-main">{{ count }}</td><td></td><td class="px-6 py-3 text-right font-bold tabular-nums text-text-main">{{ total|dh }}</td></tr></tfoot>
+        </table>
+    </section>
+
     <!-- Par jour -->
     {% if total %}
     <section class="mt-6 bg-surface rounded-2xl border border-border-subtle shadow-card overflow-hidden" aria-labelledby="by-day-title">

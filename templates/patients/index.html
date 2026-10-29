@@ -15,7 +15,7 @@
 
     <div class="inline-flex items-center gap-1 bg-slate-50/70 border border-border-subtle rounded-lg p-1 mb-5">
         <a href="{% url 'patients:index' %}"
-           class="btn-tactile text-sm font-medium rounded-md px-3 py-1.5 {% if view_filter != 'completed' %}bg-white shadow-sm text-text-main{% else %}text-text-muted hover:text-text-main{% endif %}">
+           class="btn-tactile text-sm font-medium rounded-md px-3 py-1.5 {% if view_filter != 'completed' and view_filter != 'a_verifier' %}bg-white shadow-sm text-text-main{% else %}text-text-muted hover:text-text-main{% endif %}">
             Toutes
         </a>
         <a href="{% url 'patients:index' %}?view=completed"
@@ -23,6 +23,12 @@
             <i data-lucide="check-circle-2" class="w-3.5 h-3.5" stroke-width="1.75"></i>
             Consultations terminées
             <span class="text-[11px] font-semibold bg-sauge-50 text-sauge-700 rounded-full px-1.5 py-0.5 tabular-nums">{{ completed_count }}</span>
+        </a>
+        <a href="{% url 'patients:index' %}?view=a_verifier"
+           class="btn-tactile text-sm font-medium rounded-md px-3 py-1.5 flex items-center gap-1.5 {% if view_filter == 'a_verifier' %}bg-white shadow-sm text-text-main{% else %}text-text-muted hover:text-text-main{% endif %}">
+            <i data-lucide="shield-question" class="w-3.5 h-3.5" stroke-width="1.75"></i>
+            Couverture à vérifier
+            <span class="text-[11px] font-semibold {% if a_verifier_count %}bg-amber-50 text-amber-700{% else %}bg-sauge-50 text-sauge-700{% endif %} rounded-full px-1.5 py-0.5 tabular-nums">{{ a_verifier_count }}</span>
         </a>
     </div>
 
@@ -35,7 +41,7 @@
                         <th class="text-left font-bold px-5 py-3">Patiente</th>
                         <th class="text-left font-bold px-4 py-3">N° dossier</th>
                         <th class="text-left font-bold px-4 py-3">Téléphone</th>
-                        <th class="text-left font-bold px-4 py-3">Organisme</th>
+                        <th class="text-left font-bold px-4 py-3">Couverture</th>
                         {% if view_filter == 'completed' %}
                         <th class="text-left font-bold px-4 py-3">Dernière consultation</th>
                         {% else %}
@@ -66,13 +72,17 @@
                         </td>
                         <td class="px-4 text-text-soft whitespace-nowrap">{{ patient.phone|default:"—" }}</td>
                         <td class="px-4 whitespace-nowrap">
-                            {% if patient.organisme_social %}
+                            {% if patient.couverture %}
                             <span class="inline-flex items-center text-[11px] font-medium bg-sauge-50 text-sauge-700 border border-sauge-200 rounded-full px-2 py-0.5">
-                                {{ patient.organisme_social }}
+                                {% if patient.couverture == 'autre' %}Autre{% else %}{{ patient.couverture_label }}{% endif %}
                             </span>
                             {% else %}
-                            <span class="text-text-faint">—</span>
+                            <a href="{% url 'patients:edit_patient' patient.pk %}"
+                               class="inline-flex items-center gap-1 text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5 hover:bg-amber-100">
+                                À vérifier
+                            </a>
                             {% endif %}
+                            {% if patient.organisme_social %}<p class="mt-0.5 max-w-[160px] truncate text-[11px] text-text-faint" title="{{ patient.organisme_social }}">{{ patient.organisme_social }}</p>{% endif %}
                         </td>
                         {% if view_filter == 'completed' %}
                         <td class="px-4 whitespace-nowrap">

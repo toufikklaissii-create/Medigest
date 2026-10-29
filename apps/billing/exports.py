@@ -11,6 +11,8 @@ from openpyxl.utils import get_column_letter
 from apps.clinical.services import LETTERHEAD, doctor_display_name
 from apps.common.pdf import render_pdf
 
+from apps.patients.couverture import libelle as coverage_label
+
 from .reports import local_date
 
 DH_FORMAT = '#,##0.00 "DH"'
@@ -70,34 +72,19 @@ def build_revenue_xlsx(cabinet, report):
     first = _table(summary, ["Mode de paiement", "Montant"], [[m["label"], m["amount"]] for m in report["by_method"]], money_columns=(2,))
     last = summary.max_row
     _sum_row(summary, "Total", first, last, money=(2,))
+    summary.append([])
+    first = _table(
+        summary, ["Couverture", "Montant", "Encaissements"],
+        [[g["label"], g["amount"], g["count"]] for g in report["by_coverage"]], money_columns=(2,),
+    )
+    _sum_row(summary, "Total", first, summary.max_row, money=(2,), counts=(3,))
     summary.freeze_panes = "A6"
 
-    # ── Encaissements ──
-    sheet = workbook.create_sheet("Encaissements")
-    rows = [
-        [
-            local_date(p.paid_at),
-            timezone.localtime(p.paid_at).strftime("%H:%M"),
-            p.invoice.invoice_number,
-            f"{p.invoice.patient.last_name} {p.invoice.patient.first_name}",
-            p.acts_label,
-            p.get_method_display(),
-            p.reference,
-            p.amount,
-            (p.received_by.get_full_name() or p.received_by.username) if p.received_by else "",
-        ]
-        for p in report["payments"]
-    ]
-    first = _table(
-        sheet,
-        ["Date", "Heure", "N° facture", "Patiente", "Actes", "Mode", "Référence", "Montant", "Encaissé par"],
-        rows, money_columns=(8,), widths=(12, 8, 16, 26, 36, 12, 16, 14, 20),
-    )
-    for (cell,) in sheet.iter_rows(min_row=first, min_col=1, max_col=1):
-        cell.number_format = "DD/MM/YYYY"
-    _sum_row(sheet, "Total", first, sheet.max_row, money=(8,))
-    sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = f"A1:I{max(first - 1 + len(rows), 1)}"
+    # ── Encaissements (tous), puis un onglet par couverture pour le comptable ──
+    _payments_sheet(workbook.create_sheet("Encaissements"), report["payments"])
+    for group in report["by_coverage"]:
+        if group["payments"]:
+            _payments_sheet(workbook.create_sheet(_sheet_title(group["short"])), group["payments"])
 
     # ── Par acte ──
     sheet = workbook.create_sheet("Par acte")
@@ -112,6 +99,43 @@ def build_revenue_xlsx(cabinet, report):
     buffer = io.BytesIO()
     workbook.save(buffer)
     return buffer.getvalue()
+
+
+PAYMENT_HEADERS = [
+    "Date", "Heure", "N° facture", "Patiente", "Couverture", "Précision", "Actes", "Mode", "Référence",
+    "Montant", "Encaissé par",
+]
+
+
+def _sheet_title(label):
+    """Titre d'onglet Excel : 31 caractères maximum, sans caractères interdits."""
+    return "".join(c for c in label if c not in '[]:*?/\\')[:31]
+
+
+def _payments_sheet(sheet, payments):
+    rows = [
+        [
+            local_date(p.paid_at),
+            timezone.localtime(p.paid_at).strftime("%H:%M"),
+            p.invoice.invoice_number,
+            f"{p.invoice.patient.last_name} {p.invoice.patient.first_name}",
+            coverage_label(p.invoice.patient.couverture),
+            p.invoice.patient.organisme_social,
+            p.acts_label,
+            p.get_method_display(),
+            p.reference,
+            p.amount,
+            (p.received_by.get_full_name() or p.received_by.username) if p.received_by else "",
+        ]
+        for p in payments
+    ]
+    first = _table(sheet, PAYMENT_HEADERS, rows, money_columns=(10,),
+                   widths=(12, 8, 16, 26, 18, 20, 36, 12, 16, 14, 20))
+    for (cell,) in sheet.iter_rows(min_row=first, min_col=1, max_col=1):
+        cell.number_format = "DD/MM/YYYY"
+    _sum_row(sheet, "Total", first, sheet.max_row, money=(10,))
+    sheet.freeze_panes = "A2"
+    sheet.auto_filter.ref = f"A1:K{max(first - 1 + len(rows), 1)}"
 
 
 def _sum_row(sheet, label, first_row, last_row, money=(), counts=()):

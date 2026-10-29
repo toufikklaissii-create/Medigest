@@ -1,0 +1,21 @@
+{% comment %}
+Couverture médicale (choix fermé, pour séparer les recettes envoyées au comptable)
++ précision libre. Paramètres : current (code), precision (texte), choices.
+{% endcomment %}
+<fieldset class="sm:col-span-2" x-data="{ couverture: '{{ current|default:'' }}' }">
+    <legend class="block text-[13px] font-medium text-text-soft mb-1.5">Couverture médicale</legend>
+    <div class="flex flex-wrap gap-2">
+        {% for code, label in choices %}
+        <label class="btn-tactile inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 h-10 text-sm transition-colors duration-150"
+               :class="couverture === '{{ code }}' ? 'border-sauge-500 bg-sauge-50 text-sauge-700 font-medium' : 'border-border-subtle text-text-soft hover:border-sauge-500/50'">
+            <input type="radio" name="couverture" value="{{ code }}" x-model="couverture" class="accent-sauge-600" {% if current == code %}checked{% endif %}>
+            {{ label }}
+        </label>
+        {% endfor %}
+    </div>
+    <p x-show="!couverture" class="mt-1.5 text-[12px] text-amber-700">Non renseignée : la patiente apparaîtra dans « Couverture à vérifier ».</p>
+    <label for="id_organisme_social" class="block text-[13px] font-medium text-text-soft mt-3 mb-1.5">Précision <span class="font-normal text-text-faint">(facultatif : mutuelle, assurance, n° d'affiliation…)</span></label>
+    <input type="text" name="organisme_social" id="id_organisme_social" value="{{ precision|default:'' }}" maxlength="100"
+           :placeholder="couverture === 'autre' ? 'Ex. FAR, mutuelle privée…' : ''"
+           class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">
+</fieldset>

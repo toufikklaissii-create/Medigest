@@ -41,11 +41,9 @@
                 <input type="text" name="social_security_number" id="id_social_security_number"
                        class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500">
             </div>
-            <div>
-                <label for="id_organisme_social" class="block text-[13px] font-medium text-text-soft mb-1.5">Organisme de sécurité sociale</label>
-                <input type="text" name="organisme_social" id="id_organisme_social" placeholder="CNSS, CNOPS, mutuelle..."
-                       class="w-full h-10 rounded-lg border border-border-subtle px-3.5 text-sm transition-colors duration-150 hover:border-sauge-500/50 focus:outline-none focus:ring-2 focus:ring-sauge-600/20 focus:border-sauge-500 placeholder:text-text-faint">
-            </div>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+            {% include "patients/_couverture_fields.html" with current="" precision="" choices=couverture_choices %}
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div>

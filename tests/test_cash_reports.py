@@ -236,19 +236,21 @@ class ReportsAccessAndExportTest(CashReportsBase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('filename="recettes_2026-10_cabinet-dr-errmili.xlsx"', response["Content-Disposition"])
         workbook = load_workbook(io.BytesIO(response.content))
-        self.assertEqual(workbook.sheetnames, ["Résumé", "Encaissements", "Par acte"])
+        # Patientes sans couverture renseignée : un onglet « Non renseignée » en plus.
+        self.assertEqual(workbook.sheetnames, ["Résumé", "Encaissements", "Non renseignée", "Par acte"])
 
         sheet = workbook["Encaissements"]
         headers = [c.value for c in sheet[1]]
-        self.assertEqual(headers, ["Date", "Heure", "N° facture", "Patiente", "Actes", "Mode", "Référence", "Montant", "Encaissé par"])
+        self.assertEqual(headers, ["Date", "Heure", "N° facture", "Patiente", "Couverture", "Précision", "Actes", "Mode",
+                                   "Référence", "Montant", "Encaissé par"])
         self.assertEqual(sheet.freeze_panes, "A2")
-        amounts = [row[7] for row in sheet.iter_rows(min_row=2, max_row=4, values_only=True)]
+        amounts = [row[9] for row in sheet.iter_rows(min_row=2, max_row=4, values_only=True)]
         self.assertTrue(all(isinstance(v, (int, float)) for v in amounts))
         self.assertEqual(sum(amounts), 800)
         total_row = list(sheet.iter_rows(min_row=5, max_row=5, values_only=True))[0]
-        self.assertEqual((total_row[0], total_row[7]), ("Total", 800))
-        self.assertIn("VIR-42", [row[6] for row in sheet.iter_rows(min_row=2, values_only=True)])
-        self.assertEqual(sheet["H2"].number_format, '#,##0.00 "DH"')
+        self.assertEqual((total_row[0], total_row[9]), ("Total", 800))
+        self.assertIn("VIR-42", [row[8] for row in sheet.iter_rows(min_row=2, values_only=True)])
+        self.assertEqual(sheet["J2"].number_format, '#,##0.00 "DH"')
 
         acts = workbook["Par acte"]
         rows = list(acts.iter_rows(min_row=2, values_only=True))

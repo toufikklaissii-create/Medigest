@@ -4,6 +4,8 @@ from django.utils import timezone
 
 from apps.accounts.models import Cabinet
 
+from .couverture import COUVERTURE_CHOICES, libelle
+
 
 class Patient(models.Model):
     class BloodGroup(models.TextChoices):
@@ -26,8 +28,12 @@ class Patient(models.Model):
     social_security_number = models.CharField(
         "N° de Sécurité Sociale", max_length=20, blank=True
     )
+    couverture = models.CharField(
+        "Couverture médicale", max_length=10, choices=COUVERTURE_CHOICES, blank=True,
+        help_text="Vide = non renseignée (à vérifier).",
+    )
     organisme_social = models.CharField(
-        "Organisme de sécurité sociale", max_length=100, blank=True
+        "Précision (mutuelle, n° d'affiliation…)", max_length=100, blank=True
     )
     birth_date = models.DateField(null=True, blank=True)
     phone = models.CharField(max_length=30, blank=True)
@@ -51,6 +57,10 @@ class Patient(models.Model):
 
     def __str__(self):
         return f"{self.patient_number} — {self.first_name} {self.last_name}"
+
+    @property
+    def couverture_label(self):
+        return libelle(self.couverture)
 
     @property
     def full_name(self):

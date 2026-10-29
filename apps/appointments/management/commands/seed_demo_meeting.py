@@ -354,7 +354,8 @@ class Command(BaseCommand):
                     "first_name": first, "last_name": last, "birth_date": date(*birth),
                     "phone": phone, "blood_group": blood, "allergies": allergies,
                     "medical_history": history,
-                    "organisme_social": "CNSS" if key in {"t2", "t3", "gyn"} else "",
+                    "organisme_social": "",
+                    "couverture": "cnss" if key in {"t2", "t3", "gyn"} else "",
                 },
             )
             patients[key] = patient

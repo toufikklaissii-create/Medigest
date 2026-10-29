@@ -42,7 +42,7 @@
                     {% if patient.birth_date %}<div><dt class="text-text-muted">Naissance</dt><dd class="font-medium text-text-main">{{ patient.birth_date|date:"j F Y" }}</dd></div>{% endif %}
                     {% if patient.phone %}<div><dt class="text-text-muted">Téléphone</dt><dd class="font-medium text-text-main tabular-nums">{{ patient.phone }}</dd></div>{% endif %}
                     {% if patient.cin %}<div><dt class="text-text-muted">CIN</dt><dd class="font-medium text-text-main">{{ patient.cin }}</dd></div>{% endif %}
-                    {% if patient.organisme_social %}<div><dt class="text-text-muted">Organisme</dt><dd class="font-medium text-text-main">{{ patient.organisme_social }}</dd></div>{% endif %}
+                    <div><dt class="text-text-muted">Couverture</dt><dd class="font-medium {% if patient.couverture %}text-text-main{% else %}text-amber-700{% endif %}">{{ patient.couverture_label }}{% if patient.organisme_social %} <span class="font-normal text-text-muted">· {{ patient.organisme_social }}</span>{% endif %}</dd></div>
                 </dl>
             </div>
 

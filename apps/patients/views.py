@@ -25,14 +25,27 @@ from apps.clinical.documents import (
 )
 from apps.clinical.models import Consultation, PatientDocument
 
+from .couverture import COUVERTURE_CHOICES, COUVERTURE_LABELS
 from .history import apply_history_post
 from .models import Patient
+
+
+def _couverture(post):
+    """Couverture choisie dans le formulaire ; toute valeur inconnue = non renseignée."""
+    value = post.get("couverture", "").strip()
+    return value if value in COUVERTURE_LABELS else ""
 
 
 @login_required
 def index(request):
     cabinet = request.user.profile.cabinet
-    patients = list(Patient.objects.filter(cabinet=cabinet)[:50])
+    view_filter = request.GET.get("view", "all")
+    a_verifier = Patient.objects.filter(cabinet=cabinet, couverture="")
+    if view_filter == "a_verifier":
+        # Fiches dont la couverture n'est pas renseignée : toutes, pour que l'assistante les complète.
+        patients = list(a_verifier.order_by("last_name", "first_name")[:500])
+    else:
+        patients = list(Patient.objects.filter(cabinet=cabinet)[:50])
     upcoming = (
         Appointment.objects.select_related("patient")
         .filter(cabinet=cabinet, patient__in=patients, date__gte=timezone.now())
@@ -56,7 +69,6 @@ def index(request):
         patient.next_appointment = next_appointment_by_patient.get(patient.pk)
         patient.last_completed_consultation = last_completed_by_patient.get(patient.pk)
 
-    view_filter = request.GET.get("view", "all")
     if view_filter == "completed":
         patients = [p for p in patients if p.last_completed_consultation]
 
@@ -67,6 +79,7 @@ def index(request):
             "patients": patients,
             "view_filter": view_filter,
             "completed_count": len(last_completed_by_patient),
+            "a_verifier_count": a_verifier.count(),
             "is_doctor": request.user.profile.role == "doctor",
         },
     )
@@ -84,6 +97,7 @@ def create_patient(request):
                 last_name=last_name,
                 cin=request.POST.get("cin", "").strip(),
                 social_security_number=request.POST.get("social_security_number", "").strip(),
+                couverture=_couverture(request.POST),
                 organisme_social=request.POST.get("organisme_social", "").strip(),
                 birth_date=request.POST.get("birth_date") or None,
                 phone=request.POST.get("phone", "").strip(),
@@ -96,7 +110,9 @@ def create_patient(request):
             return redirect("appointments:create_appointment_for", patient_id=patient.pk)
         messages.error(request, "Nom et prénom sont obligatoires.")
 
-    return render(request, "patients/create.html", {"is_doctor": request.user.profile.is_doctor})
+    return render(request, "patients/create.html", {
+        "is_doctor": request.user.profile.is_doctor, "couverture_choices": COUVERTURE_CHOICES,
+    })
 
 
 @login_required
@@ -110,6 +126,7 @@ def edit_patient(request, pk):
             patient.last_name = last_name
             patient.cin = request.POST.get("cin", "").strip()
             patient.social_security_number = request.POST.get("social_security_number", "").strip()
+            patient.couverture = _couverture(request.POST)
             patient.organisme_social = request.POST.get("organisme_social", "").strip()
             patient.birth_date = request.POST.get("birth_date") or None
             patient.phone = request.POST.get("phone", "").strip()
@@ -121,7 +138,9 @@ def edit_patient(request, pk):
             return redirect("patients:index")
         messages.error(request, "Nom et prénom sont obligatoires.")
 
-    return render(request, "patients/edit.html", {"patient": patient, "is_doctor": request.user.profile.is_doctor})
+    return render(request, "patients/edit.html", {
+        "patient": patient, "is_doctor": request.user.profile.is_doctor, "couverture_choices": COUVERTURE_CHOICES,
+    })
 
 
 @login_required

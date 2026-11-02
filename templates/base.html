@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Medigest — Cabinet Dr Errmili Khadija{% endblock %}</title>
+    <title>{% block title %}Medigest{% if brand_cabinet %} — {{ brand_cabinet.nom }}{% endif %}{% endblock %}</title>
 
     <link rel="stylesheet" href="{% static 'vendor/fonts/plus-jakarta-sans.css' %}">
 
@@ -120,7 +120,7 @@
         {% endif %}
         <div class="min-w-0 inline md:hidden lg:block">
             <p class="font-bold text-sm text-white leading-tight truncate">{{ request.user.profile.cabinet.nom|default:"Mon Cabinet" }}</p>
-            <p class="text-[11.5px] text-white/45 leading-tight mt-0.5 truncate">Gynécologie &amp; Obstétrique</p>
+            <p class="text-[11.5px] text-white/45 leading-tight mt-0.5 truncate">{{ request.user.profile.cabinet.get_specialite_display }}</p>
         </div>
     </div>
 

@@ -8,7 +8,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from apps.clinical.services import LETTERHEAD, doctor_display_name
+from apps.clinical.services import doctor_display_name
+from apps.common.letterhead import letterhead_for, pdf_colors
 from apps.common.pdf import render_pdf
 
 from apps.patients.couverture import libelle as coverage_label
@@ -160,6 +161,7 @@ def build_revenue_pdf(cabinet, report, doctor):
             "cabinet": cabinet,
             "doc_date": timezone.localtime(),
             "doctor_name": doctor_display_name(doctor),
+            "pdf_colors": pdf_colors(cabinet),
         },
-        background=LETTERHEAD,
+        background=letterhead_for(cabinet),
     )

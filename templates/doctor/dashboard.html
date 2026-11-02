@@ -5,7 +5,7 @@
 <div class="max-w-5xl mx-auto px-6 py-7">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-7">
         <div>
-            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Bonjour, Dr. ERRMILI</h1>
+            <h1 class="text-[28px] font-semibold text-text-main tracking-tight leading-tight">Bonjour, Dr {{ request.user.last_name|default:request.user.get_username|upper }}</h1>
             <p class="text-sm text-text-muted mt-1">
                 {% if is_today %}Voici l'état de votre file d'attente aujourd'hui.{% else %}Rendez-vous programmés pour le {{ selected_date|date:"l d F Y" }}.{% endif %}
             </p>

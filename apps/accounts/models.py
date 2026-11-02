@@ -5,6 +5,7 @@ from django.core.validators import MaxValueValidator, RegexValidator
 from django.db import models
 
 from .branding import DEFAULT_PRIMARY
+from .specialites import GYNECOLOGIE, SPECIALITE_CHOICES
 
 # Valeurs de billing.models.PaymentMethod (pas d'import : billing dépend d'accounts).
 PAYMENT_METHOD_VALUES = ["cash", "card", "check", "transfer"]
@@ -26,9 +27,25 @@ class Cabinet(models.Model):
         validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$", "Format attendu : #RRGGBB.")],
         help_text="Couleur de marque (pas 500) : toute la palette de l'interface en est dérivée.",
     )
+    specialite = models.CharField(
+        "Spécialité", max_length=20, choices=SPECIALITE_CHOICES, default=GYNECOLOGIE,
+        help_text="Affichée sous le nom du cabinet ; décide des actes et modèles proposés.",
+    )
     ville = models.CharField(
         "Ville", max_length=80, blank=True,
-        help_text="Imprimée sur les documents : « Khemisset, le 16 octobre 2026 ».",
+        help_text="Imprimée sur les documents : « Rabat, le 16 octobre 2026 ».",
+    )
+    adresse = models.CharField("Adresse", max_length=200, blank=True)
+    telephone = models.CharField("Téléphone du cabinet", max_length=30, blank=True)
+    # Papier à en-tête propre au cabinet, posé en fond des PDF « avec en-tête ».
+    # Absent : Medigest génère un en-tête sobre à partir du nom, du médecin et de l'adresse.
+    entete_pdf = models.FileField(
+        "Papier à en-tête (PDF)", upload_to="cabinets/entetes/", blank=True,
+        help_text="Une page A4 : en-tête et pied du cabinet, zone centrale vide.",
+    )
+    entete_ordonnance_pdf = models.FileField(
+        "Modèle d'ordonnance (PDF)", upload_to="cabinets/entetes/", blank=True,
+        help_text="Facultatif : sinon le papier à en-tête sert aussi pour les ordonnances.",
     )
     # Mentions légales des factures : imprimées seulement si renseignées.
     inpe = models.CharField("INPE", max_length=30, blank=True)

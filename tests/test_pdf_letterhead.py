@@ -18,6 +18,7 @@ from apps.billing.services import generate_receipt_pdf, record_payment
 from apps.clinical import services
 from apps.clinical.models import Consultation, ConsultationAct
 from apps.patients.models import Patient
+from tests.helpers import attach_errmili_letterhead
 
 LETTERHEAD_MARKERS = ("Khadija Errmili", "Khemisset (en face de la Place El Massira)")
 FAKE_HEADER = "Avenue Hassan II"
@@ -42,6 +43,7 @@ class LetterheadPdfTest(TestCase):
         self.addCleanup(override.disable)
 
         self.cabinet = Cabinet.objects.create(nom="Cabinet Test", slug="cabinet-test", ville="Khemisset")
+        attach_errmili_letterhead(self.cabinet)
         self.doctor = User.objects.create_user(username="dr_pdf", password="x", first_name="Khadija", last_name="Errmili")
         Profile.objects.update_or_create(user=self.doctor, defaults={"role": Profile.Role.DOCTOR, "cabinet": self.cabinet})
         self.patient = Patient.objects.create(

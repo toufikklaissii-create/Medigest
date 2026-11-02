@@ -40,8 +40,8 @@ def _link_callback(uri, rel):
 def render_pdf(template_name, context, background=None, page_format="A4", offset_mm=(0, 0)):
     """Render a Django template to PDF bytes via xhtml2pdf (pure Python, no native deps).
 
-    `background` is an optional static path to a one-page PDF (e.g. the cabinet's
-    printed letterhead) laid under every page of the rendered document.
+    `background` is an optional one-page PDF laid under every page (the cabinet's
+    letterhead): bytes, an absolute path, or a static path.
     `page_format` "A5" scales the A4 layout down to an A5 page; `offset_mm` (x, y)
     shifts the content right / down to match a printer on pre-printed paper.
     """
@@ -84,10 +84,15 @@ def _apply_background(pdf_bytes, background):
     Done with pypdf directly rather than xhtml2pdf's @page background-image, which
     goes through temporary files that Windows cannot reopen.
     """
-    background_path = finders.find(background)
-    if not background_path:
-        raise RuntimeError(f"Fond PDF introuvable : {background}")
-    background_page = PdfReader(background_path).pages[0]
+    if isinstance(background, (bytes, bytearray)):
+        # Papier généré à la volée (cabinet sans papier à en-tête chargé).
+        background_page = PdfReader(io.BytesIO(background)).pages[0]
+    else:
+        # Papier chargé par le cabinet (chemin absolu) ou fichier statique.
+        background_path = background if Path(background).is_absolute() else finders.find(background)
+        if not background_path or not Path(background_path).is_file():
+            raise RuntimeError(f"Fond PDF introuvable : {background}")
+        background_page = PdfReader(background_path).pages[0]
 
     writer = PdfWriter()
     for page in PdfReader(io.BytesIO(pdf_bytes)).pages:

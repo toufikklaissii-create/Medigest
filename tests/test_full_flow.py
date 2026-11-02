@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from apps.accounts.models import Profile
+from apps.accounts.models import Cabinet, Profile
 from apps.appointments.models import Appointment
 from apps.billing.models import Invoice, MedicalAct
 from apps.clinical.models import Consultation
@@ -16,18 +16,20 @@ class FullClinicJourneyTest(TestCase):
     -> Actes -> Ordonnance PDF -> Encaissement -> Reçu PDF -> Tâches."""
 
     def setUp(self):
+        # Multi-cabinet : tout utilisateur et toute donnée appartiennent à un cabinet.
+        self.cabinet = Cabinet.objects.create(nom="Cabinet Test", slug="cabinet-flow")
         self.doctor = User.objects.create_user(username="dr_test", password="testpass123")
-        Profile.objects.update_or_create(user=self.doctor, defaults={"role": Profile.Role.DOCTOR})
+        Profile.objects.update_or_create(user=self.doctor, defaults={"role": Profile.Role.DOCTOR, "cabinet": self.cabinet})
 
         self.assistant = User.objects.create_user(username="assist_test", password="testpass123")
         Profile.objects.update_or_create(
-            user=self.assistant, defaults={"role": Profile.Role.ASSISTANT}
+            user=self.assistant, defaults={"role": Profile.Role.ASSISTANT, "cabinet": self.cabinet}
         )
 
         self.act_consultation = MedicalAct.objects.create(
-            code="CONS_TEST", name="Consultation test", price=300
+            cabinet=self.cabinet, code="CONS_TEST", name="Consultation test", price=300
         )
-        self.act_echo = MedicalAct.objects.create(code="ECHO_TEST", name="Écho test", price=500)
+        self.act_echo = MedicalAct.objects.create(cabinet=self.cabinet, code="ECHO_TEST", name="Écho test", price=500)
 
         self.assistant_client = Client()
         self.doctor_client = Client()

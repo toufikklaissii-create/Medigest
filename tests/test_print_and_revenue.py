@@ -22,6 +22,7 @@ from apps.billing.services import record_payment
 from apps.clinical.models import Consultation, Document
 from apps.common.pdf import A5_SIZE, MM
 from apps.patients.models import Patient
+from tests.helpers import attach_errmili_letterhead
 
 # Textes du fond (adresse et téléphone du pied de page) : absents d'un PDF d'impression.
 LETTERHEAD_MARKERS = ("Khemisset (en face de la Place El Massira)", "dr.errmili.khadija@gmail.com")
@@ -72,6 +73,7 @@ class PrintBase(TestCase):
         self.addCleanup(override.disable)
 
         self.cabinet = Cabinet.objects.create(nom="Cabinet Test", slug="cabinet-impression", ville="Khemisset")
+        attach_errmili_letterhead(self.cabinet)
         self.doctor = User.objects.create_user(username="dr_print", password="x", first_name="Khadija", last_name="Errmili")
         Profile.objects.update_or_create(user=self.doctor, defaults={"role": Profile.Role.DOCTOR, "cabinet": self.cabinet})
         self.assistant = User.objects.create_user(username="as_print", password="x")

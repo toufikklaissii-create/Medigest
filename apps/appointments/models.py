@@ -24,7 +24,7 @@ class Appointment(models.Model):
         CANCELLED = "cancelled", "Annulé"
 
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="appointments", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="appointments"
     )
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="appointments"

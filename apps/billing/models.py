@@ -11,7 +11,7 @@ from apps.patients.models import Patient
 
 class MedicalAct(models.Model):
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="medical_acts", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="medical_acts"
     )
     code = models.CharField(max_length=30)
     name = models.CharField(max_length=150)
@@ -52,7 +52,7 @@ class Invoice(models.Model):
     PaymentMethod = PaymentMethod
 
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="invoices", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="invoices"
     )
     invoice_number = models.CharField(max_length=20, editable=False)
     patient = models.ForeignKey(

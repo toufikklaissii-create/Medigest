@@ -5,11 +5,25 @@
 
     <section class="bg-surface rounded-2xl border border-border-subtle shadow-card p-6" aria-labelledby="identity-title">
         <h2 id="identity-title" class="text-[15px] font-semibold text-text-main">Mentions du cabinet</h2>
-        <p class="mt-1 text-[13px] text-text-muted">La ville s'imprime sur les PDF avec en-tête ; l'INPE et l'ICE en bas des factures quand ils sont renseignés.</p>
+        <p class="mt-1 text-[13px] text-text-muted">La spécialité s'affiche sous le nom du cabinet. Sans papier à en-tête chargé, l'adresse, le téléphone, l'INPE et l'ICE composent l'en-tête des PDF.</p>
         <div class="mt-5 grid gap-4 sm:grid-cols-3">
             <label class="block">
+                <span class="text-[13px] font-medium text-text-soft">Spécialité</span>
+                <select name="specialite" class="mt-1.5 {{ input_cls }} border-border-subtle">
+                    {% for value, label in specialite_choices %}<option value="{{ value }}" {% if cabinet.specialite == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="block sm:col-span-2">
+                <span class="text-[13px] font-medium text-text-soft">Adresse</span>
+                <input name="adresse" value="{{ cabinet.adresse }}" maxlength="200" placeholder="N°, rue, quartier" class="mt-1.5 {{ input_cls }} border-border-subtle">
+            </label>
+            <label class="block">
+                <span class="text-[13px] font-medium text-text-soft">Téléphone du cabinet</span>
+                <input name="telephone" value="{{ cabinet.telephone }}" maxlength="30" class="mt-1.5 {{ input_cls }} border-border-subtle tabular-nums">
+            </label>
+            <label class="block">
                 <span class="text-[13px] font-medium text-text-soft">Ville</span>
-                <input name="ville" value="{{ cabinet.ville }}" maxlength="80" placeholder="Khemisset" class="mt-1.5 {{ input_cls }} border-border-subtle">
+                <input name="ville" value="{{ cabinet.ville }}" maxlength="80" placeholder="Ex. Rabat" class="mt-1.5 {{ input_cls }} border-border-subtle">
             </label>
             <label class="block">
                 <span class="text-[13px] font-medium text-text-soft">INPE</span>

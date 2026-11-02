@@ -26,16 +26,16 @@
     .place-date { text-align: center; font-size: {% if a5 %}15pt{% else %}12pt{% endif %}; margin-top: 4pt; }
     .page-number { text-align: right; font-size: 8pt; color: #6B7280; }
 
-    .patient { font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; padding-bottom: 6pt; margin-bottom: 12pt; border-bottom: 0.6pt solid #E8B4C4; }
+    .patient { font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; padding-bottom: 6pt; margin-bottom: 12pt; border-bottom: 0.6pt solid {{ pdf_colors.line|default:"#E8B4C4" }}; }
     .patient .meta { color: #4B5563; font-size: {% if a5 %}14pt{% else %}10.5pt{% endif %}; }
 
-    h2 { font-family: Times-Bold; font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; color: #9D2B4F; margin: 12pt 0 3pt 0; padding: 0; }
+    h2 { font-family: Times-Bold; font-size: {% if a5 %}16pt{% else %}12pt{% endif %}; color: {{ pdf_colors.title|default:"#9D2B4F" }}; margin: 12pt 0 3pt 0; padding: 0; }
     .text { white-space: pre-line; }
     .muted { color: #6B7280; font-style: italic; }
 
-    table.grid { width: 100%; border: 0.6pt solid #E5D3DA; }
-    table.grid td, table.grid th { padding: 4pt 7pt; font-size: {% if a5 %}14pt{% else %}10.5pt{% endif %}; vertical-align: top; text-align: left; border: 0.6pt solid #E5D3DA; }
-    table.grid th { font-family: Times-Bold; background-color: #FBF3F6; color: #5B1A33; }
+    table.grid { width: 100%; border: 0.6pt solid {{ pdf_colors.border|default:"#E5D3DA" }}; }
+    table.grid td, table.grid th { padding: 4pt 7pt; font-size: {% if a5 %}14pt{% else %}10.5pt{% endif %}; vertical-align: top; text-align: left; border: 0.6pt solid {{ pdf_colors.border|default:"#E5D3DA" }}; }
+    table.grid th { font-family: Times-Bold; background-color: {{ pdf_colors.head_bg|default:"#FBF3F6" }}; color: {{ pdf_colors.head_text|default:"#5B1A33" }}; }
     .right { text-align: right; }
     table.journal td, table.journal th { font-size: {% if a5 %}12pt{% else %}9pt{% endif %}; padding: 3pt 4pt; }
 

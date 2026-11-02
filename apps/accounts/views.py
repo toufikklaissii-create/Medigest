@@ -2,11 +2,14 @@ import json
 from datetime import time
 from decimal import Decimal, InvalidOperation
 
+from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.billing.reports import format_long_date, local_today
@@ -14,6 +17,7 @@ from apps.billing.reports import format_long_date, local_today
 from .decorators import role_required
 from .models import Cabinet, PrintProfile, Profile
 from .printing import build_test_page
+from .specialites import SPECIALITE_CHOICES, SPECIALITE_LABELS
 
 
 def tenant_discovery(request):
@@ -102,7 +106,7 @@ def _profile_from_data(profile, data):
 
 PAYMENT_METHOD_LABELS = [("cash", "Espèces"), ("card", "Carte"), ("check", "Chèque"), ("transfer", "Virement")]
 CABINET_SETTINGS_FIELDS = [
-    "ville", "inpe", "ice", "modes_paiement", "paiement_partiel", "heure_ouverture", "heure_fermeture",
+    "ville", "inpe", "ice", "specialite", "adresse", "telephone", "modes_paiement", "paiement_partiel", "heure_ouverture", "heure_fermeture",
     "heure_fermeture_samedi", "dimanche_ferme", "controle_gratuit_jours", "telephone_whatsapp",
 ]
 
@@ -120,6 +124,11 @@ def _cabinet_from_data(cabinet, data):
     cabinet.ville = data.get("ville", "").strip()[:80]
     cabinet.inpe = data.get("inpe", "").strip()[:30]
     cabinet.ice = data.get("ice", "").strip()[:30]
+    if "adresse" in data:
+        cabinet.adresse = data.get("adresse", "").strip()[:200]
+        cabinet.telephone = data.get("telephone", "").strip()[:30]
+    if data.get("specialite") in SPECIALITE_LABELS:
+        cabinet.specialite = data["specialite"]
     if "reglages_cabinet" not in data:
         return errors  # ancien formulaire : seulement les mentions
 
@@ -158,6 +167,11 @@ def _settings_context(cabinet, profiles, errors=None, saved=False):
     return {
         "cabinet": cabinet, "profiles": profiles, "errors": errors or {}, "saved": saved,
         "payment_method_labels": PAYMENT_METHOD_LABELS,
+        "specialite_choices": SPECIALITE_CHOICES,
+        "letterheads": [
+            ("entete_pdf", "Papier à en-tête", cabinet.entete_pdf),
+            ("entete_ordonnance_pdf", "Modèle d'ordonnance", cabinet.entete_ordonnance_pdf),
+        ],
     }
 
 
@@ -202,4 +216,95 @@ def print_test_page(request, document_type):
 
 def _toast(response, message, type_="success"):
     response.headers["HX-Trigger"] = json.dumps({"toast": {"message": message, "type": type_}})
+    return response
+
+
+# ── Papier à en-tête du cabinet ──────────────────────────────────────────────
+
+MAX_LETTERHEAD_BYTES = 5 * 1024 * 1024
+LETTERHEAD_FIELDS = {"entete_pdf": "papier à en-tête", "entete_ordonnance_pdf": "modèle d'ordonnance"}
+
+
+def _letterhead_error(upload):
+    """Message d'erreur si le fichier n'est pas un PDF d'une page lisible, sinon None."""
+    from pypdf import PdfReader
+
+    if upload.size > MAX_LETTERHEAD_BYTES:
+        return "fichier trop lourd (5 Mo maximum)"
+    head = upload.read(5)
+    upload.seek(0)
+    if head != b"%PDF-":
+        return "ce n'est pas un fichier PDF"
+    try:
+        reader = PdfReader(upload)
+        pages = len(reader.pages)
+    except Exception:  # noqa: BLE001 — PDF illisible, quelle qu'en soit la raison
+        return "PDF illisible"
+    finally:
+        upload.seek(0)
+    if pages < 1:
+        return "PDF vide"
+    return None
+
+
+@login_required
+@role_required("doctor")
+def cabinet_letterhead(request):
+    """Charge, remplace ou retire le papier à en-tête (POST multipart depuis les Réglages)."""
+    if request.method != "POST":
+        return redirect("accounts:settings")
+    cabinet = request.user.profile.cabinet
+    for field, label in LETTERHEAD_FIELDS.items():
+        current = getattr(cabinet, field)
+        if request.POST.get(f"{field}-supprimer") == "1" and current:
+            current.delete(save=False)
+            setattr(cabinet, field, "")
+            messages.success(request, f"{label.capitalize()} retiré : l'en-tête généré par Medigest est utilisé.")
+        upload = request.FILES.get(field)
+        if upload:
+            error = _letterhead_error(upload)
+            if error:
+                messages.error(request, f"{label.capitalize()} refusé : {error}.")
+                continue
+            if current:
+                current.delete(save=False)
+            getattr(cabinet, field).save(f"{cabinet.slug}_{field}.pdf", upload, save=False)
+            messages.success(request, f"{label.capitalize()} enregistré. Vérifiez l'aperçu avant d'imprimer.")
+    cabinet.save(update_fields=list(LETTERHEAD_FIELDS))
+    return redirect(f"{reverse('accounts:settings')}#entete")
+
+
+@login_required
+@role_required("doctor")
+def letterhead_preview(request, kind):
+    """Aperçu d'un certificat (ou d'une ordonnance) d'exemple sur le papier du cabinet."""
+    from apps.clinical.services import (
+        MODE_LETTERHEAD, PRESCRIPTION_LETTERHEAD, doctor_display_name, prescription_lines, render_document,
+    )
+    from apps.patients.models import Patient
+
+    if kind not in ("certificat", "ordonnance"):
+        raise Http404("Aperçu inconnu.")
+    cabinet = request.user.profile.cabinet
+    patient = Patient(cabinet=cabinet, first_name="Prénom", last_name="EXEMPLE", patient_number="PAT-0000-0000")
+    context = {
+        "patient": patient, "cabinet": cabinet, "doc_date": timezone.now(),
+        "doctor_name": doctor_display_name(request.user),
+    }
+    if kind == "ordonnance":
+        pdf = render_document(
+            "pdf/prescription.html",
+            {**context, "prescription_lines": prescription_lines("Médicament d'exemple 1 cp matin et soir\nDeuxième ligne d'exemple")},
+            cabinet=cabinet, document_type=PrintProfile.DocumentType.ORDONNANCE, mode=MODE_LETTERHEAD,
+            background=PRESCRIPTION_LETTERHEAD,
+        )
+    else:
+        pdf = render_document(
+            "pdf/letter.html",
+            {**context, "doc_title": "Certificat médical",
+             "content": "Texte d'exemple : vérifiez que l'en-tête, la date et ce texte ne se chevauchent pas."},
+            cabinet=cabinet, document_type=PrintProfile.DocumentType.LETTRE, mode=MODE_LETTERHEAD,
+        )
+    response = HttpResponse(pdf, content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="apercu_{kind}.pdf"'
     return response

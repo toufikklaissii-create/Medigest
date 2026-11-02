@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from apps.accounts.models import PrintProfile
+from apps.common.letterhead import letterhead_for, pdf_colors
 from apps.common.pdf import render_pdf, save_pdf_copy
 
 from .courriers import COURRIER_TYPES_BY_KEY
@@ -23,8 +24,9 @@ PRESCRIPTION_PARTS = {
 }
 
 # Papier à en-tête du cabinet (logo, coordonnées, pied de page), posé en fond de chaque page.
-LETTERHEAD = "pdf/entete_cabinet.pdf"
-PRESCRIPTION_LETTERHEAD = "pdf/ordonnance_modele.pdf"  # même en-tête, titre « ORDONNANCE » imprimé
+# Papier à en-tête : propre à chaque cabinet (apps/common/letterhead.py).
+LETTERHEAD = "general"
+PRESCRIPTION_LETTERHEAD = "ordonnance"
 
 # Deux rendus par document : « Imprimer » sur papier pré-imprimé (texte seul, réglages du
 # profil) ou « PDF avec en-tête » (fond du cabinet, à envoyer ou archiver).
@@ -115,14 +117,15 @@ def render_document(template_name, context, *, cabinet, document_type, mode=MODE
     """
     profile = PrintProfile.for_document(cabinet, document_type)
     # A5 : la page A4 est réduite de 30 % ; les gabarits grossissent leur texte pour rester lisibles.
-    context = {**context, "a5": profile.format == PrintProfile.Format.A5}
+    context = {**context, "a5": profile.format == PrintProfile.Format.A5, "pdf_colors": pdf_colors(cabinet)}
     if mode == MODE_PRINT:
         return render_pdf(
             template_name, {**context, "pdf_base": PRINT_BASE, "print_mode": True},
             page_format=profile.format, offset_mm=(profile.decalage_x_mm, profile.decalage_y_mm),
         )
     return render_pdf(
-        template_name, {**context, "pdf_base": LETTERHEAD_BASE}, background=background,
+        template_name, {**context, "pdf_base": LETTERHEAD_BASE},
+        background=letterhead_for(cabinet, ordonnance=background == PRESCRIPTION_LETTERHEAD),
         page_format=profile.format,
     )
 
@@ -211,8 +214,9 @@ def generate_patient_record_pdf(patient, save_copy=True, doctor=None):
         {
             **letterhead_context(patient, timezone.now(), doctor),
             "consultations": consultations,
+            "pdf_colors": pdf_colors(patient.cabinet),
         },
-        background=LETTERHEAD,
+        background=letterhead_for(patient.cabinet),
     )
     if save_copy:
         save_pdf_copy(patient, "dossier_patient", pdf_bytes)

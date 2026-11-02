@@ -15,5 +15,37 @@
     <div class="mt-7">
         {% include "accounts/_settings_form.html" %}
     </div>
+
+    <section id="entete" class="mt-6 scroll-mt-24 bg-surface rounded-2xl border border-border-subtle shadow-card p-6" aria-labelledby="entete-title">
+        <h2 id="entete-title" class="text-[15px] font-semibold text-text-main">Papier à en-tête</h2>
+        <p class="mt-1 text-[13px] text-text-muted max-w-[680px]">Utilisé pour les PDF « avec en-tête ». Chargez un PDF d'une page A4 avec votre en-tête et votre pied de page, la zone centrale vide. Sans fichier, Medigest compose un en-tête sobre avec le nom du cabinet, le médecin, la spécialité et l'adresse.</p>
+        <form method="post" action="{% url 'accounts:cabinet_letterhead' %}" enctype="multipart/form-data" class="mt-5 grid gap-4 lg:grid-cols-2">
+            {% csrf_token %}
+            {% for field, label, current in letterheads %}
+            <div class="rounded-xl border border-border-subtle p-4">
+                <p class="text-[13px] font-semibold text-text-main">{{ label }}</p>
+                <p class="mt-0.5 text-[12.5px] {% if current %}text-emerald-700{% else %}text-text-muted{% endif %}">
+                    {% if current %}Fichier chargé{% elif field == "entete_ordonnance_pdf" %}Aucun : le papier à en-tête sert aussi pour les ordonnances{% else %}Aucun : en-tête généré par Medigest{% endif %}
+                </p>
+                <input type="file" name="{{ field }}" accept="application/pdf,.pdf"
+                       class="mt-3 block w-full text-[13px] text-text-soft file:mr-3 file:h-9 file:rounded-lg file:border-0 file:bg-sauge-50 file:px-3 file:text-[13px] file:font-medium file:text-sauge-700 hover:file:bg-sauge-100">
+                {% if current %}
+                <label class="mt-2 inline-flex items-center gap-2 text-[12.5px] text-text-soft cursor-pointer">
+                    <input type="checkbox" name="{{ field }}-supprimer" value="1" class="size-4 rounded border-border-strong accent-sauge-600"> Retirer ce fichier
+                </label>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <div class="lg:col-span-2 flex flex-wrap items-center justify-between gap-3">
+                <p class="text-[12.5px] text-text-muted">Aperçu :
+                    <a href="{% url 'accounts:letterhead_preview' 'certificat' %}" target="_blank" rel="noopener" class="font-medium text-sauge-600 hover:underline">certificat</a> ·
+                    <a href="{% url 'accounts:letterhead_preview' 'ordonnance' %}" target="_blank" rel="noopener" class="font-medium text-sauge-600 hover:underline">ordonnance</a>
+                </p>
+                <button type="submit" class="btn-tactile inline-flex items-center gap-1.5 h-10 rounded-lg bg-sauge-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-sauge-700">
+                    <i data-lucide="upload" class="w-4 h-4" stroke-width="1.75" aria-hidden="true"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </section>
 </div>
 {% endblock %}

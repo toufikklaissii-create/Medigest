@@ -40,13 +40,14 @@ MODELES_DEFAUT = [
 ]
 
 
-def creer_modeles_defaut(cabinet, model):
+def creer_modeles_defaut(cabinet, model, specialite="gynecologie"):
     """Crée les modèles de départ pour un cabinet qui n'en a encore aucun ; renvoie le nombre créé.
 
     Un cabinet qui a déjà des modèles n'est jamais modifié : un modèle supprimé par la doctoresse
     ne revient pas à la mise à jour suivante.
     """
-    if model.objects.filter(cabinet=cabinet).exists():
+    if specialite != "gynecologie" or model.objects.filter(cabinet=cabinet).exists():
+        # Les modèles fournis sont ceux d'un cabinet de gynécologie ; les autres partent de zéro.
         return 0
     model.objects.bulk_create(model(cabinet=cabinet, **data) for data in MODELES_DEFAUT)
     return len(MODELES_DEFAUT)

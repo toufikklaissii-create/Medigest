@@ -42,19 +42,22 @@ class DevinerCouvertureTest(TestCase):
 class MigrationCouvertureTest(TransactionTestCase):
     """La migration range les fiches existantes sans jamais modifier le texte saisi."""
 
-    migrate_from = [("patients", "0005_alter_patient_patient_number_and_more")]
-    migrate_to = [("patients", "0006_couverture_medicale")]
+    migrate_from = [("accounts", "0013_cabinet_specialite_entete"),
+                    ("patients", "0005_alter_patient_patient_number_and_more")]
+    migrate_to = [("accounts", "0013_cabinet_specialite_entete"), ("patients", "0006_couverture_medicale")]
 
     def test_fiches_existantes_classees(self):
         executor = MigrationExecutor(connection)
         executor.migrate(self.migrate_from)
         old_apps = executor.loader.project_state(self.migrate_from).apps
         OldPatient = old_apps.get_model("patients", "Patient")
+        cabinet = old_apps.get_model("accounts", "Cabinet").objects.create(nom="Cabinet fictif", slug="cabinet-migration")
         textes = {"CNSS": CNSS, "c.n.o.p.s": CNOPS, "aucune": AUCUNE, "AMO": "", "Mutuelle X": "", "": ""}
         ids = {}
         for index, texte in enumerate(textes):
             ids[texte] = OldPatient.objects.create(
                 first_name=f"Fictive{index}", last_name="Test", patient_number=f"T-{index}", organisme_social=texte,
+                cabinet=cabinet,
             ).pk
 
         executor = MigrationExecutor(connection)

@@ -244,12 +244,28 @@ MODELES_COURRIER_DEFAUT = [
 ]
 
 
-def creer_modeles_courrier_defaut(cabinet, model):
+# Modèles propres à la gynécologie-obstétrique : jamais proposés aux autres spécialités.
+MODELES_GYNECO = {
+    "Aptitude au voyage (grossesse)", "Déclaration de grossesse", "Grossesse à surveiller (repos)",
+    "Congé de maternité", "Échographie morphologique", "Accouchement",
+}
+
+
+def modeles_courrier_pour(specialite="gynecologie"):
+    if specialite == "gynecologie":
+        return list(MODELES_COURRIER_DEFAUT)
+    return [data for data in MODELES_COURRIER_DEFAUT
+            if data["nom"] not in MODELES_GYNECO and data["type_document"] != "cert_grossesse"]
+
+
+def creer_modeles_courrier_defaut(cabinet, model, specialite="gynecologie"):
     """Crée les modèles de départ pour un cabinet qui n'en a encore aucun ; renvoie le nombre créé.
 
     Un cabinet qui a déjà des modèles n'est jamais modifié : un modèle supprimé ne revient pas.
+    Hors gynécologie, seuls les modèles génériques sont créés.
     """
     if model.objects.filter(cabinet=cabinet).exists():
         return 0
-    model.objects.bulk_create(model(cabinet=cabinet, **data) for data in MODELES_COURRIER_DEFAUT)
-    return len(MODELES_COURRIER_DEFAUT)
+    modeles = modeles_courrier_pour(specialite)
+    model.objects.bulk_create(model(cabinet=cabinet, **data) for data in modeles)
+    return len(modeles)

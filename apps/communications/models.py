@@ -16,7 +16,7 @@ class Task(models.Model):
         URGENT = "urgent", "Urgente"
 
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="tasks", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="tasks"
     )
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="authored_tasks"

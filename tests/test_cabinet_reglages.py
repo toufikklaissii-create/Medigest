@@ -436,7 +436,7 @@ class AccountantPdfTest(ReglagesBase):
         self.assertEqual(response.status_code, 200)
         text = "\n".join(page.extract_text() for page in PdfReader(io.BytesIO(response.content)).pages)
         for expected in ("Journal détaillé", paid.invoice_number, "Salma Bennani", "Consultation", "Espèces",
-                         "300,00", "Gratuités / contrôles", "1 gratuité", "Total du mois", "Khemisset (en face"):
+                         "300,00", "Gratuités / contrôles", "1 gratuité", "Total du mois", "Cabinet Dr ERRMILI"):
             self.assertIn(expected, text)
 
     def test_reports_page_has_visible_accountant_button(self):

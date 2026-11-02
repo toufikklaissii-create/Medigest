@@ -37,7 +37,7 @@ class Consultation(models.Model):
         VALIDATED = "validated", "Validée"
 
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="consultations", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="consultations"
     )
     appointment = models.OneToOneField(
         Appointment, on_delete=models.CASCADE, related_name="consultation"
@@ -215,7 +215,7 @@ class PatientDocument(models.Model):
         AUTRE = "autre", "Autre"
 
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="patient_documents", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="patient_documents"
     )
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="documents_joints"

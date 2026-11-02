@@ -19,7 +19,7 @@ class Patient(models.Model):
         O_NEG = "O-", "O-"
 
     cabinet = models.ForeignKey(
-        Cabinet, on_delete=models.CASCADE, related_name="patients", null=True, blank=True
+        Cabinet, on_delete=models.CASCADE, related_name="patients"
     )
     patient_number = models.CharField(max_length=20, editable=False)
     first_name = models.CharField(max_length=100)
